@@ -1,0 +1,1 @@
+(function(){function g(){var o=document.querySelector("nav button.on");if(!o||o.classList.contains("hid")){goTab("prc");return}var v=document.getElementById("v"+o.dataset.v);if(v&&v.style.display=="none")o.click();var k=typeof TOKEN!="undefined"&&!!TOKEN;if(k&&!t){t=1;setTimeout(function(){o.click()},300)}}var t=0;addEventListener("load",g);setInterval(g,500)})();
