@@ -3,7 +3,7 @@ var P={prc:'<path d="M12 3v18M7 21h10M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3
 send:'<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>',up:'<path d="M12 16V4M6 10l6-6 6 6M4 20h16"/>',dl:'<path d="M12 4v12M6 10l6 6 6-6M4 20h16"/>',ref:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>'};
 function I(k,c){return '<svg class="ui-i'+(c?' '+c:'')+'" viewBox="0 0 24 24" aria-hidden="true">'+P[k]+'</svg>'}
 function add(el,k){if(!el||el.querySelector('.ui-i'))return;el.insertAdjacentHTML('afterbegin',I(k))}
-function run(){document.querySelectorAll('nav button[data-v]').forEach(function(b){if(P[b.dataset.v]&&!b.querySelector('.ui-i')){b.innerHTML=I(b.dataset.v,'ui-t')+'<span>'+b.textContent+'</span>'}});
+var OK={prc:1,fin:1,eval:1};function run(){document.querySelectorAll('nav button').forEach(function(b){if(!OK[b.dataset.v]){b.classList.add('hid');b.style.display='none'}});['vreg','vman','vrep','vmet','vsrc','vprop','vperr','vfav'].forEach(function(i){var e=document.getElementById(i);if(e&&e.style.display!=='none'&&!document.querySelector('nav button.on[data-v="'+i.slice(1)+'"]:not(.hid)'))e.style.display='none'});document.querySelectorAll('nav button[data-v]').forEach(function(b){if(P[b.dataset.v]&&!b.querySelector('.ui-i')){b.innerHTML=I(b.dataset.v,'ui-t')+'<span>'+b.textContent+'</span>'}});
  ['psend','fsend','esend'].forEach(function(i){add(document.getElementById(i),'send')});
  document.querySelectorAll('.fdrop>span').forEach(function(s){add(s,'up')});
  document.querySelectorAll('button[data-f]').forEach(function(b){add(b,'dl')});

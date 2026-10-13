@@ -61,3 +61,20 @@ html[data-theme=light] #pin .pbox .plogo img{content:url(arbitr-mark-light.svg)}
 html[data-theme=light] #pin .kp button{background:#FFFFFF!important;border:1px solid #CDEBE2!important;color:#0F2E2A!important;box-shadow:0 1px 3px rgba(15,46,42,.08)!important}
 html[data-theme=light] #pin .msg{color:#4B6E68!important}html[data-theme=light] #pin .dots i{border-color:#0D9488!important}html[data-theme=light] #pin a{color:#0D9488!important}
 html[data-theme] .pstar.on,html[data-theme] .star.on{color:var(--gold)!important}
+
+html[data-theme] #pin,html[data-theme] #pin *{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html[data-theme] #pin .pbox{gap:14px!important;padding:24px 16px;box-sizing:border-box}
+html[data-theme] #pin .kp{display:grid!important;grid-template-columns:repeat(3,72px)!important;grid-auto-rows:72px;gap:16px!important;justify-content:center;margin:6px auto 0;max-width:280px;width:100%}
+html[data-theme] #pin .kp>*{width:72px;height:72px}
+html[data-theme] #pin .kp button{width:72px!important;height:72px!important;border-radius:50%!important;padding:0;display:flex;align-items:center;justify-content:center;transition:none!important;animation:none!important}
+html[data-theme] #pin .kp button:active,html[data-theme] #pin .kp button.hit{background:rgba(20,184,166,.35)!important;border-color:#14B8A6!important}
+html[data-theme] #pin .kp button.x{background:transparent!important;border-color:transparent!important}
+html[data-theme] #pin .dots{display:flex;gap:16px;justify-content:center}
+html[data-theme] #pin .dots i{display:block;width:12px!important;height:12px!important;border-radius:50%!important;border:2px solid #14B8A6!important;background:transparent!important;box-sizing:border-box;transition:none!important;transform:none!important}
+html[data-theme] #pin .dots i.f{background:#14B8A6!important}
+html[data-theme] #pin .dots.bad i{border-color:#EF4444!important;background:#EF4444!important}
+html[data-theme] #pin .dots.shake{animation:arbShk .32s ease!important}
+@keyframes arbShk{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+html[data-theme] #pin .kp button.hit{background:#14B8A6!important;color:#06201C!important}
+html[data-theme] #pin .plogo .shine{display:none}
+
