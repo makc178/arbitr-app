@@ -48,3 +48,14 @@ html[data-theme] .pills button{background:var(--pan)!important;border:1px solid 
 html[data-theme] .pills button.on{background:#14B8A6!important;color:#06201C!important;border-color:#14B8A6!important}
 html[data-theme] header .hb{flex:1 1 100%}html[data-theme] nav{margin-left:auto!important;margin-right:auto!important}
 html[data-theme] header nav{flex:1 1 100%}
+
+html[data-theme] #pin{flex-direction:column!important;align-items:center;justify-content:center}
+html[data-theme] #pin .psplash{display:none!important}
+html[data-theme] #pin .pbox{flex:0 1 auto;min-height:0;width:100%;max-width:420px;margin:0 auto}
+html[data-theme] #pin .pbox .plogo{display:block!important}html[data-theme] #pin .pbox .plogo img{width:min(62vw,240px)!important}
+html[data-theme] #pin .pbox .brand-s{display:none!important}
+html[data-theme] #pin .pbox .brand-n{font-size:30px;font-weight:600;letter-spacing:1px;color:var(--ink)}
+html[data-theme] #pin .pbox .brand-a{font-size:13px;letter-spacing:.02em;text-transform:none;color:#7FA39C}
+html[data-theme=light] #pin{background:linear-gradient(160deg,#ECFAF5,#FFFFFF)!important;color:#0F2E2A!important}
+html[data-theme=light] #pin .plogo img{content:url(arbitr-logo-light.svg)}
+html[data-theme] .pstar.on,html[data-theme] .star.on{color:var(--gold)!important}
