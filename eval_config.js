@@ -66,7 +66,7 @@ window.EVAL_CONFIG={
   {
    "k": "value_wish",
    "label": "Пожелание по стоимости",
-   "type": "select",
+   "type": "segment",
    "req": true,
    "options": {
     "high": "Высокая",
@@ -193,10 +193,12 @@ window.EVAL_CONFIG={
      "label": "Обременения",
      "type": "multi",
      "options": {
+      "none": "Нет",
       "mortgage": "Ипотека",
       "lease": "Аренда",
       "arrest": "Арест"
-     }
+     },
+     "exclusive": "none"
     },
     {
      "k": "rented",
@@ -215,7 +217,8 @@ window.EVAL_CONFIG={
       "rented": "yes"
      }
     }
-   ]
+   ],
+   "upload_caption": "Загрузить ЕГРН, техпаспорт или фото"
   },
   "movable": {
    "label": "Движимое имущество",
@@ -302,11 +305,14 @@ window.EVAL_CONFIG={
      "label": "Обременения",
      "type": "multi",
      "options": {
+      "none": "Нет",
       "pledge": "Залог",
       "arrest": "Арест"
-     }
+     },
+     "exclusive": "none"
     }
-   ]
+   ],
+   "upload_caption": "Загрузить ПТС/ПСМ, СТС, фото или Автотеку"
   },
   "claims": {
    "label": "Права требования",
@@ -374,9 +380,11 @@ window.EVAL_CONFIG={
      "label": "Обеспечение",
      "type": "multi",
      "options": {
+      "none": "Нет",
       "pledge": "Залог",
       "surety": "Поручительство"
-     }
+     },
+     "exclusive": "none"
     },
     {
      "k": "security_desc",
@@ -423,7 +431,8 @@ window.EVAL_CONFIG={
      "label": "Взыскано, ₽",
      "type": "number"
     }
-   ]
+   ],
+   "upload_caption": "Загрузить договор, акты сверки, судебные акты или выписку из реестра"
   },
   "business": {
    "label": "Бизнес",
@@ -512,7 +521,45 @@ window.EVAL_CONFIG={
      "label": "Корпоративные ограничения",
      "type": "textarea"
     }
-   ]
+   ],
+   "upload_caption": "Загрузить отчётность, ОСВ, расшифровки или устав"
+  },
+  "by_document": {
+   "label": "По документу",
+   "mode": "by_document",
+   "attach_hint": "Документы по объекту: PDF, JPG, PNG, DOCX, XLSX — Оценщик сам определит предмет оценки",
+   "require_files": true,
+   "require_files_msg": "Вложения (хотя бы один файл)",
+   "accept": ".pdf,.jpg,.jpeg,.png,.docx,.xlsx",
+   "title_keys": [],
+   "fields": [
+    {
+     "k": "object_type",
+     "label": "Тип объекта",
+     "type": "select",
+     "default": "auto",
+     "options": {
+      "auto": "Определить по документу",
+      "realty": "Недвижимость",
+      "movable": "Движимое имущество",
+      "claims": "Права требования",
+      "business": "Бизнес"
+     }
+    }
+   ],
+   "upload_caption": "Загрузить документы по объекту (PDF, JPG, PNG, DOCX, XLSX)"
   }
- }
+ },
+ "statuses": {
+  "pending": "в обработке",
+  "need_data": "Нужны данные",
+  "data_added": "данные дозагружены",
+  "done": "готово"
+ },
+ "need_data": {
+  "missing_title": "Оценщику не хватает:",
+  "upload_label": "Дозагрузить файлы",
+  "sent": "✓ Файлы дозагружены, Оценщик продолжит работу."
+ },
+ "upload_caption_default": "Загрузить файлы"
 };
