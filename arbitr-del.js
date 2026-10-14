@@ -12,7 +12,7 @@ var mode=null,SEL=new Set(),busy=false;
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function pl(n){var a=n%10,b=n%100;return n+' '+(a==1&&b!=11?'отчёт':a>=2&&a<=4&&(b<12||b>14)?'отчёта':'отчётов')}
 function ok(){return typeof TOKEN!='undefined'&&TOKEN&&typeof REPO!='undefined'&&REPO&&!REPO.startsWith('/*')}
-var css='.adsel{margin-left:auto;font-size:14px;padding:6px 12px;min-height:36px;border:1px solid #EF444466!important;border-radius:10px}'.adh{display:flex;align-items:center;gap:8px}'+
+var css='.adsel{margin-left:auto;font-size:14px;padding:6px 12px;min-height:36px;border-radius:10px}.adsel.adred{border:1px solid #EF444466!important}.adh{display:flex;align-items:center;gap:8px}'+
 '.adcb{flex:0 0 22px;width:22px;height:22px;border-radius:50%;border:2px solid var(--mut,#8a9);box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;margin-right:10px;align-self:center;cursor:pointer}'+
 '.adcb.on{background:#14B8A6;border-color:#14B8A6}.adcb.on:after{content:"";width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}'+
 '.adon .lot[data-ad]{display:flex;align-items:flex-start;cursor:pointer}.adon .lot[data-ad]>.row{flex:1;min-width:0}.adon .lot[data-ad]>.pcard{display:none}.adon .lot[data-ad] button{pointer-events:none}'+
