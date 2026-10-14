@@ -12,7 +12,7 @@ var mode=null,SEL=new Set(),busy=false;
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function pl(n){var a=n%10,b=n%100;return n+' '+(a==1&&b!=11?'отчёт':a>=2&&a<=4&&(b<12||b>14)?'отчёта':'отчётов')}
 function ok(){return typeof TOKEN!='undefined'&&TOKEN&&typeof REPO!='undefined'&&REPO&&!REPO.startsWith('/*')}
-var css='.adsel{margin-left:auto;font-size:13px;padding:5px 12px;min-height:32px}.adh{display:flex;align-items:center;gap:8px}'+
+var css='.adsel{margin-left:auto;font-size:14px;padding:6px 12px;min-height:36px;border:1px solid #EF444466!important;border-radius:10px}'.adh{display:flex;align-items:center;gap:8px}'+
 '.adcb{flex:0 0 22px;width:22px;height:22px;border-radius:50%;border:2px solid var(--mut,#8a9);box-sizing:border-box;display:inline-flex;align-items:center;justify-content:center;margin-right:10px;align-self:center;cursor:pointer}'+
 '.adcb.on{background:#14B8A6;border-color:#14B8A6}.adcb.on:after{content:"";width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:translateY(-1px) rotate(45deg)}'+
 '.adon .lot[data-ad]{display:flex;align-items:flex-start;cursor:pointer}.adon .lot[data-ad]>.row{flex:1;min-width:0}.adon .lot[data-ad]>.pcard{display:none}.adon .lot[data-ad] button{pointer-events:none}'+
@@ -27,14 +27,14 @@ function setup(){
   $('adcan').onclick=function(){stop()};$('adall').onclick=function(){var ids=allIds();var all=ids.length&&ids.every(function(i){return SEL.has(i)});ids.forEach(function(i){all?SEL.delete(i):SEL.add(i)});paint()};$('addel').onclick=ask;$('adno').onclick=function(){if(!busy)$('addlg').close()};$('adyes').onclick=go}
  Object.keys(L).forEach(function(k){var l=$(L[k].list);if(!l)return;var w=l.parentNode,h=null,n=l;
   while(n&&!h){n=n.previousElementSibling;if(n&&n.tagName=='H3')h=n}
-  if(h&&!h.querySelector('.adsel')){h.classList.add('adh');h.style.display='flex';var b=document.createElement('button');b.type='button';b.className='lbtn sec adsel';b.dataset.ad=k;b.textContent='Выбрать';b.onclick=function(){mode===k?stop():start(k)};h.appendChild(b)}
+  if(h&&!h.querySelector('.adsel')){h.classList.add('adh');h.style.display='flex';var b=document.createElement('button');b.type='button';b.className='lbtn sec adsel adred';b.dataset.ad=k;b.innerHTML=TR+'<span>Удалить</span>';b.title='Выбрать отчёты для удаления';b.onclick=function(){mode===k?stop():start(k)};h.appendChild(b)}
   if(!l.dataset.adw){l.dataset.adw=1;l.addEventListener('click',function(e){if(mode!==k)return;var c=e.target.closest('.lot[data-ad]');if(!c)return;e.preventDefault();e.stopPropagation();var id=c.dataset.ad;SEL.has(id)?SEL.delete(id):SEL.add(id);paint()},true)}});
  paint()}
 function allIds(){var l=mode&&$(L[mode].list);if(!l)return[];return [].map.call(l.querySelectorAll('.lot[data-ad]:not(.pend)'),function(c){return c.dataset.ad})}
 function start(k){if(!ok()){toast('Удаление доступно после входа (PIN).',4000);return}stop();mode=k;SEL.clear();paint()}
 function stop(){mode=null;SEL.clear();paint()}
 function paint(){Object.keys(L).forEach(function(k){var l=$(L[k].list);if(!l)return;var on=mode===k;l.classList.toggle('adon',on);
-  var b=document.querySelector('.adsel[data-ad="'+k+'"]');if(b)b.textContent=on?'Готово':'Выбрать';
+  var b=document.querySelector('.adsel[data-ad="'+k+'"]');if(b)b.innerHTML=on?'<span>Готово</span>':TR+'<span>Удалить</span>';
   l.querySelectorAll('.lot:not(.pend)').forEach(function(c){var id=c.getAttribute('data-'+L[k].attr);if(!id)return;
    var cb=c.querySelector(':scope>.adcb');
    if(on){c.dataset.ad=id;if(!cb){cb=document.createElement('span');cb.className='adcb';cb.setAttribute('role','checkbox');c.insertBefore(cb,c.firstChild)}cb.classList.toggle('on',SEL.has(id));cb.setAttribute('aria-checked',SEL.has(id))}
