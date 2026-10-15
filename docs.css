@@ -30,3 +30,20 @@ html[data-theme=light] #vdocs .dprev{background:#fff;color:#0F2E2A}
 @media(max-width:600px){#vdocs{padding:6px}#vdocs .dprev{padding:10px;font-size:14px}#vdocs .dact .lbtn{flex:1 1 100%}}
 html body nav{grid-template-columns:repeat(4,minmax(0,1fr))!important;max-width:720px!important}@media(max-width:480px){html body nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 #vdocs.editing #dprof,#vdocs.editing #dcases,#vdocs.editing .dpriv,#vdocs.editing #dintro{display:none}
+@font-face{font-family:"PT Sans";src:url(docs/fonts/PTSans-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"PT Sans";src:url(docs/fonts/PTSans-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+#vdocs .dprev.dlhf{font-family:"PT Sans",Arial,sans-serif}
+#vdocs .dsigw{position:relative;display:inline-block;width:0;height:1em;vertical-align:baseline}
+#vdocs .dsig{position:absolute;left:1.2em;bottom:-.9em;height:3.6em;width:auto;max-width:none;pointer-events:none}
+#vdocs .dsigctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+#vdocs .dsigctl select{flex:1 1 220px;width:auto}
+#vdocs .dchk{display:inline-flex!important;align-items:center;gap:8px;margin:0!important;font-size:15px;color:var(--ink)!important}
+#vdocs .dchk input{width:20px!important;height:20px;padding:0;margin:0}
+#vdocs .dsigs{display:flex;flex-wrap:wrap;gap:8px}
+#vdocs .dsigit{flex:1 1 140px;max-width:200px;padding:6px;display:flex;flex-direction:column;gap:6px}
+#vdocs .dsigit.on{border-color:#14B8A6}
+#vdocs .dsigpick{background:#fff;border:0;border-radius:8px;padding:6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:#0F2E2A}
+#vdocs .dsigpick img{height:48px;width:auto;max-width:100%}
+#vdocs .dlhdrop{display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed #14B8A6;border-radius:12px;padding:14px;cursor:pointer;color:#14B8A6;text-align:center;background:rgba(20,184,166,.06);margin:6px 0}
+#vdocs .dlhdrop input{position:absolute;width:1px;height:1px;opacity:0}
+#vdocs .dlhit{padding:10px 12px}
