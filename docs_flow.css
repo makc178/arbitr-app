@@ -417,3 +417,23 @@ html,body{overflow-x:clip!important;overflow-y:visible!important}
 #vcp .dcpbar2 .dcpbdel{margin-left:auto;background:#DC2626;color:#fff;border-color:#DC2626}
 #vcp .adred[disabled]{opacity:.45}
 .dmodal .dmlist{margin:0 0 10px 18px;padding:0;max-height:40vh;overflow:auto}.dmodal .dmck{display:flex;gap:8px;align-items:flex-start;margin:0 0 14px}
+/* d7: значки форматов в Архиве */
+.dfmtb{display:inline-flex;align-items:center;gap:6px}
+.dfi{display:inline-block;font:700 10px/1 system-ui,sans-serif;letter-spacing:.3px;padding:3px 4px;border-radius:3px;color:#fff}
+.dfi.doc{background:#2b579a}.dfi.pdf{background:#c62828}
+.dbatch~* .dfmt,#dfbar .dfmt{flex:none}
+/* d7: нижняя панель — одна строка (ПК): Подпись · Word/PDF/Оба · Скачать · Подписать; телефон — две строки */
+#dfbar.dbar3{flex-wrap:wrap;row-gap:8px}
+#dfbar .dbrow1{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+#dfbar .dbrow2{display:flex;align-items:center;gap:10px;flex:1 1 auto;justify-content:flex-end;min-width:0}
+#dfbar .dsgtg{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);white-space:nowrap}
+:is(#dfbar,#dbbar) .dfmt{display:inline-flex;flex:none;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--pan2);height:38px}
+:is(#dfbar,#dbbar) .dfmt button{border:0;background:transparent;padding:0 13px;font-size:13px;font-weight:600;color:var(--ink);display:inline-flex;align-items:center;gap:4px;min-width:52px;justify-content:center}
+:is(#dfbar,#dbbar) .dfmt button+button{border-left:1px solid var(--line)}
+:is(#dfbar,#dbbar) .dfmt button.on{background:var(--acc);color:var(--ondark)}
+:is(#dfbar,#dbbar) .dfmt button:disabled{opacity:.45;cursor:not-allowed}
+:is(#dfbar,#dbbar) .dfmt small{font-size:10px;font-weight:400;opacity:.8}
+:is(#dfbar,#dbbar) .dbi+.dfmt{margin-left:auto}
+@media(min-width:700px){#dfbar.dbar3 .warnl{flex:1 1 100%}#dfbar .dbrow2 .grow{flex:0 1 auto}}
+@media(max-width:699px){#dfbar .dbrow1{flex:1 1 100%;justify-content:space-between}#dfbar .dbrow2{flex:1 1 100%}:is(#dfbar,#dbbar) .dfmt small{display:none}#dfbar .dbrow2 .grow{flex:1}}
+#dbbar .dfmt{--line:rgba(136,136,136,.35);--pan2:transparent;--acc:#14B8A6;--ondark:#06201C;--ink:inherit;margin-left:auto}

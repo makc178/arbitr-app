@@ -75,7 +75,7 @@ function vForm(){var c=common(),ts=sel(),P=plan(),cm=missC(c),o=oc(),cs=caseNow(
    h+=rowsBlock(t)+'</div>'}
   h+='</div>'});
  h+='</div></div></div>';ROOT.innerHTML=h;
- A.bar('<div class="dbi"><b>'+E(nD(P.length))+'</b><span class="sm'+(tot?' dwarn':'')+'">'+E(tot?T('bar_miss',{n:nP(tot)}):T('bar_ok'))+'</span></div><button type="button" class="lbtn dbgo" data-bact="make">'+E(T('make_docs',{n:P.length}))+'</button>');drawSheet()}
+ A.bar('<div class="dbi"><b>'+E(nD(P.length))+'</b><span class="sm'+(tot?' dwarn':'')+'">'+E(tot?T('bar_miss',{n:nP(tot)}):T('bar_ok'))+'</span></div>'+(A.fmtSeg?A.fmtSeg():'')+'<button type="button" class="lbtn dbgo" data-bact="make">'+E(T('make_docs',{n:P.length}))+'</button>');drawSheet()}
 /* ---- выбор адресатов ---- */
 function dirSec(t,a,q){if(!window.ArbCP||!ArbCP.dirOrgs)return '';var m=mfield(t),cs=caseNow(),D=ArbCP.dirOrgs(t.id,cs?(cs.data.РЕГИОН||cs.data.ДОЛЖНИК_АДРЕС||''):vget('РЕГИОН','*'));if(!D)return '';
  if(D.loading){ArbCP.addrLoad().then(function(){if(SHEET&&SHEET.tid==t.id)drawSheet()});return '<p class="sm">…</p>'}if(!D.tf||D.tf!=m)return '';
@@ -126,15 +126,16 @@ function fname(p){return caseNo()+'_'+fnPart(p.no)+'_'+p.t.id+(p.a?'_'+fnPart(p.
 function dmy(){var d=new Date();return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear()}
 async function make(){if(BUSY)return;var c=common(),P=plan(),tot=missC(c)+sel().reduce(function(s,t){return s+missT(t,c.shared)},0);
  if(tot&&!confirm(T('confirm_miss',{n:nP(tot)})))return;if(P.length>(cfg().warn_over||30))A.toast(T('over',{n:P.length}));
- var o=oc(),sig=planSig(),reuse=B.issued&&B.issued.sig==sig,f0=first();BUSY=true;var out=[],cs=caseNow();
+ var FW=[],o=oc(),sig=planSig(),reuse=B.issued&&B.issued.sig==sig,f0=first();BUSY=true;var out=[],cs=caseNow();
  try{for(var i=0;i<P.length;i++){var p=P[i];A.bar('<div class="dbi"><b>'+E(T('progress',{i:i,n:P.length}))+'</b></div>');
-   A.setOV(OVfor(p,c));try{var sg0=B.sign&&A.SIG().length&&A.sigFor?A.sigFor(p.t):null,blob=await A.docx(p.t),lh=!!A.lhFor(p.t);out.push({p:p,blob:blob,fn:fname(p),lh:lh,sg:sg0&&sg0.url})}catch(x){out.push({p:p,err:x.message})}finally{A.setOV(null)}}
+   A.setOV(OVfor(p,c));try{var sg0=B.sign&&A.SIG().length&&A.sigFor?A.sigFor(p.t):null,blob=await A.docx(p.t),lh=!!A.lhFor(p.t),fo=A.mkFiles?await A.mkFiles(p.t,blob):{docx:blob};if(fo.warn)FW.push(p.t.title);out.push({p:p,blob:blob,fo:fo,fn:fname(p),lh:lh,sg:sg0&&sg0.url})}catch(x){out.push({p:p,err:x.message})}finally{A.setOV(null)}}
   var okN=out.filter(function(r){return r.blob}).map(function(r){return r.p.i});
   if(!reuse){var last=okN.length?f0+Math.max.apply(null,okN):f0-1;if(o.next<=last)o.next=last+1;B.issued={sig:sig,first:f0}}
   var M=MU();sel().forEach(function(t){var m=mfield(t);if(m&&M[m].from_case){var s=S();s.bregions=s.bregions||[];(addrs(t)||[]).filter(function(x){return !x.dk}).forEach(function(x){if(s.bregions.indexOf(x.n)<0)s.bregions.push(x.n)})}});A.save();
-  var arN=0,arE='';if(window.ArbArch)for(var j=0;j<out.length;j++){var r=out[j];if(!r.blob)continue;try{await ArbArch.add({doc_date:(function(v){return /^\d{4}-\d\d-\d\d$/.test(v)?v.split('-').reverse().join('.'):v})(vget('ДАТА','*')||''),case:cs?cs.id:'',kind:'out',mgr:(A.curMgr()||{f:{}}).f.ФИО_УПРАВЛЯЮЩЕГО||'',debtor:cs?'':vget('ДОЛЖНИК_НАИМЕНОВАНИЕ','*'),debtor_inn:cs?'':vget('ДОЛЖНИК_ИНН','*'),no:r.p.no,title:r.p.t.title,tid:r.p.t.id,addressee:r.p.a?dn(r.p.a):'',blank:r.lh,signed:B.sign&&A.SIG().length>0,fname:r.fn,auto:true,batch:sig},r.blob,true);arN++}catch(x){arE=x.message}}if(window.ArbArch&&ArbArch.notify)ArbArch.notify(arE&&!arN?0:arN,arE&&!arN?arE:'')
+  var arN=0,arE='';if(window.ArbArch)for(var j=0;j<out.length;j++){var r=out[j];if(!r.blob)continue;try{await ArbArch.add({doc_date:(function(v){return /^\d{4}-\d\d-\d\d$/.test(v)?v.split('-').reverse().join('.'):v})(vget('ДАТА','*')||''),case:cs?cs.id:'',kind:'out',mgr:(A.curMgr()||{f:{}}).f.ФИО_УПРАВЛЯЮЩЕГО||'',debtor:cs?'':vget('ДОЛЖНИК_НАИМЕНОВАНИЕ','*'),debtor_inn:cs?'':vget('ДОЛЖНИК_ИНН','*'),no:r.p.no,title:r.p.t.title,tid:r.p.t.id,addressee:r.p.a?dn(r.p.a):'',blank:r.lh,signed:B.sign&&A.SIG().length>0,fname:r.fo&&!r.fo.docx?A.pdfName(r.fn):r.fn,pdf_fname:A.pdfName?A.pdfName(r.fn):undefined,auto:true,batch:sig},r.fo?r.fo.docx:r.blob,true,r.fo&&r.fo.pdf?{pdf:r.fo.pdf}:null);arN++}catch(x){arE=x.message}}if(window.ArbArch&&ArbArch.notify)ArbArch.notify(arE&&!arN?0:arN,arE&&!arN?arE:'')
+  if(FW.length)A.toast(((A.C.pdf||{}).warn_batch||'PDF не построен для: {t} — для них сохранён Word').replace('{t}',FW.filter(function(v,i,a){return a.indexOf(v)==i}).join(', ')));
   RES={out:out,zip:caseNo()+'_пакет_'+dmy()+'.zip'};B.scr='res'}finally{BUSY=false}render();window.scrollTo(0,document.getElementById('vdocs').offsetTop-60)}
-async function zip(){var z=new JSZip();RES.out.forEach(function(r){if(r.blob)z.file(r.fn,r.blob)});A.saveBlob(await z.generateAsync({type:'blob'}),RES.zip)}
+async function zip(){var z=new JSZip();RES.out.forEach(function(r){if(!r.blob)return;var fo=r.fo||{docx:r.blob};if(fo.docx)z.file(r.fn,fo.docx);if(fo.pdf)z.file(A.pdfName(r.fn),fo.pdf)});A.saveBlob(await z.generateAsync({type:'blob'}),RES.zip)}
 function vRes(){var c=caseNow(),out=RES.out,ok=out.filter(function(r){return r.blob}),gs=[],sh=common().shared;out.forEach(function(r){var g=gs.find(function(x){return x.t==r.p.t});if(!g)gs.push(g={t:r.p.t,items:[]});g.items.push(r)});
  var miss=gs.filter(function(g){return missT(g.t,sh)}),a=ok.length?ok[0].p.no:'',b=ok.length?ok[ok.length-1].p.no:'';
  var h='<div class="dbatch"><button type="button" class="lbtn sec" data-bact="form">'+E(T('res_back'))+'</button><div class="dhero"><span class="dhic">✓</span><div><h3 class="dth">'+E(T('res_title',{d:nD(ok.length)}))+'</h3><div class="sm">'+E([(c&&c.data.НОМЕР_ДЕЛА)||'',c?c.data.ДОЛЖНИК_НАИМЕНОВАНИЕ||'':'',a?'исх. № '+a+' – '+b:''].filter(Boolean).join(' · '))+'</div></div></div>'+
@@ -191,7 +192,7 @@ function bind(){var v=document.getElementById('vdocs');
   if(d.browadd){A.rows(ts.find(function(x){return x.id==d.browadd})).push({});A.save();rerender();return}
   if(d.browdel){var r=d.browdel.split('|');A.rows(ts.find(function(x){return x.id==r[0]})).splice(+r[1],1);A.save();rerender();return}
   if(d.bview!=null){var ok7=RES.out.filter(function(r){return r.blob});await pvOpen(Math.max(0,ok7.indexOf(RES.out[+d.bview])));return}
-  if(d.bdl!=null){var rr=RES.out[+d.bdl];A.saveBlob(rr.blob,rr.fn);return}
+  if(d.bdl!=null){var rr=RES.out[+d.bdl];if(rr.fo&&A.dlFiles)A.dlFiles(rr.fo,rr.fn);else A.saveBlob(rr.blob,rr.fn);return}
   var a1=d.bact;
   if(a1=='list'){B=null;SHEET=null;drawSheet();A.showList();return}
   if(a1=='pc'){B.pc=!B.pc;rerender();return}
@@ -209,7 +210,7 @@ function bind(){var v=document.getElementById('vdocs');
   if(a1=='manual'){var tx=(SHEET.q||'').trim()||prompt(T('sheet_manual').replace(/^\+\s*/,''))||'';tx=tx.trim();if(!tx)return;var t3=ts.find(function(x){return x.id==SHEET.tid}),a3=addrs(t3);if(!a3.some(function(x){return x.n==tx}))a3.push({n:tx,src:'m'});SHEET.q='';A.save();drawSheet();return}});
  v.addEventListener('keydown',function(e){if(PVI!=null){if(e.key=='ArrowRight'){pvGo(PVI+1);return}if(e.key=='ArrowLeft'){pvGo(PVI-1);return}if(e.key=='Escape'){pvClose();return}}if(e.key=='Escape'&&SHEET){SHEET=null;drawSheet();rerender()}})}
 var SU=0;function softUpdate(){clearTimeout(SU);SU=setTimeout(function(){if(!B||B.scr=='res')return;var a=document.activeElement;if(a&&a.closest&&a.closest('.dbatch')&&/INPUT|TEXTAREA/.test(a.tagName)){var c=common(),P=plan(),tot=missC(c)+sel().reduce(function(s,t){return s+missT(t,c.shared)},0);
- A.bar('<div class="dbi"><b>'+E(nD(P.length))+'</b><span class="sm'+(tot?' dwarn':'')+'">'+E(tot?T('bar_miss',{n:nP(tot)}):T('bar_ok'))+'</span></div><button type="button" class="lbtn dbgo" data-bact="make">'+E(T('make_docs',{n:P.length}))+'</button>');var w=a.closest('.dempty');if(w&&a.value)w.classList.remove('dempty')}else rerender()},250)}
+ A.bar('<div class="dbi"><b>'+E(nD(P.length))+'</b><span class="sm'+(tot?' dwarn':'')+'">'+E(tot?T('bar_miss',{n:nP(tot)}):T('bar_ok'))+'</span></div>'+(A.fmtSeg?A.fmtSeg():'')+'<button type="button" class="lbtn dbgo" data-bact="make">'+E(T('make_docs',{n:P.length}))+'</button>');var w=a.closest('.dempty');if(w&&a.value)w.classList.remove('dempty')}else rerender()},250)}
 window.ArbBatch={
  mount:function(el,api){A=api;ROOT=el;bind();document.getElementById('vdocs').addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#dbbar [data-bact]');if(b&&B&&b.dataset.bact=='make'){e.stopPropagation();(async function(){for(var w=0;w<sel().length;w++)try{await A.md(sel()[w])}catch(x){}await make()})()}},true)},
  refresh:function(){if(B&&B.scr=='form')rerender()},

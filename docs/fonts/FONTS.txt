@@ -1,0 +1,4 @@
+ArbSerif-*.ttf — подмножество (латиница+кириллица+типографские знаки) Liberation Serif 2.1 (Red Hat, SIL OFL 1.1),
+метрически совместим с Times New Roman. Переименовано (Reserved Font Name не используется). Лицензия: OFL.txt.
+ArbSans-*.ttf — подмножество PT Sans (ParaType, SIL OFL 1.1), переименовано. Лицензия: OFL.txt.
+Используются только для генерации PDF в браузере.
