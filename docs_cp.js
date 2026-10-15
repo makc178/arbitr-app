@@ -2,7 +2,7 @@
    Всё хранится только на этом устройстве (IndexedDB arbitr_local: counterparties, cp_files). Никаких сетевых запросов с данными. */
 (function(){
 'use strict';
-var A,C,CP=[],FM={},V='list',ED=null,MAP=null,FLT='',Q='',ONLY=false,MSG='',ROOT=null,PEND=[];
+var A,C,CP=[],FM={},V='list',ED=null,MAP=null,FLT='',KF='',Q='',ONLY=false,MSG='',ROOT=null,PEND=[],LIM=100;
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function K(){return (A.C().counterparties)||{}}
 function U(k,o){var s=(K().ui||{})[k]||k;if(o)Object.keys(o).forEach(function(n){s=s.split('{'+n+'}').join(o[n])});return s}
@@ -16,14 +16,15 @@ function caseOf(id){return A.S().cases.find(function(c){return c.id==id})}
 function kinds(){return K().kinds||{}}function roles(){return K().roles||{}}
 function guessKind(c){var n=norm(c.name);if(/банк/.test(n)&&(c.bik||/банк/.test(n)))return 'bank';if(/инспекц|ифнс|фнс|росреестр|управлени|министерств|служб|фонд|гибдд|мвд|загс/.test(n))return 'gov';if(/^ип\b|индивидуальн/.test(n)||digits(c.inn).length==12&&digits(c.ogrn).length==15)return 'ip';if(digits(c.inn).length==12)return 'fl';return 'ul'}
 /* ---------- список ---------- */
-function visible(){var q=norm(Q),cur=A.S().cur;return CP.filter(function(c){if(FLT&&(c.roles||[]).indexOf(FLT)<0)return false;if(ONLY&&cur&&(c.cases||[]).indexOf(cur)<0)return false;
- if(q){var h=norm([c.name,c.inn,c.ogrn,c.kpp,c.addr_legal,c.addr_post,c.head,c.email,c.phone,c.note].join(' '));if(h.indexOf(q)<0&&digits(Q)&&digits([c.inn,c.ogrn,c.phone].join(' ')).indexOf(digits(Q))<0)return false;if(h.indexOf(q)<0&&!digits(Q))return false}return true}).sort(function(a,b){return String(a.name).localeCompare(String(b.name),'ru')})}
+function visible(){var q=norm(Q),cur=A.S().cur;return CP.filter(function(c){if(FLT&&(c.roles||[]).indexOf(FLT)<0)return false;if(KF&&c.kind!=KF)return false;if(ONLY&&cur&&(c.cases||[]).indexOf(cur)<0)return false;
+ if(q){var h=norm([c.name,c.inn,c.bik,c.ogrn,c.kpp,c.addr_legal,c.addr_post,c.head,c.email,c.phone,c.note].join(' '));if(h.indexOf(q)<0&&digits(Q)&&digits([c.inn,c.bik,c.ks,c.ogrn,c.phone].join(' ')).indexOf(digits(Q))<0)return false;if(h.indexOf(q)<0&&!digits(Q))return false}return true}).sort(function(a,b){return String(a.name).localeCompare(String(b.name),'ru')})}
 function vList(){var R=roles(),vs=visible(),cur=A.S().cur;
- var h='<p class="sm">'+E(K().help||'')+'</p><div class="dact dcpbar"><button type="button" class="lbtn" data-cp="new">'+E(U('add'))+'</button><label class="lbtn sec dfile">'+E(U('import'))+'<input type="file" id="dcpup" accept=".csv,.xlsx,.json,.vcf,.pdf,.docx,.txt,text/csv,application/json,text/vcard" multiple hidden></label>'+
-  (CP.length?'<button type="button" class="lbtn sec" data-cp="exj">'+E(U('export_json'))+'</button><button type="button" class="lbtn sec" data-cp="exc">'+E(U('export_csv'))+'</button>':'')+'</div><p class="sm">'+E(U('import_help'))+'</p>'+(MSG?'<p class="sm dok" id="dcpmsg">'+E(MSG)+'</p>':'');
+ var h='<p class="sm">'+E(K().help||'')+'</p><div class="dact dcpbar"><button type="button" class="lbtn" data-cp="new">'+E(U('add'))+'</button><label class="lbtn sec dfile">'+E(U('import'))+'<input type="file" id="dcpup" accept=".csv,.xlsx,.json,.vcf,.pdf,.docx,.txt,text/csv,application/json,text/vcard" multiple hidden></label><label class="lbtn sec dfile">'+E(U('bik_import'))+'<input type="file" id="dcpbik" accept=".xml,.zip,.csv,text/xml,application/zip,text/csv" hidden></label>'+
+  (CP.length?'<button type="button" class="lbtn sec" data-cp="exj">'+E(U('export_json'))+'</button><button type="button" class="lbtn sec" data-cp="exc">'+E(U('export_csv'))+'</button>':'')+'</div><p class="sm">'+E(U('import_help'))+'</p><p class="sm">'+E(U('bik_help'))+'</p>'+(MSG?'<p class="sm dok" id="dcpmsg">'+E(MSG)+'</p>':'');
  if(CP.length){h+='<div class="pflt dflt"><input type="search" id="dcpq" placeholder="'+E(U('search'))+'" value="'+E(Q)+'"></div><div class="dchips"><button type="button" class="pchip'+(FLT?'':' on')+'" data-cpr="">'+E(U('all'))+'</button>'+Object.keys(R).filter(function(r){return CP.some(function(c){return (c.roles||[]).indexOf(r)>=0})}).map(function(r){return '<button type="button" class="pchip'+(FLT==r?' on':'')+'" data-cpr="'+E(r)+'">'+E(R[r])+'</button>'}).join('')+'</div>'+
+  (function(){var ks=Object.keys(kinds()).filter(function(k){return CP.some(function(c){return c.kind==k})});return ks.length>1?'<div class="dchips"><button type="button" class="pchip'+(KF?'':' on')+'" data-cpk="">'+E(U('kinds_all'))+'</button>'+ks.map(function(k){var n=CP.filter(function(c){return c.kind==k}).length;return '<button type="button" class="pchip'+(KF==k?' on':'')+'" data-cpk="'+k+'">'+E((K().kinds_short||{})[k]||kinds()[k])+' <b>'+n+'</b></button>'}).join('')+'</div>':''})()+
   (cur?'<label class="dchk"><input type="checkbox" id="dcponly"'+(ONLY?' checked':'')+'> '+E(U('this_case'))+'</label>':'');
-  h+=vs.length?vs.map(function(c){var rs=(c.roles||[]).map(function(r){return R[r]||r}).join(', ');return '<div class="lot dit dcp" data-cpid="'+E(c.id)+'" role="button" tabindex="0"><div class="d1">'+E(c.name||'—')+'</div><div class="sm">'+E([(kinds()[c.kind]||''),c.inn?'ИНН '+c.inn:'',rs].filter(Boolean).join(' · '))+'</div><div class="sm dkind">'+E([U('n_cases',{n:(c.cases||[]).length}),(c.files||[]).length?U('n_files',{n:c.files.length}):''].filter(Boolean).join(' · '))+'</div></div>'}).join(''):'<div class="empty">'+E(U('nothing'))+'</div>'}
+  var all=vs.length;vs=vs.slice(0,LIM);h+=all>LIM||all>20?'<p class="sm">'+E(U('shown',{a:vs.length,b:all}))+'</p>':'';h+=vs.length?vs.map(function(c){var rs=(c.roles||[]).map(function(r){return R[r]||r}).join(', ');return '<div class="lot dit dcp" data-cpid="'+E(c.id)+'" role="button" tabindex="0"><div class="d1">'+E(c.name||'—')+'</div><div class="sm">'+E([(kinds()[c.kind]||''),c.kind=='bank'&&c.bik?'БИК '+c.bik:'',c.inn?'ИНН '+c.inn:'',rs].filter(Boolean).join(' · '))+'</div><div class="sm dkind">'+E([U('n_cases',{n:(c.cases||[]).length}),(c.files||[]).length?U('n_files',{n:c.files.length}):''].filter(Boolean).join(' · '))+'</div></div>'}).join('')+(all>LIM?'<button type="button" class="lbtn sec" data-cp="more">'+E(U('more',{n:Math.min(100,all-LIM)}))+'</button>':''):'<div class="empty">'+E(U('nothing'))+'</div>'}
  else h+='<div class="empty">'+E(U('empty'))+'</div>';
  return h}
 /* ---------- карточка ---------- */
@@ -90,12 +91,35 @@ function extract(t){t=t.replace(/\u00a0/g,' ');var c={roles:[],cases:[]},m,one=f
  one(/(?:Банк(?:\s+получателя)?|Наименование банка)\s*[:]\s*([^\n\t]{3,120})/i,'bank_name');if(!c.bank_name&&c.bik)one(/(?:в\s+)((?:ПАО|АО|ООО|АКБ|КБ)?\s*[«"]?[^\n\t,«»"]{0,40}Банк[^\n\t,]{0,60})/i,'bank_name');
  one(/(?:Генеральный директор|Директор|Руководитель|Председатель правления|Президент)\s*[:\-–]?\s*([А-ЯЁ][а-яё\-]+\s+[А-ЯЁ][а-яё]+\s+[А-ЯЁ][а-яё]+|[А-ЯЁ][а-яё\-]+\s+[А-ЯЁ]\.\s?[А-ЯЁ]\.|[А-ЯЁ]\.\s?[А-ЯЁ]\.\s?[А-ЯЁ][а-яё\-]+)/,'head');
  one(/Тел(?:ефон|\.)?(?:\/факс)?\s*[:.]?\s*(\+?[\d][\d\s\-()]{8,18}\d)/i,'phone');one(/(?:^|[^\d])((?:\+7|8)[\s\-(]*\d{3}[\s\-)]*\d{3}[\s\-]*\d{2}[\s\-]*\d{2})(?!\d)/,'phone');one(/([\w.+\-]+@[\w\-]+(?:\.[\w\-]+)+)/,'email');
- Object.keys(c).forEach(function(k){if(typeof c[k]=='string'&&/name|addr|head/.test(k))c[k]=c[k].replace(/\s+([,.;:»])/g,'$1').replace(/,(?=[^\d\s])/g,', ').replace(/(^|\s)(ООО|АО|ПАО|ЗАО|ОАО|НАО|ИП|АКБ|КБ)«/g,'$1$2 «').replace(/\s{2,}/g,' ').trim()});if(c.bank_name&&c.name&&c.bank_name==c.name)delete c.bank_name;var found=Object.keys(c).filter(function(k){return typeof c[k]=='string'}).length;c.kind=guessKind(c);if(c.kind=='bank')c.roles=['bank'];c._found=found;return c}
+ Object.keys(c).forEach(function(k){if(typeof c[k]=='string'&&/name|addr|head/.test(k))c[k]=c[k].replace(/(^|[\s,])([а-яё])\.([а-яё]{1,3})(?=[\s,]|$)/g,'$1$2$3.').replace(/\s+([,.;:»])/g,'$1').replace(/,(?=[^\d\s])/g,', ').replace(/(^|\s)(ООО|АО|ПАО|ЗАО|ОАО|НАО|ИП|АКБ|КБ)«/g,'$1$2 «').replace(/\s{2,}/g,' ').trim()});if(c.bank_name&&c.name&&c.bank_name==c.name)delete c.bank_name;var found=Object.keys(c).filter(function(k){return typeof c[k]=='string'}).length;c.kind=guessKind(c);if(c.kind=='bank')c.roles=['bank'];c._found=found;return c}
 /* ---------- импорт ---------- */
 function blank(){return {id:ArbDB.uid('cp'),kind:'ul',roles:[],cases:[],files:[],created:Date.now()}}
-async function upsert(src){var inn=digits(src.inn),x=inn?CP.find(function(c){return digits(c.inn)==inn}):CP.find(function(c){return norm(c.name)&&norm(c.name)==norm(src.name)}),nw=!x;
+async function upsert(src){var x=findDup(src),nw=!x;
  x=x||blank();Object.keys(src).forEach(function(k){if(k=='id'||k=='files'||k.charAt(0)=='_')return;var v=src[k];if(k=='roles'||k=='cases'){x[k]=(x[k]||[]).concat((v||[]).filter(function(r){return (x[k]||[]).indexOf(r)<0}));return}if(v!=null&&v!==''&&!x[k])x[k]=v;else if(k=='note'&&v&&x.note&&x.note.indexOf(v)<0)x.note+='\n'+v});
  if(nw&&!src.kind)x.kind=guessKind(x);await save1(x);return nw}
+function findDup(src){var b=digits(src.bik),inn=digits(src.inn);if(b&&(src.kind=='bank'||!src.kind)){var y=CP.find(function(c){return c.kind=='bank'&&digits(c.bik)==b});if(y)return y}
+ if(inn){var z=CP.find(function(c){return digits(c.inn)==inn&&(!b||c.kind!='bank'||!c.bik||digits(c.bik)==b)});if(z)return z}if(b)return null;return CP.find(function(c){return norm(c.name)&&norm(c.name)==norm(src.name)})||null}
+/* ---------- реестр банков: ED807 (XML/ZIP) или CSV ---------- */
+function xmlDec(buf){var head=new TextDecoder('ascii').decode(new Uint8Array(buf.slice(0,200))),m=head.match(/encoding=["']([\w\-]+)["']/i);try{return new TextDecoder(m?m[1].toLowerCase():'utf-8').decode(buf)}catch(e){return dec(buf)}}
+function ed807(txt){var d=new DOMParser().parseFromString(txt,'application/xml');if(d.getElementsByTagName('parsererror').length)throw new Error('XML');var es=d.getElementsByTagNameNS('*','BICDirectoryEntry'),out=[];
+ for(var i=0;i<es.length;i++){var e=es[i],p=e.getElementsByTagNameNS('*','ParticipantInfo')[0];if(!p)continue;var g=function(a){return (p.getAttribute(a)||'').trim()},ks='';
+  [].forEach.call(e.getElementsByTagNameNS('*','Accounts'),function(a){if(!ks&&/CRSA|CBRA/.test(a.getAttribute('RegulationAccountType')||''))ks=a.getAttribute('Account')||''});
+  var adr=[g('Ind'),[g('Tnp'),g('Nnp')].filter(Boolean).join(' '),g('Adr')].filter(Boolean).join(', ');
+  out.push({kind:'bank',name:g('NameP'),bik:e.getAttribute('BIC')||'',ks:ks,addr_legal:adr,inn:g('INN')||'',note:g('RegN')?'Рег. № '+g('RegN'):'',src:'cbr'})}
+ return out.filter(function(c){return c.name&&/^\d{9}$/.test(c.bik)})}
+function bikCsv(rows){var h=rows[0].map(norm),f=function(re){return h.findIndex(function(x){return re.test(x)})},ib=f(/^(бик|bik|bic)$/),iname=f(/^(наименование|name|название|namep|банк|полное наименование)$/);
+ if(ib<0)return null;if(iname<0)iname=f(/наимен|name/);if(iname<0)return null;var iks=f(/^(кс|к с|ks|корр|корр счет|корреспондентский счет|account)$|корр/),ia=f(/адрес|address|adr/),ic=f(/^(город|city|nnp)$/),ii=f(/^(индекс|index|ind)$/),iinn=f(/^(инн|inn)$/);
+ return rows.slice(1).map(function(r){var a=[ii>=0?r[ii]:'',ic>=0?r[ic]:'',ia>=0?r[ia]:''].filter(Boolean).join(', ');return {kind:'bank',name:r[iname]||'',bik:(r[ib]||'').replace(/\D/g,'').padStart(9,'0'),ks:iks>=0?(r[iks]||'').replace(/\D/g,''):'',addr_legal:a,inn:iinn>=0?(r[iinn]||'').replace(/\D/g,''):'',src:'cbr'}}).filter(function(c){return c.name&&/^\d{9}$/.test(c.bik)})}
+async function importBik(f){var nm=f.name,buf=await f.arrayBuffer(),ext=(nm.match(/\.(\w+)$/)||['',''])[1].toLowerCase(),L=null;MSG=U('bik_loading');draw();
+ try{if(ext=='zip'){var z=await JSZip.loadAsync(buf),xf=Object.keys(z.files).filter(function(n){return /\.xml$/i.test(n)})[0];if(!xf)throw 0;L=ed807(xmlDec(await z.file(xf).async('arraybuffer')))}
+  else if(ext=='xml')L=ed807(xmlDec(buf));else L=bikCsv(csv(dec(buf)))}catch(e){L=null}
+ if(!L||!L.length){MSG=U('bik_bad',{name:nm});draw();return}
+ var byB={},byI={},n=0,u=0,ch=[];CP.forEach(function(c){if(c.kind=='bank'&&c.bik)byB[digits(c.bik)]=c;if(c.inn)byI[digits(c.inn)]=c});
+ L.forEach(function(s){var x=byB[s.bik]||(s.inn&&byI[s.inn]&&(!byI[s.inn].bik||byI[s.inn].kind!='bank')?byI[s.inn]:null);
+  if(x){var mod=false;['name','ks','addr_legal','inn','note'].forEach(function(k){if(s[k]&&!x[k]){x[k]=s[k];mod=true}});if(!x.bik){x.bik=s.bik;mod=true}if(x.kind!='bank'){x.kind='bank';mod=true}if(mod){x.updated=Date.now();ch.push(x)}u++}
+  else{x=Object.assign(blank(),s);x.kind='bank';CP.push(x);byB[s.bik]=x;if(s.inn)byI[s.inn]=x;ch.push(x);n++}});
+ for(var i=0;i<ch.length;i+=500)await ArbDB.putMany('counterparties',ch.slice(i,i+500));
+ MSG=U('bik_done',{n:n,u:u,t:CP.filter(function(c){return c.kind=='bank'}).length});KF='bank';LIM=100;V='list';draw();A.refresh()}
 function roleOf(s){var n=norm(s),R=roles(),r='';Object.keys(R).forEach(function(k){if(!r&&(norm(R[k])==n||n&&norm(R[k]).indexOf(n)==0||n.indexOf(norm(R[k]).split(' ')[0])==0))r=k});return r}
 function caseByNo(s){var n=norm(s);return n?A.S().cases.find(function(c){return norm((c.data||{}).НОМЕР_ДЕЛА)==n}):null}
 async function runMap(){var n=0,u=0,cur=A.S().cur;
@@ -130,8 +154,9 @@ function exportCSV(){var fl=K().fields||[],R=roles(),q=function(s){s=String(s==n
 function exportCases(){dl(new Blob([JSON.stringify({format:'arbitr-cases',version:1,exported:new Date().toISOString(),cases:A.S().cases},null,1)],{type:'application/json'}),'dela_'+stamp()+'.json')}
 /* ---------- события ---------- */
 function bind(el){
- el.addEventListener('input',function(e){var i=e.target;if(i.id=='dcpq'){Q=i.value;rerenderKeepFocus();return}if(i.dataset.cf&&ED){ED[i.dataset.cf]=i.value}});
+ el.addEventListener('input',function(e){var i=e.target;if(i.id=='dcpq'){Q=i.value;LIM=100;rerenderKeepFocus();return}if(i.dataset.cf&&ED){ED[i.dataset.cf]=i.value}});
  el.addEventListener('change',async function(e){var i=e.target;
+  if(i.id=='dcpbik'){var bf=i.files[0];i.value='';if(bf)await importBik(bf);return}
   if(i.id=='dcpup'){var fs=[].slice.call(i.files);i.value='';await importFiles(fs);return}
   if(i.id=='dcpatt'&&ED){[].forEach.call(i.files,function(f){PEND.push(f)});draw();return}
   if(i.id=='dcponly'){ONLY=i.checked;draw();return}
@@ -139,14 +164,16 @@ function bind(el){
   if(i.dataset.crole&&ED){var r=i.dataset.crole;ED.roles=(ED.roles||[]).filter(function(x){return x!=r});if(i.checked)ED.roles.push(r);return}
   if(i.dataset.ccase&&ED){var c=i.dataset.ccase;ED.cases=(ED.cases||[]).filter(function(x){return x!=c});if(i.checked)ED.cases.push(c);return}
   if(i.dataset.map!=null&&MAP){MAP.map[+i.dataset.map]=i.value;return}if(i.id=='dcpmrole'&&MAP){MAP.role=i.value;return}if(i.id=='dcpmlink'&&MAP){MAP.link=i.checked;return}});
- el.addEventListener('click',async function(e){var b=e.target.closest('[data-cp],[data-cpr],[data-cpid],[data-cpfget],[data-cpfdel]');if(!b)return;var d=b.dataset;
-  if(d.cpr!=null){FLT=d.cpr;draw();return}
+ el.addEventListener('click',async function(e){var b=e.target.closest('[data-cp],[data-cpr],[data-cpk],[data-cpid],[data-cpfget],[data-cpfdel]');if(!b)return;var d=b.dataset;
+  if(d.cpr!=null){FLT=d.cpr;LIM=100;draw();return}
+  if(d.cpk!=null){KF=d.cpk;LIM=100;draw();return}
   if(d.cpid){var c=CP.find(function(x){return x.id==d.cpid});if(c){ED=JSON.parse(JSON.stringify(c));PEND=[];MSG='';V='edit';draw();ROOT.scrollIntoView({block:'start'})}return}
   if(d.cpfget){var f=await ArbDB.get('cp_files',d.cpfget);if(f)dl(new Blob([f.data],{type:f.type||'application/octet-stream'}),f.name);return}
   if(d.cpfdel&&ED){await ArbDB.del('cp_files',d.cpfdel);delete FM[d.cpfdel];ED.files=(ED.files||[]).filter(function(x){return x!=d.cpfdel});var o=CP.find(function(x){return x.id==ED.id});if(o){o.files=ED.files.slice();await save1(o)}draw();return}
   var a=d.cp;
   if(a=='new'){ED=Object.assign(blank(),{_new:true});var cur=A.S().cur;if(cur)ED.cases=[cur];PEND=[];MSG='';V='edit';draw();return}
   if(a=='cancel'){ED=null;MAP=null;PEND=[];V='list';draw();return}
+  if(a=='more'){LIM+=100;draw();return}
   if(a=='exj'){exportJSON();return}if(a=='exc'){exportCSV();return}
   if(a=='save'&&ED){if(!String(ED.name||'').trim()){$c('dcperr').textContent=(K().fields||[])[0].label+' — обязательно';return}
    var o={};Object.keys(ED).forEach(function(k){if(k.charAt(0)!='_')o[k]=ED[k]});o.files=o.files||[];
@@ -161,12 +188,12 @@ window.ArbCP={
  reset:function(){CP=[];FM={};ED=null;MAP=null;V='list';MSG='';draw()},
  list:function(){return CP},
  /* карточки с ролью из списка; привязанные к делу — первыми */
- pick:function(rs,caseId){return CP.filter(function(c){return !rs||!rs.length||(c.roles||[]).some(function(r){return rs.indexOf(r)>=0})}).sort(function(a,b){var x=(a.cases||[]).indexOf(caseId)>=0?0:1,y=(b.cases||[]).indexOf(caseId)>=0?0:1;return x-y||String(a.name).localeCompare(String(b.name),'ru')})},
+ pick:function(rs,caseId,ks){return CP.filter(function(c){return (!rs||!rs.length)&&!(ks&&ks.length)||(c.roles||[]).some(function(r){return (rs||[]).indexOf(r)>=0})||(ks||[]).indexOf(c.kind)>=0}).sort(function(a,b){var x=(a.cases||[]).indexOf(caseId)>=0?0:1,y=(b.cases||[]).indexOf(caseId)>=0?0:1;return x-y||String(a.name).localeCompare(String(b.name),'ru')})},
  byName:function(n){var q=norm(n);return CP.find(function(c){return norm(c.name)==q})||null},
  get:function(id){return CP.find(function(c){return c.id==id})||null},
  linkDebtor:async function(id,caseId){var c=CP.find(function(x){return x.id==id});if(!c)return null;if((c.roles||[]).indexOf('debtor_main')<0)(c.roles=c.roles||[]).push('debtor_main');if(caseId&&(c.cases||[]).indexOf(caseId)<0)(c.cases=c.cases||[]).push(caseId);await save1(c);draw();return c},
  importCases:function(fs){return importFiles(fs,'case')},exportCases:exportCases,
  quickAdd:async function(o){var c=Object.assign(blank(),o);c.kind=guessKind(c);await save1(c);draw();return c},
- _t:{csv:csv,vcf:vcf,extract:extract,innOK:innOK,xlsx:xlsx}
+ _t:{ed807:ed807,bikCsv:bikCsv,csv:csv,vcf:vcf,extract:extract,innOK:innOK,xlsx:xlsx}
 };
 })();

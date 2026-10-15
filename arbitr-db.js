@@ -7,6 +7,7 @@ window.ArbDB={
  all:function(s){return tx(s,'readonly',function(st){return st.getAll()})},
  get:function(s,id){return tx(s,'readonly',function(st){return st.get(id)})},
  put:function(s,v){return tx(s,'readwrite',function(st){st.put(v)}).then(function(){return v})},
+ putMany:function(s,vs){return tx(s,'readwrite',function(st){vs.forEach(function(v){st.put(v)})})},
  del:function(s,id){return tx(s,'readwrite',function(st){st.delete(id)})},
  wipe:function(){return open().then(function(d){d.close();P=null}).catch(function(){}).then(function(){return new Promise(function(res){var r=indexedDB.deleteDatabase(NAME);r.onsuccess=r.onerror=r.onblocked=function(){res()}})})},
  uid:function(p){return (p||'')+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
