@@ -208,3 +208,7 @@ html[data-theme] nav.dnav6>button,nav.dnav6>button{min-width:0;min-height:48px;w
 :is(#vdocs,#vcp,#varch) .dlhl{white-space:pre-wrap;overflow-wrap:anywhere}
 :is(#vdocs,#vcp,#varch) .dpbody{white-space:pre-wrap}
 .dtopn{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:6px 0}.dtopn .sm{flex:1 1 100%;opacity:.7}
+
+#dartoast{display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:150;background:#06201C;color:#E6F4F1;border:1px solid #2BC4B066;padding:10px 14px;border-radius:12px;box-shadow:0 6px 24px #0006;max-width:min(520px,calc(100vw - 24px));font-size:14px}
+#dartoast.err{background:#3a1512;border-color:#EF444466}
+#dartoast button{margin-left:8px;background:none;border:1px solid currentColor;color:inherit;border-radius:8px;padding:3px 10px;font:inherit;cursor:pointer}

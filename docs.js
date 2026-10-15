@@ -5,7 +5,11 @@ var C,X,F={},S,CUR=null,FLT='',Q='',LS='arbitr_docs_v1',OV=null,BSEL=new Set(),D
 var $=function(i){return document.getElementById(i)};
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function U(k,o){var s=(C.ui||{})[k]||k;if(o)Object.keys(o).forEach(function(n){s=s.split('{'+n+'}').join(o[n])});return s}
-function load(){var s={};try{s=JSON.parse(localStorage.getItem(LS))||{}}catch(e){}s.profile=s.profile||{};s.cases=s.cases||[];s.drafts=s.drafts||{};return s}
+function todayISO(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
+function DATEF(){var c=window.ARB_DOCS_CFG||{};return c.date_default=='today'?(c.date_today_fields||['ДАТА']):[]}
+/* дата документа по умолчанию — сегодня; введённая вручную дата живёт до конца дня, на следующий день снова «сегодня» */
+function load(){var s={};try{s=JSON.parse(localStorage.getItem(LS))||{}}catch(e){}s.profile=s.profile||{};s.cases=s.cases||[];s.drafts=s.drafts||{};
+ var td=todayISO(),DF=DATEF();if(DF.length&&s.dday!=td){Object.keys(s.drafts).forEach(function(t){DF.forEach(function(k){delete s.drafts[t][k]})});if(s.bvals)Object.keys(s.bvals).forEach(function(t){DF.forEach(function(k){if(s.bvals[t])delete s.bvals[t][k]})});s.dday=td}return s}
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
 /* ===== Бланки, подписи и встроенный профиль АУ =====
    Встроенные данные АУ (профиль, бланки, подписи) лежат в ЗАКРЫТОМ репозитории в зашифрованном виде (AES-GCM, ключ из PIN через PBKDF2)
@@ -30,7 +34,10 @@ async function auLoad(){var V=C.au_vault||{};if(!V.path||!AU.pin)return;AU.state
   AU.state='ok'}catch(e){AU.state='none'}
  AU.pin=null;AU.done=true;mgrCompose();mgrMigrate()}
 window.__arbPin=function(pin){AU.pin=String(pin);AU.keys={};if(window.ArbArch)ArbArch.unlock(String(pin)).then(function(){outSync();drawCases();return mgrLoadDev()}).catch(function(){});auLoad()};
-function prof(k){var m=curMgr();return m&&m.f[k]||''}
+function TB(){return (C.manager||{}).todo_blocking!==false}
+/* незаполненный номер дома «[__]»: если блокировка выключена (todo_blocking=false) — фрагмент просто убирается из адреса */
+function clA(v){v=String(v==null?'':v);if(TB())return v;return v.replace(/,?\s*д\.\s*\[__\]/g,'').replace(/,?\s*\[кв[^\]]*\]/g,'').replace(/\s*\[__\]/g,'').replace(/\s{2,}/g,' ').replace(/,\s*,/g,',').trim()}
+function prof(k){var m=curMgr();return m&&clA(m.f[k])||''}
 /* --- бланки --- */
 function lhGuess(n){n=String(n).toLowerCase();var t=(LC().types||[]).find(function(t){return (t.keywords||[]).some(function(k){return n.indexOf(k)>=0})});return t?t.k:'any'}
 function paras(doc){return [].slice.call(doc.getElementsByTagNameNS(WNS,'p'))}
@@ -71,9 +78,9 @@ async function lhMerge(tz,l,t){var tx=await tz.file('word/document.xml').async('
   z.file('word/styles.xml',ls)}
  var vv=((curMgr()||{}).lhv||{})[l.id]||{},ps=['word/document.xml'].concat(await lhParts(z)),cm=curMgr(),SUB=[];
  /* реквизиты, «вшитые» во встроенный бланк, берутся из карточки управляющего (если там изменены) */
- if(cm&&cm.builtin&&AU.profile&&l.builtin)Object.keys(AU.profile).forEach(function(k){var o=String(AU.profile[k]||''),v=String(cm.f[k]||'');if(o.length>=6&&v&&v!==o)SUB.push([new RegExp(o.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+(k=='АДРЕС_АУ'?'(?:,?\\s*\\[кв[^\\]]*\\])?':''),'g'),v])});
+ if(cm&&cm.builtin&&AU.profile&&l.builtin)Object.keys(AU.profile).forEach(function(k){var o=String(AU.profile[k]||''),v=clA(cm.f[k]);if(o.length>=6&&v&&v!==o)SUB.push([new RegExp(o.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+(k=='АДРЕС_АУ'?'(?:,?\\s*\\[кв[^\\]]*\\])?':''),'g'),v])});
  /* адрес с незаполненным номером дома, «вшитый» в бланк, заменяется адресом из карточки */
- var ad=cm&&String(cm.f.АДРЕС_АУ||'');if(ad&&ad.indexOf((C.manager||{}).todo_mark||'[__]')<0)SUB.push([/\d{6},[^·\n|]*?д\.\s*\[__\](?:,?\s*\[[^\]]*\])?/g,ad]);
+ var ad=cm&&clA(cm.f.АДРЕС_АУ);if(ad&&ad.indexOf((C.manager||{}).todo_mark||'[__]')<0)SUB.push([/\d{6},[^·\n|]*?д\.\s*\[__\](?:,?\s*\[[^\]]*\])?/g,ad]);
  for(var i=0;i<ps.length;i++){var xml=i==0?dx:await z.file(ps[i]).async('string'),part=ps[i],ch=false;
   if(/\{\{|\[/.test(xml)||SUB.length){var d=new DOMParser().parseFromString(xml,'application/xml'),n=0;
    paras(d).forEach(function(p){if(i>0){var base=n,full=ptext(p),c=0;BR.lastIndex=0;while(BR.exec(full))c++;n+=c;
@@ -98,8 +105,8 @@ async function lhPv(l){if(l._pv)return l._pv;var z=await JSZip.loadAsync(l.data.
   return out}
  l._pv={h:await part(ref('header')),f:await part(ref('footer')),ml:tw('left'),mr:tw('right')};return l._pv}
 function pvLine(x,t){var v=x.t,cm=curMgr(),vv=(cm&&cm.lhv||{})[x._l]||{};
- if(cm&&cm.builtin&&AU.profile)Object.keys(AU.profile).forEach(function(k){var o=String(AU.profile[k]||''),n=String(cm.f[k]||'');if(o.length>=6&&n&&n!==o)v=v.split(o).join(n).replace(k=='АДРЕС_АУ'?new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+',?\\s*\\[кв[^\\]]*\\]','g'):/$^/,n)});
- var ad=cm&&String(cm.f.АДРЕС_АУ||'');if(ad&&ad.indexOf('[__]')<0)v=v.replace(/\d{6},[^·\n|]*?д\.\s*\[__\](?:,?\s*\[[^\]]*\])?/g,ad);
+ if(cm&&cm.builtin&&AU.profile)Object.keys(AU.profile).forEach(function(k){var o=String(AU.profile[k]||''),n=clA(cm.f[k]);if(o.length>=6&&n&&n!==o)v=v.split(o).join(n).replace(k=='АДРЕС_АУ'?new RegExp(n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+',?\\s*\\[кв[^\\]]*\\]','g'):/$^/,n)});
+ var ad=cm&&clA(cm.f.АДРЕС_АУ);if(ad&&ad.indexOf('[__]')<0)v=v.replace(/\d{6},[^·\n|]*?д\.\s*\[__\](?:,?\s*\[[^\]]*\])?/g,ad);
  v=v.replace(/\{\{([^{}]+)\}\}/g,function(m,k){return fmt(k,raw(k,t.id))||m});
  var st='text-align:'+(x.jc=='both'?'justify':x.jc=='center'?'center':x.jc=='right'||x.jc=='end'?'right':'left')+(x.sz?';font-size:'+(x.sz/12).toFixed(2)+'em':'')+(x.b?';font-weight:700':'')+(x.c&&x.c!='000000'?';color:#'+x.c:'');
  return '<div class="dlhl" style="'+st+'">'+x.im.map(function(i){return '<img src="'+i.u+'" alt="" style="width:'+(i.w/1.6).toFixed(1)+'em;height:auto;max-width:100%'+(i.anchor&&i.al=='right'?';float:right':i.anchor&&i.al=='left'?';float:left':'')+'">'}).join('')+E(v).replace(/\t/g,' &emsp; ').replace(/\n/g,'<br>')+'</div>'}
@@ -159,7 +166,7 @@ function mgrSel(id){var m=curMgr();return '<select id="'+id+'" aria-label="'+E(M
 function signBtn(on,attr){var dis=!SIG.length;return '<button type="button" class="dsignbtn'+(on&&!dis?' on':'')+'" '+attr+' aria-pressed="'+(on&&!dis)+'"'+(dis?' disabled':'')+'><span class="dsgi" aria-hidden="true">'+(on&&!dis?'✓':'✍')+'</span>'+E(on&&!dis?MU2('sign_on'):MU2('sign_off'))+'</button>'}
 function mgrRO(keys){var m=curMgr();if(!keys.length)return '';return '<details class="dmgro"><summary>'+E(MU2('data'))+'</summary><dl>'+keys.map(function(k){return '<dt>'+E((F[k]||{}).label||k)+'</dt><dd>'+(prof(k)?E(fmt(k,prof(k))):'<span class="dwarn">—</span>')+'</dd>'}).join('')+'</dl>'+(m?'<button type="button" class="lbtn sec" data-mgredit="'+E(m.id)+'">'+E(MU2('edit'))+'</button>':'')+'</details>'}
 function mgrTodo(){var m=curMgr(),T=(C.manager||{}).todo_mark||'[__]';return !!m&&Object.keys(m.f).some(function(k){return String(m.f[k]||'').indexOf(T)>=0})}
-function mgrTop(signOn,signAttr,selId){var td=mgrTodo(),m=curMgr();return '<div class="dmgtop"><label for="'+selId+'">'+E(MU2('pick'))+'</label>'+mgrSel(selId)+signBtn(signOn&&!td,signAttr+(td?' disabled':''))+'</div>'+(td?'<div class="dtodo" role="alert"><b>'+E(MU2('addr_todo'))+'</b> <button type="button" class="lbtn sec" data-mgredit="'+E(m.id)+'">'+E(MU2('edit'))+'</button></div>':'')}
+function mgrTop(signOn,signAttr,selId){var td=TB()&&mgrTodo(),m=curMgr();return '<div class="dmgtop"><label for="'+selId+'">'+E(MU2('pick'))+'</label>'+mgrSel(selId)+signBtn(signOn&&!td,signAttr+(td?' disabled':''))+'</div>'+(td?'<div class="dtodo" role="alert"><b>'+E(MU2('addr_todo'))+'</b> <button type="button" class="lbtn sec" data-mgredit="'+E(m.id)+'">'+E(MU2('edit'))+'</button></div>':'')}
 /* редактор карточки управляющего (вкладка «Контрагенты») */
 function mgrEdit(el,id,done){MEL=el;MDONE=done;var m=id?MGR.find(function(x){return x.id==id}):null;
  EDM=m?{id:m.id,builtin:m.builtin,f:Object.assign({},m.f),fed:m.fed||'',lhv:JSON.parse(JSON.stringify(m.lhv||{})),lhT:Object.assign({},m.lhT||{}),sigSel:m.sigSel||'',lh:m.lh.slice(),sig:m.sig.slice(),created:m.created,_o:m}:Object.assign(newMgr(),{_new:true});
@@ -194,11 +201,12 @@ function initFields(){var src=Object.assign({},X.fields||{},C.extra_fields||{});
 function ofScope(sc,order){var a=(order||[]).filter(function(k){return F[k]&&F[k].scope==sc});Object.keys(F).forEach(function(k){if(F[k].scope==sc&&a.indexOf(k)<0)a.push(k)});return a}
 function curCase(){return S.cases.find(function(c){return c.id==S.cur})||null}
 function caseName(c){var d=c.data||{};return [d.ДОЛЖНИК_НАИМЕНОВАНИЕ,d.НОМЕР_ДЕЛА].filter(Boolean).join(' · ')||U('case_unnamed')}
-function raw(k,tid){var f=F[k]||{},d=(S.drafts[tid]||{}),c=curCase(),v;
+function raw(k,tid){var v0=raw0(k,tid);if((v0==null||v0==='')&&!OV&&DATEF().indexOf(k)>=0)return todayISO();return v0}
+function raw0(k,tid){var f=F[k]||{},d=(S.drafts[tid]||{}),c=curCase(),v;
  if(OV){if(OV.v[k]!=null&&OV.v[k]!=='')return OV.v[k];if(!f.scope||f.scope=='document')return ''}
  else if(d[k]!=null&&d[k]!=='')return d[k];
  if(f.scope=='profile')v=prof(k);else if(f.scope=='case'&&c)v=c.data[k];
- if((v==null||v==='')&&k=='ВИД_УПРАВЛЯЮЩЕГО'){var p=raw('ПРОЦЕДУРА',tid);v=(C.procedure_manager||{})[String(p||'').toLowerCase().trim()]||''}
+ if((v==null||v==='')&&k=='ВИД_УПРАВЛЯЮЩЕГО'){var p=raw0('ПРОЦЕДУРА',tid);v=(C.procedure_manager||{})[String(p||'').toLowerCase().trim()]||''}
  return v==null?'':v}
 function fmt(k,v){if(!v)return '';var f=F[k]||{};if(f.type=='date'&&/^\d{4}-\d\d-\d\d$/.test(v)){var a=v.split('-');return a[2]+'.'+a[1]+'.'+a[0]}return String(v)}
 function setVal(k,v,tid){var f=F[k]||{},c=curCase();
@@ -312,14 +320,18 @@ async function docx(t){if(!DXC[t.id]){var r=await fetch('docs/'+t.docx+'?v='+(wi
  for(var i=0;i<names.length;i++){var xx=await z.file(names[i]).async('string');if(names[i]=='word/document.xml')xx=expandRowsXml(xx,t);z.file(names[i],runXml(xx,t))}
  var l=lhFor(t);if(l)z=await lhMerge(z,l,t);
  var TODO=(C.manager||{}).todo_mark||'[__]',pn=Object.keys(z.files).filter(function(n){return /^word\/(document|header\d*|footer\d*)\.xml$/.test(n)});
- for(var q=0;q<pn.length;q++){var tx=(await z.file(pn[q]).async('string')).replace(/<[^>]+>/g,'');if(tx.indexOf(TODO)>=0)throw new Error(MU2('addr_todo'))}
+ for(var q=0;q<pn.length;q++){var xq=await z.file(pn[q]).async('string'),tx=xq.replace(/<[^>]+>/g,'');if(tx.indexOf(TODO)<0)continue;if(TB())throw new Error(MU2('addr_todo'));z.file(pn[q],xq.replace(/,?\s*д\.\s*\[__\]/g,'').replace(/,?\s*\[кв\.?\/?оф\.?\s*_+\]/g,'').replace(/\[__\]/g,''))}
  if(OV?OV.sign:(S.sign||{})[t.id]){var g=sigFor(t);if(g){await sigApply(z,g);sigNext()}}
  return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
+/* каждый сформированный документ сразу попадает в Архив (зашифровано PIN); без дела — группа «Без дела» */
+function archMeta(t,extra){var c=curCase(),m=curMgr();return Object.assign({doc_date:(function(v){return /^\d{4}-\d\d-\d\d$/.test(v)?v.split('-').reverse().join('.'):v})(String(raw('ДАТА',t.id)||'')),case:c?c.id:'',kind:'out',title:t.title,tid:t.id,mgr:m?(m.f.ФИО_УПРАВЛЯЮЩЕГО||''):'',debtor:c?'':(raw('ДОЛЖНИК_НАИМЕНОВАНИЕ',t.id)||''),debtor_inn:c?'':(raw('ДОЛЖНИК_ИНН',t.id)||'')},extra||{})}
+async function archSave(m,blob){if(!window.ArbArch)return;try{var id=await ArbArch.add(m,blob);if(ArbArch.notify)ArbArch.notify(1,'',id)}catch(x){if(ArbArch.notify)ArbArch.notify(0,x.message)}}
+async function archCopy(t,via){var lh=lhFor(t),sg=(S.sign||{})[t.id]&&!!sigFor(t),b;try{b=await docx(t)}catch(x){if(window.ArbArch&&ArbArch.notify)ArbArch.notify(0,x.message);return}await archSave(archMeta(t,{no:raw('ИСХ_НОМЕР',t.id)||'',addressee:addrOf(t,null),blank:!!lh,signed:sg,fname:fname(t,'docx'),via:via}),b)}
 async function single(t){var auto=t.fields.indexOf('ИСХ_НОМЕР')>=0&&!raw('ИСХ_НОМЕР',t.id),c=curCase(),o=outCfg(),no=raw('ИСХ_НОМЕР',t.id),d=S.drafts[t.id]=S.drafts[t.id]||{};
  if(auto){no=outFmt(o.next,o,fmt('ДАТА',raw('ДАТА',t.id)));d.ИСХ_НОМЕР=no}
  var lh=lhFor(t),sg=(S.sign||{})[t.id]&&!!sigFor(t),blob;try{blob=await docx(t)}finally{if(auto)delete d.ИСХ_НОМЕР}
  var n=outNum(no);if(no&&n&&n>=o.next)o.next=n+1;save();var fn=fname(t,'docx');saveBlob(blob,fn);
- if(window.ArbArch)try{await ArbArch.add({case:c?c.id:'',kind:'out',no:no||'',title:t.title,tid:t.id,addressee:addrOf(t,null),blank:!!lh,signed:sg,fname:fn,auto:auto},blob)}catch(x){}
+ await archSave(archMeta(t,{no:no||'',addressee:addrOf(t,null),blank:!!lh,signed:sg,fname:fn,auto:auto}),blob)
  if(auto)openT(t.id,1)}
 function addrOf(t,v){var m=((C.batch||{}).multi)||{},k=t.fields.find(function(x){return m[x]});return k?(v&&v[k]!=null?v[k]:raw(k,t.id)):''}
 function bind(){var v=$('vdocs');
@@ -354,8 +366,8 @@ function bind(){var v=$('vdocs');
   if(b.id=='dclear'){if(confirm(U('clear_confirm'))){localStorage.removeItem(LS);S=load();try{await ArbDB.wipe()}catch(x){}S.mgMig=1;save();LEG={lh:[],sig:[]};DEVM={};mgrCompose();if(window.ArbCP&&ArbCP.reset)ArbCP.reset();if(window.ArbArch)ArbArch.reset();BSEL.clear();drawList();drawCases();if(CUR)openT(CUR.id);$('dclm').textContent=U('cleared')}return}
   if(!CUR)return;
   try{if(b.id=='ddocx'){if(!gate(b))return;await single(CUR)}
-   else if(b.id=='dtxt'){if(!gate(b))return;saveBlob(new Blob([plain(fill(expandRowsText(TXT[CUR.id],CUR),CUR,'text'))],{type:'text/plain;charset=utf-8'}),fname(CUR,'txt'))}
-   else if(b.id=='dcopy'){var s=plain(fill(expandRowsText(TXT[CUR.id],CUR),CUR,'text'));try{await navigator.clipboard.writeText(s)}catch(x){var ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}$('dmiss').dataset.warn='';$('dmiss').className='sm';$('dmiss').textContent=U('copied')}}
+   else if(b.id=='dtxt'){if(!gate(b))return;saveBlob(new Blob([plain(fill(expandRowsText(TXT[CUR.id],CUR),CUR,'text'))],{type:'text/plain;charset=utf-8'}),fname(CUR,'txt'));await archCopy(CUR,'txt')}
+   else if(b.id=='dcopy'){setTimeout(function(){archCopy(CUR,'copy')},0);var s=plain(fill(expandRowsText(TXT[CUR.id],CUR),CUR,'text'));try{await navigator.clipboard.writeText(s)}catch(x){var ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}$('dmiss').dataset.warn='';$('dmiss').className='sm';$('dmiss').textContent=U('copied')}}
   catch(x){$('dmiss').className='sm ewarn';$('dmiss').textContent='Не удалось: '+x.message}});
  v.addEventListener('keydown',function(e){var cb=e.target.closest&&e.target.closest('[data-bt]');if(cb&&(e.key=='Enter'||e.key==' ')){e.preventDefault();cb.click();return}var t=e.target.closest&&e.target.closest('[data-t]');if(e.target.closest&&e.target.closest('.dbatch'))return;if(t&&(e.key=='Enter'||e.key==' ')){e.preventDefault();openT(t.dataset.t)}})}
 var VIEWS={docs:'vdocs',cp:'vcp',arch:'varch'};

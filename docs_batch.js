@@ -10,6 +10,7 @@ function scope(k){return F(k).scope||'document'}function opt(k){return !!F(k).op
 function nP(n){return n+' '+A.pl(n,'поле','поля','полей')}function nD(n){return n+' '+A.pl(n,'документ','документа','документов')}function nT(n){return n+' '+A.pl(n,'шаблон','шаблона','шаблонов')}
 function S(){return A.S()}
 function st(){var s=S();s.bvals=s.bvals||{'*':{}};s.bper=s.bper||{};s.baddr=s.baddr||{};return s}
+function TDF(k){var c=A.C||{};return c.date_default=='today'&&(c.date_today_fields||['ДАТА']).indexOf(k)>=0}
 function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2)}
 function sel(){return A.X.templates.filter(function(t){return B.ids.indexOf(t.id)>=0})}
 function caseNow(){return A.curCase()}
@@ -19,8 +20,8 @@ function common(){var ts=sel(),U={},cnt={};ts.forEach(function(t){t.fields.forEa
  return {prof:ord('profile',A.C.profile_order),cas:ord('case',A.C.case_order),shared:Object.keys(cnt).filter(function(k){return cnt[k]>=2&&k!='ИСХ_НОМЕР'&&!MU()[k]}).sort(function(a,b){return F(a).label.localeCompare(F(b).label,'ru')})}}
 function own(t,sh){return t.fields.filter(function(k){return scope(k)=='document'&&k!='ИСХ_НОМЕР'&&sh.indexOf(k)<0&&!MU()[k]&&PER(t).indexOf(k)<0&&A.RF(t).indexOf(k)<0})}
 function vget(k,tid){var s=st();if(scope(k)=='profile')return A.raw(k,'');if(scope(k)=='case'){var c=caseNow();return c?A.raw(k,''):(s.bvals['*'][k]||'')}
- var o=s.bvals[tid]||{};if(tid!='*'&&o[k]!=null)return o[k];var v=s.bvals['*'][k];if(v!=null&&tid=='*')return v;if(tid=='*')return k=='ДАТА'?today():'';
- var d=(S().drafts[tid]||{})[k];return d||''}
+ var o=s.bvals[tid]||{};if(tid!='*'&&o[k]!=null)return o[k];var v=s.bvals['*'][k];if(v!=null&&tid=='*')return v;if(tid=='*')return TDF(k)?today():'';
+ var d=(S().drafts[tid]||{})[k];return d||(TDF(k)?(s.bvals['*'][k]||today()):'')}
 function vset(k,tid,v){var s=st();if(scope(k)=='profile'||scope(k)=='case'&&caseNow()){A.setVal(k,v);return}if(scope(k)=='case'){s.bvals['*'][k]=v;A.save();return}(s.bvals[tid]=s.bvals[tid]||{})[k]=v;A.save()}
 function mfield(t){return A.multiOf(t)}
 function addrs(t){var s=st(),c=caseNow(),key=(c?c.id:'')+'|'+t.id,m=mfield(t);if(!m)return null;
@@ -100,7 +101,7 @@ async function make(){if(BUSY)return;var c=common(),P=plan(),tot=missC(c)+sel().
   var okN=out.filter(function(r){return r.blob}).map(function(r){return r.p.i});
   if(!reuse){var last=okN.length?f0+Math.max.apply(null,okN):f0-1;if(o.next<=last)o.next=last+1;B.issued={sig:sig,first:f0}}
   var M=MU();sel().forEach(function(t){var m=mfield(t);if(m&&M[m].from_case){var s=S();s.bregions=s.bregions||[];(addrs(t)||[]).forEach(function(x){if(s.bregions.indexOf(x.n)<0)s.bregions.push(x.n)})}});A.save();
-  if(window.ArbArch)for(var j=0;j<out.length;j++){var r=out[j];if(!r.blob)continue;try{await ArbArch.add({case:cs?cs.id:'',kind:'out',no:r.p.no,title:r.p.t.title,tid:r.p.t.id,addressee:r.p.a?r.p.a.n:'',blank:r.lh,signed:B.sign&&A.SIG().length>0,fname:r.fn,auto:true,batch:sig},r.blob,true)}catch(x){}}
+  var arN=0,arE='';if(window.ArbArch)for(var j=0;j<out.length;j++){var r=out[j];if(!r.blob)continue;try{await ArbArch.add({doc_date:(function(v){return /^\d{4}-\d\d-\d\d$/.test(v)?v.split('-').reverse().join('.'):v})(vget('ДАТА','*')||''),case:cs?cs.id:'',kind:'out',mgr:(A.curMgr()||{f:{}}).f.ФИО_УПРАВЛЯЮЩЕГО||'',debtor:cs?'':vget('ДОЛЖНИК_НАИМЕНОВАНИЕ','*'),debtor_inn:cs?'':vget('ДОЛЖНИК_ИНН','*'),no:r.p.no,title:r.p.t.title,tid:r.p.t.id,addressee:r.p.a?r.p.a.n:'',blank:r.lh,signed:B.sign&&A.SIG().length>0,fname:r.fn,auto:true,batch:sig},r.blob,true);arN++}catch(x){arE=x.message}}if(window.ArbArch&&ArbArch.notify)ArbArch.notify(arE&&!arN?0:arN,arE&&!arN?arE:'')
   RES={out:out,zip:caseNo()+'_пакет_'+dmy()+'.zip'};B.scr='res'}finally{BUSY=false}render();window.scrollTo(0,document.getElementById('vdocs').offsetTop-60)}
 async function zip(){var z=new JSZip();RES.out.forEach(function(r){if(r.blob)z.file(r.fn,r.blob)});A.saveBlob(await z.generateAsync({type:'blob'}),RES.zip)}
 function vRes(){var c=caseNow(),out=RES.out,ok=out.filter(function(r){return r.blob}),gs=[],sh=common().shared;out.forEach(function(r){var g=gs.find(function(x){return x.t==r.p.t});if(!g)gs.push(g={t:r.p.t,items:[]});g.items.push(r)});
