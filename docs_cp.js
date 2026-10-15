@@ -411,11 +411,20 @@ async function pollReqs(){var cs=A.S().cases.filter(function(c){return c.req&&c.
 function pendTxt(c){var q=c&&c.req;if(!q)return '';if(q.status=='in_progress'){if(q.eta){var t0=q.picked?Date.parse(q.picked):(q.at||Date.now()),left=Math.ceil((t0+q.eta*60000-Date.now())/60000);return left>0?DU('pending_eta',{m:left}):DU('pending_soon')}return DU('pending_work')}if(q.status=='partial')return DU('pending_partial');return DU('pending')}
 function pollStart(){if(POLL)return;POLL=setInterval(function(){if(document.visibilityState=='visible')pollReqs()},(K().case_lookup||{}).poll_s*1000||30000);setTimeout(pollReqs,3000)}
 
+
+/* d6: адресаты пакета по типам шаблона (addressee_types из documents/index.json 1.4) */
+function typeMeta(){return ((window.ARB_DOCS||{}).addressee_type_meta)||ACF().type_meta_fallback||{}}
+function typeOrgs(types,caseId){var TM=typeMeta(),dirT=(types||[]).filter(function(x){return (TM[x]||{}).source=='directory'});if(!dirT.length)return null;if(!AD){addrLoad();return {loading:true}}
+ var fed=[],reg={},R=regMap(),tf={};(AD.types||[]).forEach(function(t){tf[t.id]=t.template_field||''});
+ AD.orgs.forEach(function(o,i){if(dirT.indexOf(o.type)<0)return;var sc=(TM[o.type]||{}).scope,x={i:i,o:o,k:o.type+'|'+o.name,tf:tf[o.type]||''};if(sc=='federal'){fed.push(x);return}var ks=orgOk(o);if(!ks.length||ks.length>4){return}ks.forEach(function(k){if(R[k])(reg[k]=reg[k]||[]).push(x)})});
+ var c=A.S().cases.find(function(z){return z.id==(caseId||A.S().cur)}),bas={};dirT.forEach(function(x){bas[(TM[x]||{}).region_basis||'debtor']=1});
+ var ck=c?caseOk(c):[];if(bas.case&&c&&c.data.СУД)okOf(c.data.СУД).forEach(function(k){if(ck.indexOf(k)<0)ck.push(k)});
+ return {fed:fed,reg:reg,R:R,caseK:ck.filter(function(k,i){return reg[k]&&ck.indexOf(k)==i}),checked:regChecked(),labels:dirT.map(function(x){return (TM[x]||{}).label||tLabel(x)})}}
 /* ---------- API для «Документов» ---------- */
 window.ArbCP={
  mount:function(el,api){A=api;ROOT=el;bind(el);load()},
  reset:function(){CP=[];FM={};ED=null;MAP=null;V='list';MSG='';draw()},
- redraw:function(){if(V=='list')draw()},editMgr:editMgr,ensureBanks:function(){return ensureBanks(false).then(function(n){if(n)draw();return n})},dirLoad:dirLoad,dirPick:dirPick,dirOrgs:dirOrgs,dirVal:dirVal,orgLine:orgLine,dirOrg:function(i){return AD&&AD.orgs[i]},addrLoad:addrLoad,combo:combo,suggest:suggest,cbField:cbField,regChecked:regChecked,inRegs:inRegs,orgOk:orgOk,regMap:regMap,pollReqs:pollReqs,pollStart:pollStart,pendTxt:pendTxt,openSec:function(id,sub){V='list';SEC=id;if(sub=='add'){DADD={};V='dadd'}draw()},debHay:debHay,debLine:debLine,extractCase:extractCase,
+ redraw:function(){if(V=='list')draw()},editMgr:editMgr,ensureBanks:function(){return ensureBanks(false).then(function(n){if(n)draw();return n})},dirLoad:dirLoad,dirPick:dirPick,dirOrgs:dirOrgs,dirVal:dirVal,orgLine:orgLine,dirOrg:function(i){return AD&&AD.orgs[i]},addrLoad:addrLoad,combo:combo,suggest:suggest,cbField:cbField,regChecked:regChecked,inRegs:inRegs,orgOk:orgOk,regMap:regMap,pollReqs:pollReqs,pollStart:pollStart,pendTxt:pendTxt,typeOrgs:typeOrgs,typeMeta:typeMeta,openSec:function(id,sub){V='list';SEC=id;if(sub=='add'){DADD={};V='dadd'}draw()},debHay:debHay,debLine:debLine,extractCase:extractCase,
  list:function(){return CP},
  /* карточки с ролью из списка; привязанные к делу — первыми */
  pick:function(rs,caseId,ks){return CP.filter(function(c){return (!rs||!rs.length)&&!(ks&&ks.length)||(c.roles||[]).some(function(r){return (rs||[]).indexOf(r)>=0})||(ks||[]).indexOf(c.kind)>=0}).sort(function(a,b){var x=(a.cases||[]).indexOf(caseId)>=0?0:1,y=(b.cases||[]).indexOf(caseId)>=0?0:1;return x-y||String(a.name).localeCompare(String(b.name),'ru')})},

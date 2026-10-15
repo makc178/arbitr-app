@@ -356,3 +356,13 @@ html.dfbar-on #vdocs{padding-bottom:96px}
 #vdocs .dfx .chk{justify-content:flex-start;text-align:left}
 #vdocs .dfx .src{font-size:12.5px;color:var(--mut);margin:-6px 0 10px}
 #vdocs .dfx .need .grid,#vdocs .dfx .af .grid{text-align:left}
+#vdocs .dfx .qb.pk{position:relative;padding-left:40px;text-align:left}
+#vdocs .dfx .qb.pk .pkc{position:absolute;left:12px;top:50%;width:18px;height:18px;margin-top:-9px;border-radius:5px;border:1.5px solid var(--line);background:transparent}
+#vdocs .dfx .qb.pk.on{border-color:var(--acc);background:var(--soft)}
+#vdocs .dfx .qb.pk.on .pkc{background:#14B8A6;border-color:#14B8A6}
+#vdocs .dfx .qb.pk.on .pkc:after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+#vdocs .dfx .qb.pk span{display:flex;flex-direction:column}
+#vdocs .dfx .qb.pk small{font-weight:400;color:var(--mut);font-size:12.5px;margin-top:2px}
+#vdocs .dfx .pkh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
+#vdocs .dfx .pkh .sm{flex:1}
+#vdocs .dnp{font-size:11px;font-weight:500;padding:1px 6px;border-radius:6px;background:var(--soft);color:var(--mut);margin-left:4px}
