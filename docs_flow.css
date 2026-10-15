@@ -366,3 +366,24 @@ html.dfbar-on #vdocs{padding-bottom:96px}
 #vdocs .dfx .pkh{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
 #vdocs .dfx .pkh .sm{flex:1}
 #vdocs .dnp{font-size:11px;font-weight:500;padding:1px 6px;border-radius:6px;background:var(--soft);color:var(--mut);margin-left:4px}
+:is(#vdocs,#vcp,#varch) .dlhrow{display:flex;gap:.8em;align-items:flex-start}
+:is(#vdocs,#vcp,#varch) .dlhc{min-width:0}
+:is(#vdocs,#vcp,#varch) .dlhc .dlhl{line-height:1.25}
+:is(#vdocs,#vcp,#varch) .dlhrule{margin:.25em 0 0;opacity:.7}
+:is(#vdocs,#vcp,#varch) .dlhh:has(.dlhrule){border-bottom:0}
+:is(#vdocs,#vcp,#varch) .dsigln{display:flex;justify-content:space-between;align-items:baseline;gap:1em;flex-wrap:wrap}
+#vdocs #dfrst{position:sticky;top:0;z-index:40;display:flex;justify-content:flex-end;padding:6px 0;background:transparent;pointer-events:none}
+#vdocs #dfrst:empty{display:none}
+#vdocs .dfrstb{pointer-events:auto;background:#DC2626;border:1px solid #DC2626;color:#fff;font-weight:700;padding:10px 18px;min-height:44px;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+#vdocs .dfrstb:hover{background:#B91C1C}
+.dmodal.dfx{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.dmodal .dmbox{background:var(--pan,#10302B);color:var(--ink,#E6F4F1);border:1px solid var(--line,#2A4A45);border-radius:16px;max-width:440px;width:100%;padding:18px 18px 14px}
+html[data-theme=light] .dmodal .dmbox{background:#fff;color:#0F2E2A}
+.dmodal h3{margin:0 0 8px;font-size:18px}.dmodal p{margin:0 0 16px;line-height:1.45}
+.dmodal .dmact{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+.dmodal .dmact .btn{min-height:44px;padding:10px 18px;border-radius:12px;font-weight:600}
+.dmodal .dfdanger{background:#DC2626;border:1px solid #DC2626;color:#fff}
+.dmodal .dmsub{color:var(--mut,#8FA8A3)}
+html[data-theme=light] .dmodal .dmsub{color:#5B6B68}
+.dmodal .dfcancel{background:#fff;color:#0F2E2A;border:1px solid #CBD5D3}
+@media(max-width:600px){#vdocs #dfrst{justify-content:stretch;padding:6px 0}#vdocs .dfrstb{flex:1 1 100%;width:100%}}

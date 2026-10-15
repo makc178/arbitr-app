@@ -213,6 +213,7 @@ var SU=0;function softUpdate(){clearTimeout(SU);SU=setTimeout(function(){if(!B||
 window.ArbBatch={
  mount:function(el,api){A=api;ROOT=el;bind();document.getElementById('vdocs').addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#dbbar [data-bact]');if(b&&B&&b.dataset.bact=='make'){e.stopPropagation();(async function(){for(var w=0;w<sel().length;w++)try{await A.md(sel()[w])}catch(x){}await make()})()}},true)},
  refresh:function(){if(B&&B.scr=='form')rerender()},
+ reset:function(){B=null;RES=null;try{SHEET=null}catch(e){}if(ROOT)ROOT.innerHTML=''},
  open:function(ids){var o=S().bopt||{};B={ids:ids,open:{},blank:o.blank!=null?o.blank:A.LH().length>0,sign:o.sign!=null?o.sign:A.SIG().length>0,scr:'form',pc:!caseNow()};RES=null;render()},
  active:function(){return !!B},
  _t:{plan:function(){return plan()},common:common,fname:fname}
