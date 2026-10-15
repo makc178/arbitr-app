@@ -202,9 +202,12 @@ function outFmt(n,o,date){var y=String((String(date||'').match(/(\d{4})/)||[0,ne
 function outNum(s){var m=String(s||'').match(/^\s*(\d+)/);return m?+m[1]:0}
 function outSync(){if(!window.ArbArch)return;S.cases.concat([null]).forEach(function(c){var m=ArbArch.maxNo(c?c.id:'');if(m){var o=outCfg(c);if(o.next<=m)o.next=m+1}});save()}
 function re(list,k){return (list||[]).some(function(p){return p.charAt(0)=='^'?new RegExp(p).test(k):p==k})}
+function isDateF(k,label){var P=C.date_patterns||{},ex=(P.exclude||[]).some(function(p){return new RegExp(p).test(k)});if(ex)return false;
+ return (P.keys||[]).some(function(p){return new RegExp(p).test(k)})||(P.label?new RegExp(P.label,'i').test(String(label||'')):false)}
+function dISO(v){v=String(v||'').trim();if(!v)return '';if(/^\d{4}-\d\d-\d\d$/.test(v))return v;var m=/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(v);return m?m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2):null}
 function initFields(){var src=Object.assign({},X.fields||{},C.extra_fields||{});
  Object.keys(src).forEach(function(k){var f=Object.assign({},src[k]);f.k=k;if((C.labels||{})[k])f.label=C.labels[k];if((C.scope_override||{})[k])f.scope=C.scope_override[k];
-  f.type=re(C.date_fields,k)?'date':re(C.time_fields,k)?'time':re(C.textarea_fields,k)?'textarea':re(C.inn_fields,k)?'inn':'text';f.opt=(C.options||{})[k];f.optional=(C.optional||[]).indexOf(k)>=0;f.hint=src[k].hint||'';F[k]=f});
+  f.type=(src[k].type=='date'||re(C.date_fields,k)||isDateF(k,f.label))?'date':re(C.time_fields,k)?'time':re(C.textarea_fields,k)?'textarea':re(C.inn_fields,k)?'inn':'text';f.opt=(C.options||{})[k];f.optional=(C.optional||[]).indexOf(k)>=0;f.hint=src[k].hint||'';F[k]=f});
  X.templates.forEach(function(t){t.fields.forEach(function(k){if(!F[k])F[k]={k:k,label:k.replace(/_/g,' ').toLowerCase().replace(/^./,function(c){return c.toUpperCase()}),scope:'document',type:'text'}})})}
 function ofScope(sc,order){var a=(order||[]).filter(function(k){return F[k]&&F[k].scope==sc});Object.keys(F).forEach(function(k){if(F[k].scope==sc&&a.indexOf(k)<0)a.push(k)});return a}
 function curCase(){return S.cases.find(function(c){return c.id==S.cur})||null}
@@ -216,7 +219,7 @@ function raw0(k,tid){var f=F[k]||{},d=(S.drafts[tid]||{}),c=curCase(),v;
  if(f.scope=='profile')v=prof(k);else if(f.scope=='case'&&c)v=c.data[k];
  if((v==null||v==='')&&k=='ВИД_УПРАВЛЯЮЩЕГО'){var p=raw0('ПРОЦЕДУРА',tid);v=(C.procedure_manager||{})[String(p||'').toLowerCase().trim()]||''}
  return v==null?'':v}
-function fmt(k,v){if(!v)return '';var f=F[k]||{};if(f.type=='date'&&/^\d{4}-\d\d-\d\d$/.test(v)){var a=v.split('-');return a[2]+'.'+a[1]+'.'+a[0]}return String(v)}
+function fmt(k,v){if(!v)return '';var f=F[k]||{};if(f.type=='date'&&/^\d{4}-\d\d-\d\d$/.test(String(v).trim())){v=String(v).trim();var a=v.split('-');return a[2]+'.'+a[1]+'.'+a[0]}return String(v)}
 function setVal(k,v,tid){var f=F[k]||{},c=curCase();
  if(f.scope=='profile'){var mm=curMgr();if(mm){mm.f[k]=v;mgrSaveSoon(mm)}if(tid&&S.drafts[tid])delete S.drafts[tid][k]}
  else if(f.scope=='case'&&c){c.data[k]=v;if(tid&&S.drafts[tid])delete S.drafts[tid][k]}
@@ -227,13 +230,14 @@ function inp(f,v,pre){var id=pre+'_'+f.k,a=' data-k="'+E(f.k)+'" id="'+E(id)+'"'
  if(co&&!f.opt){dl='<datalist id="'+E(id)+'_l">'+co.map(function(o){return '<option value="'+E(o)+'">'}).join('')+'</datalist>';a+=' list="'+E(id)+'_l"'}
  if(f.opt){dl='<datalist id="'+E(id)+'_l">'+f.opt.map(function(o){return '<option value="'+E(o)+'">'}).join('')+'</datalist>';a+=' list="'+E(id)+'_l"'}
  if(f.type=='textarea')return '<textarea'+a+' rows="3">'+E(v)+'</textarea>';
+ if(f.type=='date')return dateInp(a,v,dl);
  return '<input'+a+(f.type=='date'?' type="date"':f.type=='time'?' type="time"':'')+(f.type=='inn'?' inputmode="numeric"':'')+(f.type=='text'&&/EMAIL/.test(f.k)?' type="email"':'')+(/ТЕЛ_/.test(f.k)?' type="tel"':'')+' value="'+E(v)+'" autocomplete="off">'+dl}
 function grid(keys,get,pre){return '<div class="g2">'+keys.map(function(k){var f=F[k];return '<div data-w="'+E(k)+'"'+(f.type=='textarea'?' class="dwide"':'')+'><label for="'+E(pre+'_'+k)+'">'+E(f.label)+(f.optional?' <span class="sm">(необязательно)</span>':'')+'</label>'+inp(f,get(k),pre)+(f.hint?'<div class="sm dhint">'+E(f.hint)+'</div>':'')+'</div>'}).join('')+'</div>'}
 function shell(){var v=document.createElement('div');v.id='vdocs';v.style.display='none';
  v.innerHTML='<div class="md prc fin dwrap"><h2 id="dtl"></h2><p class="sm" id="dintro"></p>'+
- '<div id="dsteps" class="dsteps"></div>'+
- '<p class="sm dpriv"><span id="dpriv"></span> <button type="button" class="lbtn sec" id="dclear"></button> <span class="sm" id="dclm"></span></p>'+
- '<div id="dlist"></div><div id="ded" style="display:none"></div></div><div id="dbbar" class="dbbar" style="display:none"></div><div id="dtoast" class="dtoast" style="display:none" role="status"></div>';
+ '<div id="dflow" class="dfx"></div><div id="dfbar"></div><div id="dfsheet" class="dfx" hidden></div>'+
+ '<div id="dlist"></div><div id="ded" style="display:none"></div>'+
+ '<p class="sm dpriv"><span id="dpriv"></span> <button type="button" class="lbtn sec" id="dclear"></button> <span class="sm" id="dclm"></span></p></div><div id="dbbar" class="dbbar" style="display:none"></div><div id="dtoast" class="dtoast" style="display:none" role="status"></div>';
  var a=$('veval')||$('vsrc');if(a&&a.parentNode)a.parentNode.insertBefore(v,a.nextSibling);else document.body.appendChild(v);
  var at=v;[['vcp',window.ArbCP,'dcpb',(C.counterparties||{}).nav||(C.counterparties||{}).title],['varch',window.ArbArch,'darchb',(C.archive||{}).title]].forEach(function(x){if(!x[1])return;var w=document.createElement('div');w.id=x[0];w.style.display='none';
   w.innerHTML='<div class="md prc fin dwrap dtop"><h2>'+E(x[3]||'')+'</h2><div id="'+x[2]+'"></div></div>';at.parentNode.insertBefore(w,at.nextSibling);at=w})}
@@ -242,27 +246,6 @@ function CU(k){return ((C.counterparties||{}).ui||{})[k]||k}
 function cpDeb(c){if(!window.ArbCP||!c)return '';var L=ArbCP.pick(null,c.id).filter(function(x){return x.src!='cbr'});if(!L.length)return '';return '<div class="dcrow"><label for="dcdeb">'+E(CU('debtor_pick'))+'</label><select id="dcdeb"><option value="">'+E(CU('debtor_none'))+'</option>'+L.map(function(x){return '<option value="'+E(x.id)+'">'+E(x.name+(x.inn?' · ИНН '+x.inn:''))+'</option>'}).join('')+'</select></div>'}
 function SU(k){return (C.steps||{})[k]||k}
 function debLine(c){var d=c.data||{};return [d.ДОЛЖНИК_НАИМЕНОВАНИЕ||U('case_unnamed'),d.ДОЛЖНИК_ИНН?'ИНН '+d.ДОЛЖНИК_ИНН:'',d.НОМЕР_ДЕЛА?'№ '+d.НОМЕР_ДЕЛА:''].filter(Boolean).join(' · ')}
-function drawCases(){var el=$('dsteps');if(window.ArbArch&&ArbArch.draw)ArbArch.draw();if(!el)return;var c=curCase(),act=document.activeElement&&document.activeElement.id=='dsdeb';if(act)return;
- el.innerHTML='<div class="dstep"><span class="dstn" aria-hidden="true">1</span><div class="dstb"><label for="dsmgr">'+E(SU('mgr'))+'</label>'+(MGR.length?mgrSel('dsmgr'):'<p class="sm">'+E(encOK()?SU('mgr_none'):SU('locked'))+'</p>')+(encOK()?'<button type="button" class="lbtn sec dstl" id="dsmgradd">'+E(MGR.length?SU('mgr_cards'):SU('mgr_add'))+'</button>':'')+'</div></div>'+
-  '<div class="dstep"><span class="dstn" aria-hidden="true">2</span><div class="dstb"><label for="dsdeb">'+E(SU('deb'))+'</label><div class="dcbw"><input id="dsdeb" class="dcbin" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="dsdeb_l" autocomplete="off" enterkeyhint="search" placeholder="'+E(S.cases.length?SU('deb_ph'):SU('deb_empty'))+'" value="'+E(c?debLine(c):'')+'"><div class="dcbl" id="dsdeb_l" role="listbox" hidden></div></div>'+
-  '<div class="dact dstact">'+(c?'<button type="button" class="lbtn sec" id="dsdebcard">'+E(SU('deb_card'))+'</button><button type="button" class="lbtn sec" id="dsdebnone">'+E(SU('deb_clear'))+'</button>':'')+'<button type="button" class="lbtn sec" id="dsdebadd">'+E(SU('deb_add'))+'</button></div></div></div>';
- var sm=$('dsmgr');if(sm)sm.addEventListener('change',function(){setMgr(sm.value)});
- var inp=$('dsdeb'),L=$('dsdeb_l'),IT=[],ac=-1,tm=0;
- function close(){L.hidden=true;inp.setAttribute('aria-expanded','false');ac=-1}
- function show(all){var q=all?'':String(inp.value||'').toLowerCase().replace(/ё/g,'е').replace(/[^a-zа-я0-9/]+/g,' ').trim(),dq=q.replace(/\D/g,'');
-  IT=S.cases.filter(function(x){if(!q)return true;var h=window.ArbCP&&ArbCP.debHay?ArbCP.debHay(x):debLine(x).toLowerCase();return q.split(' ').every(function(w){return h.indexOf(w)>=0})||(dq.length>3&&h.indexOf(dq)>=0)}).slice(0,50);
-  L.innerHTML=IT.map(function(x,j){var d=x.data||{};return '<div class="dcbi'+(x.id==S.cur?' cur':'')+'" role="option" id="dsdeb_o'+j+'" data-dsi="'+j+'"><b>'+E(d.ДОЛЖНИК_НАИМЕНОВАНИЕ||U('case_unnamed'))+'</b><span class="sm">'+E([d.ДОЛЖНИК_ИНН?'ИНН '+d.ДОЛЖНИК_ИНН:'',d.НОМЕР_ДЕЛА?'№ '+d.НОМЕР_ДЕЛА:'',d.ПРОЦЕДУРА||''].filter(Boolean).join(' · '))+'</span></div>'}).join('')+(IT.length?'':'<div class="sm dcbn">'+E(S.cases.length?SU('deb_nf'):SU('deb_empty'))+'</div>');L.hidden=false;inp.setAttribute('aria-expanded','true')}
- function pick(j){var x=IT[j];if(!x)return;S.cur=x.id;if(x.mgr&&MGR.some(function(m){return m.id==x.mgr}))S.mgr=x.mgr;save();inp.blur();close();curMgr();refreshAll()}
- inp.addEventListener('focus',function(){inp.select();show(true)});
- inp.addEventListener('input',function(){clearTimeout(tm);tm=setTimeout(function(){show(false)},120)});
- inp.addEventListener('keydown',function(e){var n=IT.length;if(e.key=='ArrowDown'){e.preventDefault();if(L.hidden)show(true);ac=Math.min(n-1,ac+1)}else if(e.key=='ArrowUp'){e.preventDefault();ac=Math.max(0,ac-1)}else if(e.key=='Enter'){e.preventDefault();pick(ac>=0?ac:0);return}else if(e.key=='Escape'){close();inp.blur();return}else return;
-  [].forEach.call(L.querySelectorAll('.dcbi'),function(o,k){o.classList.toggle('on',k==ac);if(k==ac){o.scrollIntoView({block:'nearest'});inp.setAttribute('aria-activedescendant',o.id)}})});
- L.addEventListener('mousedown',function(e){e.preventDefault()});L.addEventListener('click',function(e){var o=e.target.closest('[data-dsi]');if(o)pick(+o.dataset.dsi)});
- inp.addEventListener('blur',function(){setTimeout(function(){close();var cc=curCase();if(document.activeElement!==inp)inp.value=cc?debLine(cc):''},180)});
- var b1=$('dsdebnone');if(b1)b1.addEventListener('click',function(){S.cur=null;save();refreshAll()});
- var b2=$('dsdebadd');if(b2)b2.addEventListener('click',function(){showTab('cp');if(window.ArbCP&&ArbCP.openSec)ArbCP.openSec('debtors','add')});
- var b3=$('dsdebcard');if(b3)b3.addEventListener('click',function(){showTab('cp');if(window.ArbCP&&ArbCP.openSec)ArbCP.openSec('debtors')});
- var b4=$('dsmgradd');if(b4)b4.addEventListener('click',function(){showTab('cp');if(window.ArbCP&&ArbCP.openSec)ArbCP.openSec('managers')})}
 function groups(){return X.groups||[]}
 function GL(g){return (C.group_labels||{})[g]||g}
 function BU(k,o){var x=((C.batch||{}).ui||{})[k]||k;if(o)Object.keys(o).forEach(function(n){x=x.split('{'+n+'}').join(o[n])});return x}
@@ -292,7 +275,7 @@ function bar(h){var b=$('dbbar');if(!b)return;b.innerHTML=h||'';b.style.display=
 function listBar(){if(!window.ArbBatch||CUR||$('dlist').style.display=='none')return;var n=BSEL.size;
  bar('<div class="dbi"><b>'+E(BU('picked',{n:n}))+'</b>'+(n?'':'<span class="sm">'+E(BU('pick_hint'))+'</span>')+'</div>'+(n?'<button type="button" class="lbtn sec dbx" data-bclr="1" title="'+E(BU('clear'))+'" aria-label="'+E(BU('clear'))+'">✕</button>':'')+'<button type="button" class="lbtn dbgo'+(n?'':' off')+'" data-bgo="1"'+(n?'':' aria-disabled="true"')+'>'+E(n?BU('make_n',{n:n}):BU('make'))+'</button>')}
 function toast(t){var x=$('dtoast');if(!x)return;x.textContent=t;x.style.display='';clearTimeout(toast.t);toast.t=setTimeout(function(){x.style.display='none'},2200)}
-function showList(){CUR=null;$('vdocs').classList.remove('editing');$('ded').style.display='none';$('ded').innerHTML='';$('dlist').style.display='';drawList()}
+function showList(){CUR=null;var wb=FL.batch;FL.batch=false;$('vdocs').classList.remove('editing');$('ded').style.display='none';$('ded').innerHTML='';if(!FL.step||FL.step=='f'||wb)FL.step='t';drawCases();if(FL.all)drawList()}
 var TXT={},PF=0;
 function prefetch(){if(PF)return;PF=1;Promise.all(X.templates.map(function(t){return md(t).catch(function(){})})).then(function(){if(Q)drawList()})}
 async function md(t){if(TXT[t.id]==null){var r=await fetch('docs/'+t.md+'?v='+(window.ARB_DOCS_VH||''));if(!r.ok)throw new Error('шаблон не загрузился ('+r.status+')');TXT[t.id]=await r.text()}return TXT[t.id]}
@@ -316,18 +299,10 @@ function sigKey(){var m=curMgr();return m?m.id:'_'}
 function sigFor(t){curMgr();if(!SIG.length)return null;return SIG[((S.sigNm||{})[sigKey()]||0)%SIG.length]}
 function sigNext(){S.sigNm=S.sigNm||{};var k=sigKey();S.sigNm[k]=(((S.sigNm[k]||0)+1)%Math.max(1,SIG.length));save()}
 function htmlPrev(s,t){var sg=OV?(OV.sign&&(OV.sigUrl?{url:OV.sigUrl}:sigFor(t))):((S.sign||{})[t.id]&&sigFor(t));return s.split('\n').map(function(l){var hd=/^#+\s+/.test(l),sl=sg&&SIGLINE.test(l);l=l.replace(/^#+\s+/,'');var x=fill(l,t,'html');if(sl)x='<span class="dsigw"><img class="dsig" style="height:'+((GC().height_mm||22)/4.23).toFixed(2)+'em;bottom:-'+(((GC().height_mm||22)/4.23)*0.3).toFixed(2)+'em" src="'+sg.url+'" alt=""></span>'+x;return hd?'<div class="dhd">'+x+'</div>':'<div>'+(x||'&nbsp;')+'</div>'}).join('')}
-async function openT(id,keep){var t=X.templates.find(function(x){return x.id==id});if(!t)return;CUR=t;$('dlist').style.display='none';bar('');$('vdocs').classList.add('editing');var ed=$('ded');ed.style.display='';ed.innerHTML='<p class="sm">…</p>';
+async function openT(id,keep){var t=X.templates.find(function(x){return x.id==id});if(!t)return;if(CUR!==t||!keep)FL.need=null;if(!keep)FL.tab='f';CUR=t;FL.step='f';FL.batch=false;FL.res=null;$('dlist').style.display='none';bar('');$('vdocs').classList.add('editing');var ed=$('ded');ed.style.display='';if(!keep)ed.innerHTML='<p class="sm">…</p>';
  try{await md(t)}catch(e){ed.innerHTML='<p class="sm ewarn">'+E(e.message)+'</p><button type="button" class="lbtn sec" data-back>'+E(U('back'))+'</button>';return}
- var by={profile:[],case:[],document:[]};t.fields.forEach(function(k){if(RF(t).indexOf(k)>=0)return;(by[(F[k]||{}).scope]||by.document).push(k)});
- var ord=function(a,o){return a.sort(function(x,y){var i=(o||[]).indexOf(x),j=(o||[]).indexOf(y);return (i<0?999:i)-(j<0?999:j)})};ord(by.profile,C.profile_order);ord(by.case,C.case_order);
- var st=C.scope_titles||{},sec=function(sc){return by[sc].length?'<h4 class="dsh">'+E(st[sc]||sc)+'</h4>'+grid(by[sc],function(k){return raw(k,t.id)},'df'):''};
- ed.innerHTML='<button type="button" class="lbtn sec" data-back>'+E(U('back'))+'</button><h3 class="dth">'+E(t.title)+'</h3><div class="sm"><b>'+E(U('norm'))+':</b> '+E(t.norm)+'</div>'+(t.deadline?'<div class="sm"><b>'+E(U('deadline'))+':</b> '+E(t.deadline)+'</div>':'')+
-  mgrTop(!!(S.sign||{})[t.id],'id="dfsign"','dfmgr')+mgrRO(by.profile)+
-  '<div class="dcrow"><label for="dfcase">'+E(U('case_pick'))+'</label>'+caseSel('dfcase')+'</div>'+lhSel(t)+'<div id="dfdir"></div>'+
-  '<form id="dform" autocomplete="off" onsubmit="return false">'+sec('case')+sec('document')+rowsHtml(t)+'</form>'+
-  '<div class="dact"><button type="button" class="lbtn" id="ddocx">'+E(U('dl_docx'))+'</button><button type="button" class="lbtn sec" id="dtxt">'+E(U('dl_txt'))+'</button><button type="button" class="lbtn sec" id="dcopy">'+E(U('copy'))+'</button></div><p class="sm" id="dmiss"></p>'+
-  '<h4 class="dsh">'+E(U('preview'))+'</h4><div class="dprev" id="dprev"></div>';
- prev();adrCombo(t);if(!keep)window.scrollTo(0,$('vdocs').offsetTop-60)}
+ if(CUR!==t)return;var fl=$('dflow');if(fl)fl.innerHTML='';flowVis();var ae=document.activeElement,aid=keep&&ae&&ae.id;
+ ed.innerHTML='<div class="dfx">'+formHtml(t)+'</div>';prev();adrCombo(t);needSync();if(aid&&$(aid))try{$(aid).focus()}catch(x){}if(!keep)window.scrollTo(0,$('vdocs').offsetTop-60)}
 function adrField(t){var a=C.addressees||{};if((a.none||[]).indexOf(t.id)>=0)return null;return multiOf(t)||null}
 function adrCombo(t){var h=$('dfdir');if(!h)return;var cf=adrField(t);if(!cf||!window.ArbCP||!ArbCP.combo){h.innerHTML='';return}
  ArbCP.combo(h,{tid:t.id,field:cf,value:raw(cf,t.id),addr:raw('АДРЕСАТ_АДРЕС',t.id),caseId:S.cur,region:raw('РЕГИОН',t.id)||raw('ДОЛЖНИК_АДРЕС',t.id),label:((C.addressees||{}).ui||{}).cb_label,
@@ -371,7 +346,7 @@ function addrOf(t,v){var m=((C.batch||{}).multi)||{},k=t.fields.find(function(x)
 function bind(){var v=$('vdocs');
  v.addEventListener('toggle',function(e){if(e.target.classList&&e.target.classList.contains('dpoth'))POTH=e.target.open},true);
  v.addEventListener('input',function(e){var i=e.target;if(i.closest('.dbatch'))return;if(i.id=='dq'){Q=i.value;drawList();return}if(i.dataset&&i.dataset.rk&&CUR){rows(CUR)[+i.dataset.row][i.dataset.rk]=i.value;save();prev();return}var k=i.dataset&&i.dataset.k;if(!k)return;
-  var pre=i.id.split('_')[0];if(pre=='dc'){var c=curCase();if(c){c.data[k]=i.value;save()}}else if(pre=='df'&&CUR){setVal(k,i.value,CUR.id);if(k=='ПРОЦЕДУРА'){var w=$('df_ВИД_УПРАВЛЯЮЩЕГО');if(w&&!w.value)w.placeholder=raw('ВИД_УПРАВЛЯЮЩЕГО',CUR.id)}prev()}});
+  var pre=i.id.split('_')[0];if(pre=='dc'){var c=curCase();if(c){c.data[k]=i.value;save()}}else if(pre=='df'&&CUR){var sv=$('dsv_'+k);if(sv&&!sv.checked)(S.drafts[CUR.id]=S.drafts[CUR.id]||{})[k]=i.value,save();else setVal(k,i.value,CUR.id);if(k=='ПРОЦЕДУРА'){var w=$('df_ВИД_УПРАВЛЯЮЩЕГО');if(w&&!w.value)w.placeholder=raw('ВИД_УПРАВЛЯЮЩЕГО',CUR.id)}prev()}});
  v.addEventListener('change',async function(e){var i=e.target;if(i.closest('.dbatch'))return;
   if(i.id=='dcaseup'&&window.ArbCP){var fs=[].slice.call(i.files);i.value='';showTab('cp');await ArbCP.importCases(fs);return}
   if(i.id=='dcdeb'&&window.ArbCP&&i.value){var cc=curCase(),cp=await ArbCP.linkDebtor(i.value,cc&&cc.id);if(cc&&cp){var M=(C.counterparties||{}).debtor_map||{};Object.keys(M).forEach(function(k){if(cp[M[k]])cc.data[k]=cp[M[k]]});save();drawCases();if(CUR)openT(CUR.id,1)}return}
@@ -385,7 +360,7 @@ function bind(){var v=$('vdocs');
   if(b.dataset.bsel){var vs=visT(),al=vs.every(function(t){return BSEL.has(t.id)});vs.forEach(function(t){al?BSEL.delete(t.id):BSEL.add(t.id)});drawList();return}
   if(b.dataset.bgrp){var gs=visT().filter(function(t){return t.group==b.dataset.bgrp}),ga=gs.every(function(t){return BSEL.has(t.id)});gs.forEach(function(t){ga?BSEL.delete(t.id):BSEL.add(t.id)});drawList();return}
   if(b.dataset.bclr){BSEL.clear();drawList();return}
-  if(b.dataset.bgo){if(!BSEL.size){toast(BU('need_pick'));return}$('dlist').style.display='none';$('vdocs').classList.add('editing');$('ded').style.display='';ArbBatch.open(X.templates.filter(function(t){return BSEL.has(t.id)}).map(function(t){return t.id}));window.scrollTo(0,$('vdocs').offsetTop-60);return}
+  if(b.dataset.bgo){if(!BSEL.size){toast(BU('need_pick'));return}FL.batch=true;flowVis();fbar('');$('dlist').style.display='none';$('vdocs').classList.add('editing');$('ded').style.display='';ArbBatch.open(X.templates.filter(function(t){return BSEL.has(t.id)}).map(function(t){return t.id}));window.scrollTo(0,$('vdocs').offsetTop-60);return}
   if(b.closest('#ded .dbatch'))return;
   if(b.dataset.g!=null&&b.classList.contains('pchip')){FLT=b.dataset.g;drawList();return}
   if(b.dataset.t){openT(b.dataset.t);return}
@@ -413,12 +388,214 @@ function nav(force){if(document.querySelector('nav button[data-v="docs"]'))retur
    if(k=='docs')prefetch();if(k=='arch'&&window.ArbArch)ArbArch.draw();if(k=='cp'&&window.ArbCP&&ArbCP.redraw)ArbCP.redraw();window.scrollTo(0,0)}});
  document.querySelector('nav').classList.add('dnav6');
  document.querySelector('nav').addEventListener('click',function(e){var b=e.target.closest('button[data-v]');if(b&&!VIEWS[b.dataset.v])own.forEach(function(i){var d=$(i);if(d)d.style.display='none'})});return true}
+/* ===== d6: новая страница «Документы» по макету Дизайнера (documents_page/spec.md): Управляющий → Должник → Документ → Подпись ===== */
+var FL={step:null,tab:'f',af:false,dq:'',dAll:null,tq:'',oth:false,all:false,res:null,batch:false,need:null,ms:''};
+var IC={chk:'<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',chev:'<svg class="chev" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',down:'<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',srch:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',x:'<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',doc:'<svg viewBox="0 0 24 24"><path d="M14 3H6v18h12V7zM14 3v4h4M9 12h6M9 16h6"/></svg>',dl:'<svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',pen:'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4"/></svg>',star:'<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.8 6.8 19.6l1-5.8L3.5 9.7l5.9-.8z"/></svg>',warn:'<svg viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17.5v.01"/></svg>',bld:'<svg viewBox="0 0 24 24"><path d="M4 20V8l8-4 8 4v12M4 20h16M9 20v-6h6v6M8 11h.01M16 11h.01"/></svg>',user:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>',arch:'<svg viewBox="0 0 24 24"><path d="M3 4h18v4H3zM5 8v12h14V8M10 12h4"/></svg>',sig:'<svg viewBox="0 0 24 24"><path d="M3 17c3-1 4-9 6-9s-1 9 1 9 3-5 4-5 0 4 2 4 2-2 5-2M3 21h18"/></svg>',book:'<svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M8 7h7"/></svg>'};
+function FU(k,o){var x=(C.flow||{})[k];if(x==null)x=k;if(o)Object.keys(o).forEach(function(n){x=x.split('{'+n+'}').join(o[n])});return x}
+var PRS={'наблюдение':'Набл.','финансовое оздоровление':'ФО','внешнее управление':'ВУ','конкурсное производство':'КП','реструктуризация долгов гражданина':'РД','реализация имущества гражданина':'РИ'};
+var PRL={'наблюдение':'Наблюдение','финансовое оздоровление':'Фин. оздоровление','внешнее управление':'Внешнее управление','конкурсное производство':'Конкурсное производство','реструктуризация долгов гражданина':'Реструктуризация долгов','реализация имущества гражданина':'Реализация имущества'};
+function fioP(m){return String((m&&m.f.ФИО_УПРАВЛЯЮЩЕГО)||'').trim().split(/\s+/)}
+function ini(m){var p=fioP(m);return ((p[1]||'').charAt(0)+(p[0]||'').charAt(0)).toUpperCase()||'АУ'}
+function mshort(m){var p=fioP(m);return p[0]?p[0]+(p[1]?' '+p[1].charAt(0)+'.':'')+(p[2]?' '+p[2].charAt(0)+'.':''):''}
+function when(iso){if(!iso)return '';var d=new Date(iso),n=new Date(),dd=function(x){return x.getFullYear()+'-'+x.getMonth()+'-'+x.getDate()},y=new Date(n.getTime()-864e5),hm=('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);
+ if(dd(d)==dd(n))return FU('today')+', '+hm;if(dd(d)==dd(y))return FU('yesterday');return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear()}
+function caseLast(c){if(!window.ArbArch||ArbArch.locked()||!ArbArch.lastFor)return '';var d=c.data||{};return ArbArch.lastFor([c.id],d.ДОЛЖНИК_НАИМЕНОВАНИЕ,d.ДОЛЖНИК_ИНН)}
+function autoStep(){if(!MGR.length)return 'm';if(MGR.length==1&&!MGR.some(function(m){return m.id==S.mgr})){S.mgr=MGR[0].id;save()}if(!MGR.some(function(m){return m.id==S.mgr}))return 'm';if(!curCase())return 'd';return 't'}
+function goStep(s){FL.step=s;FL.res=s=='r'?FL.res:null;if(s!='f'&&CUR){CUR=null;$('ded').style.display='none';$('ded').innerHTML='';$('vdocs').classList.remove('editing')}if(s=='d'){FL.dq='';FL.dAll=null}if(s!='t')FL.all=false;drawCases();var v=$('vdocs');if(v&&v.offsetParent)window.scrollTo(0,v.offsetTop-60)}
+function stepper(n){var L=['<span class="lg2">'+E(FU('st_m'))+'</span><span class="sh2">'+E(FU('st_m_short'))+'</span>',E(FU('st_d')),E(FU('st_t')),E(FU('st_f'))],K=['m','d','t','f'];
+ return '<div class="stp">'+L.map(function(l,i){return '<a href="#" '+(i<n?'data-fs="'+K[i]+'"':'tabindex="-1"')+' class="'+(i<n?'done':i==n?'cur':'')+'">'+(i<n?'<i>✓</i>':'')+l+'</a>'}).join('')+'</div>'}
+function ctxBar(){var m=curMgr(),c=curCase(),d=(c&&c.data)||{},pr=String(d.ПРОЦЕДУРА||'').toLowerCase().trim();
+ return '<div class="ctx"><div class="av s">'+E(ini(m))+'</div><div class="tx"><div class="l1">'+E(d.ДОЛЖНИК_НАИМЕНОВАНИЕ||(c?U('case_unnamed'):FU('no_debtor')))+(PRS[pr]?' <span class="pc'+(pr=='наблюдение'?' n':'')+'">'+E(PRS[pr])+'</span>':'')+'</div><div class="l2">'+E([d.НОМЕР_ДЕЛА||'',mshort(m)].filter(Boolean).join(' · '))+'</div></div><button type="button" class="chip ch" data-fl="chg">'+E(FU('change'))+'</button></div>'}
+function fbar(h,cls){var b=$('dfbar');if(!b)return;b.className=h?'dfx on '+(cls||''):'';b.innerHTML=h||'';document.documentElement.classList.toggle('dfbar-on',!!h)}
+function flowVis(){var fl=$('dflow');if(!fl)return;var on=!FL.batch;fl.style.display=on?'':'none';$('dlist').style.display=on&&FL.step=='t'&&FL.all&&!CUR?'':'none';['dtl','dintro'].forEach(function(i){if($(i))$(i).style.display='none'});if(!on||FL.step!='f'&&FL.step!='m')fbar(on&&FL.step=='m'&&false?'':'')}
+function drawCases(){var el=$('dflow');if(window.ArbArch&&ArbArch.draw)ArbArch.draw();if(!el)return;if(FL.batch){flowVis();return}
+ var a=document.activeElement;if(a&&a.id=='dfdq'&&FL.step=='d'){drawDD();return}
+ if(!FL.step||(FL.step!='m'&&!MGR.some(function(m){return m.id==S.mgr}))||((FL.step=='t'||FL.step=='f')&&!curCase()))FL.step=autoStep();
+ if(FL.step=='f'&&!CUR)FL.step='t';
+ var h='';if(FL.step=='m')h=scrM();else if(FL.step=='d')h=scrD();else if(FL.step=='t')h=scrT();else if(FL.step=='r')h=scrR();else h='';
+ el.innerHTML=h;flowVis();
+ if(FL.step=='m'){var m=curMgr();fbar(MGR.length?'<div class="info"><b>'+E(mshort(m)||'—')+'</b><span class="sm">'+E(FU('m_picked'))+'</span></div><button type="button" class="btn pri" data-fs="d">'+E(FU('next_d'))+'</button>':'')}
+ else if(FL.step=='d'){fbar('');drawDD();var i=$('dfdq');if(i&&!FL.nofocus)setTimeout(function(){try{i.focus({preventScroll:true})}catch(x){}},30);FL.nofocus=false}
+ else if(FL.step=='t'||FL.step=='r')fbar('');
+ if(FL.step=='t'&&FL.all)drawList()}
+/* --- шаг 1 --- */
+function scrM(){var q=String(FL.ms||'').toLowerCase(),L=MGR.slice(),last={};L.forEach(function(m){last[m.id]=window.ArbArch&&ArbArch.lastByMgr&&!ArbArch.locked()?ArbArch.lastByMgr(m.f.ФИО_УПРАВЛЯЮЩЕГО):''});
+ L.sort(function(a,b){return String(last[b.id]).localeCompare(String(last[a.id]))});if(q)L=L.filter(function(m){return (m.f.ФИО_УПРАВЛЯЮЩЕГО+' '+(m.f.СРО||'')).toLowerCase().indexOf(q)>=0});
+ var h=stepper(0)+'<h2>'+E(FU('m_title'))+'</h2><p class="sm intro">'+E(FU('m_help'))+'</p>';
+ if(!MGR.length)return h+'<div class="card"><b>'+E(encOK()?FU('m_empty'):FU('m_locked'))+'</b></div>'+(encOK()?'<button type="button" class="addl" data-fl="mgadd">'+IC.plus+E(FU('m_add'))+'</button>':'');
+ if(MGR.length>1)h+='<div class="search">'+IC.srch+'<input id="dfms" placeholder="'+E(FU('m_search'))+'" value="'+E(FL.ms||'')+'"></div>';
+ h+='<div class="mgl">'+L.map(function(m,i){var f=m.f,n=S.cases.filter(function(c){return c.mgr==m.id}).length,ls=last[m.id];return '<button type="button" class="mg'+(m.id==S.mgr?' sel':'')+'" data-fmg="'+E(m.id)+'"><div class="av'+(['',' b',' c',' d'][i%4])+'">'+E(ini(m))+'</div><div class="tx"><b>'+E(f.ФИО_УПРАВЛЯЮЩЕГО||mgrName(m))+'</b><span class="sm">'+E(f.СРО||'')+'</span><span class="sm">'+E([f.РЕГ_НОМЕР_АУ?FU('reg_no')+' '+f.РЕГ_НОМЕР_АУ:'',FU('cases_n')+': '+n,ls?FU('last_doc')+' '+when(ls):''].filter(Boolean).join(' · '))+'</span></div><span class="rad"></span></button>'}).join('')+
+  '<button type="button" class="addl" data-fl="mgadd">'+IC.plus+'<span style="flex:1;text-align:left">'+E(FU('m_add'))+'</span><span class="sm" style="font-weight:400">'+E(FU('in_cp'))+'</span></button></div>';return h}
+/* --- шаг 2 --- */
+function nrm(s){return String(s||'').toLowerCase().replace(/ё/g,'е')}
+function dig(s){return String(s||'').replace(/^\s*[аa]\s?\d{2}\s*-/i,'').replace(/\D/g,'')}
+function hlx(s,q,mode){s=String(s||'');if(!q)return E(s);if(mode=='d'){var ds=q,idx=[],t='';for(var i=0;i<s.length;i++)if(/\d/.test(s[i])){idx.push(i);t+=s[i]}var p=t.indexOf(ds);if(p<0)return E(s);var a=idx[p],b=idx[p+ds.length-1]+1;return E(s.slice(0,a))+'<mark>'+E(s.slice(a,b))+'</mark>'+E(s.slice(b))}
+ var n=nrm(s),re=new RegExp('(^|[\\s«"(\\-])('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','i'),m=re.exec(n);if(!m)return E(s);var st=m.index+m[1].length;return E(s.slice(0,st))+'<mark>'+E(s.slice(st,st+q.length))+'</mark>'+E(s.slice(st+q.length))}
+function dMatch(c,q){var d=c.data||{},qd=q.replace(/\D/g,''),qn=nrm(q).replace(/[«»"]/g,'').trim();if(!qn)return {s:0};
+ var r=null;if(qd.length>=3&&qd.length==q.replace(/[\s\/\-аАaA]/g,'').length){var no=dig(d.НОМЕР_ДЕЛА),inn=String(d.ДОЛЖНИК_ИНН||'');if(no&&no.indexOf(qd)>=0)r={s:no==qd?3:1,f:'no',q:qd};else if(inn.indexOf(qd)>=0)r={s:inn==qd?3:1,f:'inn',q:qd};
+  else if(/[аa]\s?\d/i.test(q)&&nrm(d.НОМЕР_ДЕЛА).replace(/\s/g,'').indexOf(nrm(q).replace(/\s/g,''))>=0)r={s:2,f:'no',q:qd};return r}
+ if(qn.length<2)return null;var nm=nrm(d.ДОЛЖНИК_НАИМЕНОВАНИЕ).replace(/[«»"]/g,' '),ok=qn.split(/\s+/).every(function(w){return new RegExp('(^|[\\s\\-(])'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).test(nm)});
+ if(ok)return {s:nm.indexOf(qn)==0?2:1,f:'nm',q:qn.split(/\s+/)[0]};if(/[аa]\d|\//i.test(q)&&nrm(d.НОМЕР_ДЕЛА).indexOf(nrm(q))>=0)return {s:2,f:'no',q:''};return null}
+function isFiz(c){var d=c.data||{};return String(d.ДОЛЖНИК_ИНН||'').length==12||/гражданин/.test(String(d.ПРОЦЕДУРА||''))}
+function dRow(c,mt,hl,i){var d=c.data||{},pr=String(d.ПРОЦЕДУРА||'').toLowerCase().trim(),ls=caseLast(c);mt=mt||{};
+ return '<div class="dr'+(hl?' hl':'')+'" role="option" id="dfdr'+i+'" data-fdeb="'+E(c.id)+'"><div class="ic2">'+(isFiz(c)?IC.user:IC.bld)+'</div><div class="tx"><div class="nm">'+(mt.f=='nm'?hlx(d.ДОЛЖНИК_НАИМЕНОВАНИЕ,mt.q):E(d.ДОЛЖНИК_НАИМЕНОВАНИЕ||U('case_unnamed')))+'</div><div class="kv"><span>ИНН</span><b>'+(mt.f=='inn'?hlx(d.ДОЛЖНИК_ИНН,mt.q,'d'):E(d.ДОЛЖНИК_ИНН||'—'))+'</b><span>'+E(FU('case'))+'</span><b>'+(mt.f=='no'&&mt.q?hlx(d.НОМЕР_ДЕЛА,mt.q,'d'):E(d.НОМЕР_ДЕЛА||'—'))+'</b></div>'+
+  '<div style="margin-top:5px">'+(PRL[pr]?'<span class="pc'+(pr=='наблюдение'?' n':'')+'">'+E(PRL[pr])+'</span>':'')+(ls?' <span class="sm">· '+E(when(ls))+'</span>':'')+(c.req&&/^(new|in_progress|partial)$/.test(c.req.status)?' <span class="sm">· '+E(window.ArbCP&&ArbCP.pendTxt?ArbCP.pendTxt(c):FU('pending'))+'</span>':'')+'</div></div></div>'}
+function scrD(){var m=curMgr();return stepper(1)+'<button type="button" class="mg sel" style="padding:9px 12px" data-fs="m"><div class="av s">'+E(ini(m))+'</div><div class="tx"><b style="font-size:14.5px">'+E((m&&m.f.ФИО_УПРАВЛЯЮЩЕГО)||'')+'</b><span class="sm">'+E((m&&m.f.СРО)||'')+'</span></div><span class="link" style="padding:0">'+E(FU('change'))+'</span></button>'+
+ '<h2>'+E(FU('d_title'))+'</h2><div class="cb"><div class="cbi">'+IC.srch+'<input id="dfdq" type="text" role="combobox" aria-expanded="true" aria-controls="dfdd" aria-autocomplete="list" autocomplete="off" enterkeyhint="search" value="'+E(FL.dq)+'" placeholder="'+E(FU('d_ph'))+'"><button type="button" class="x" data-fl="dqx" aria-label="'+E(FU('clear'))+'"'+(FL.dq?'':' hidden')+'>'+IC.x+'</button></div>'+
+ '<div class="cbh">'+E(FU('d_by'))+'<span>'+E(FU('d_by1'))+'</span><span>ИНН</span><span>'+E(FU('d_by3'))+'</span></div><div class="dd" id="dfdd" role="listbox"></div></div>'}
+var DDL=[],DDA=0;
+function drawDD(){var el=$('dfdd');if(!el)return;var m=curMgr(),q=String(FL.dq||'').trim(),mine=S.cases.filter(function(c){return c.mgr?c.mgr==S.mgr:MGR.length<=1}),all=FL.dAll==null?!mine.length:FL.dAll,src=all?S.cases:mine,L=[];
+ if(q){src.forEach(function(c){var r=dMatch(c,q);if(r)L.push({c:c,m:r})});L.sort(function(a,b){return b.m.s-a.m.s||String(caseLast(b.c)).localeCompare(String(caseLast(a.c)))})}
+ else{L=src.map(function(c){return {c:c,l:caseLast(c)}}).sort(function(a,b){return String(b.l).localeCompare(String(a.l))}).slice(0,5)}
+ DDL=L;if(DDA>=L.length)DDA=0;
+ var h='<div class="dh">'+E(q?FU('found',{n:L.length}):FU('recent'))+'<span class="sp"></span><span class="seg2"><button type="button" class="'+(all?'':'on')+'" data-fl="dmine">'+E(FU('cases_of',{m:mshort(m)}))+'</button><button type="button" class="'+(all?'on':'')+'" data-fl="dall">'+E(FU('all'))+'</button></span></div>';
+ h+=L.map(function(x,i){return dRow(x.c,x.m,i==DDA,i)}).join('');
+ if(!L.length)h+='<div class="dr"><div class="tx"><div class="nm">'+E(q?FU('nf',{q:q}):(S.cases.length?FU('none_mine'):FU('none')))+'</div></div></div>';
+ h+='<div class="ft" role="button" tabindex="0" data-fl="dadd">'+IC.plus+E(FU('d_add'))+'</div>';el.innerHTML=h;var x=$('dfdq');if(x)x.setAttribute('aria-activedescendant',L.length?'dfdr'+DDA:'')}
+function pickDeb(id){var c=S.cases.find(function(x){return x.id==id});if(!c)return;S.cur=c.id;if(!c.mgr&&S.mgr)c.mgr=S.mgr;save();curMgr();FL.af1=true;goStep('t');refreshAll()}
+/* --- шаг 3 --- */
+function cardFill(){var c=curCase(),pf=(C.profile_order||[]).filter(function(k){return F[k]&&F[k].scope=='profile'}),cs=(C.case_order||[]).filter(function(k){return F[k]&&F[k].scope=='case'});
+ return {p:pf.filter(function(k){return prof(k)}).length,c:cs.filter(function(k){return c&&c.data[k]}).length,miss:cs.filter(function(k){return !(c&&c.data[k])&&!(F[k]||{}).optional&&k!='ВИД_УПРАВЛЯЮЩЕГО'})}}
+function presetsQB(){var B=C.batch||{},P=B.presets||[],GR=B.preset_groups||[],pr=caseProc(),tq=nrm(FL.tq).trim();if(!P.length)return '';
+ var qb=function(ix){return '<div class="qs">'+ix.map(function(i){var p=P[i];return '<button type="button" class="qb" data-fpre="'+i+'"><span>'+E(p.name)+'</span><b>'+presetIds(p).length+'</b></button>'}).join('')+'</div>'};
+ if(tq){var hit=P.map(function(p,i){return i}).filter(function(i){return nrm(P[i].name).indexOf(tq)>=0});return hit.length?'<div class="secth"><span class="n">'+E(FU('sets'))+'</span></div>'+qb(hit):''}
+ var mine=pr?GR.filter(function(g){return g.proc&&g.proc.indexOf(pr)>=0}):GR,allG=GR.filter(function(g){return !g.proc||!g.proc.length}),rest=GR.filter(function(g){return mine.indexOf(g)<0&&allG.indexOf(g)<0}),h='';
+ var sec=function(g,first){var ix=P.map(function(p,i){return i}).filter(function(i){return P[i].group==g.id});return ix.length?'<div class="secth"><span class="n">'+E(g.label||g.title||g.id)+'</span>'+(first?'<span class="c">'+E(FU('sets_l'))+'</span>':'')+'</div>'+qb(ix):''};
+ (pr?mine:GR.filter(function(g){return allG.indexOf(g)<0})).forEach(function(g,i){h+=sec(g,i==0)});allG.forEach(function(g){h+=sec(g)});
+ if(pr&&rest.length){var nr=P.filter(function(p){return rest.some(function(g){return g.id==p.group})}).length;h+='<button type="button" class="oth" data-fl="oth">'+E(FU('others'))+' <span class="sm">· '+E(FU('more_sets',{n:nr}))+'</span>'+IC.chev+'</button>';if(FL.oth)rest.forEach(function(g){h+=sec(g)})}
+ return h}
+function tRow(t,sub,fav){return '<div class="ti" role="button" tabindex="0" data-ft="'+E(t.id)+'"><div class="ki">'+IC.doc+'</div><div class="tx"><b>'+E(t.title)+'</b><span class="sm">'+(sub?E(sub):'<span class="kind">'+E(t.kind||'')+'</span>'+(t.deadline?' · '+E(t.deadline):''))+'</span></div><button type="button" class="star'+(fav?' on':'')+'" data-fstar="'+E(t.id)+'" aria-pressed="'+!!fav+'" aria-label="'+E(FU('fav'))+'">'+IC.star+'</button></div>'}
+function scrT(){var c=curCase(),d=(c&&c.data)||{},cf=cardFill(),fav=S.fav||[],tq=nrm(FL.tq).trim(),h=ctxBar()+stepper(2);
+ if(cf.miss.length)h+='<div class="af warn"><div class="ic">'+IC.warn+'</div><div class="tx"><b>'+E(FU('af_miss'))+'</b><span class="sm">'+E(cf.miss.slice(0,3).map(function(k){return (F[k]||{}).label||k}).join(', ')+(cf.miss.length>3?' '+FU('and_more',{n:cf.miss.length-3}):''))+'</span></div><button type="button" class="link" data-fl="debcard">'+E(FU('complete'))+'</button></div>';
+ else if(FL.af1)h+='<div class="af"><div class="ic">'+IC.chk+'</div><div class="tx"><b>'+E(FU('af_ok'))+'</b><span class="sm">'+E(FU('af_ok_n',{n:cf.p+cf.c,p:cf.p,c:cf.c}))+'</span></div></div>';
+ h+='<h2>'+E(FU('t_title'))+'</h2><div class="search">'+IC.srch+'<input id="dftq" placeholder="'+E(FU('t_search'))+'" value="'+E(FL.tq)+'"></div>';
+ if(tq){var ts=X.templates.filter(function(t){return nrm(t.title+' '+(t.kind||'')+' '+t.fields.map(function(k){return (F[k]||{}).label||''}).join(' ')).indexOf(tq)>=0});return h+presetsQB()+(ts.length?'<div class="secth"><span class="n">'+E(FU('templates'))+'</span><span class="c">'+ts.length+'</span></div><div class="tl">'+ts.map(function(t){return tRow(t,null,fav.indexOf(t.id)>=0)}).join('')+'</div>':'')+(!ts.length&&!presetsQB()?'<p class="sm">'+E(FU('t_nf'))+'</p>':'')}
+ var rec=window.ArbArch&&!ArbArch.locked()&&ArbArch.recent&&c?ArbArch.recent([c.id],d.ДОЛЖНИК_НАИМЕНОВАНИЕ,d.ДОЛЖНИК_ИНН,3):[];
+ h+='<div class="t2"><div>'+presetsQB()+'</div><div>';
+ if(rec.length)h+='<div class="secth"><span class="n">'+E(FU('recent_docs'))+'</span><span class="sp"></span><button type="button" class="link" data-fl="archall">'+E(FU('all_arch'))+'</button></div><div class="tl">'+rec.map(function(r){var t=X.templates.find(function(x){return x.id==r.tid});return t?tRow(t,when(r.date)+(r.no?' · '+FU('out_no')+' '+r.no:''),fav.indexOf(t.id)>=0):''}).join('')+'</div>';
+ var fv=fav.map(function(id){return X.templates.find(function(t){return t.id==id})}).filter(Boolean);
+ h+='<div class="secth"><span class="n">'+E(FU('favs'))+'</span><span class="c">'+fv.length+'</span></div>'+(fv.length?'<div class="tl">'+fv.map(function(t){return tRow(t,null,true)}).join('')+'</div>':'<p class="sm">'+E(FU('favs_h'))+'</p>');
+ h+='<button type="button" class="oth" data-fl="all">'+IC.book+E(FU('all_t'))+' <span class="sm">· '+E(FU('all_t_n',{n:X.templates.length}))+'</span>'+IC.chev+'</button></div></div>';return h}
+function startBatch(ids){BSEL.clear();ids.forEach(function(id){BSEL.add(id)});FL.batch=true;flowVis();fbar('');$('dlist').style.display='none';$('vdocs').classList.add('editing');$('ded').style.display='';ArbBatch.open(ids);window.scrollTo(0,$('vdocs').offsetTop-60)}
+/* --- шаг 4: форма --- */
+function needKeys(t,cf){var rf=RF(t),skip=['ДАТА','ДАТА_ОТЧЁТА','ИСХ_НОМЕР',cf];return t.fields.filter(function(k){if(rf.indexOf(k)>=0||skip.indexOf(k)>=0)return false;var sc=(F[k]||{}).scope||'document';if(sc=='document')return true;return !raw(k,t.id)})}
+function fld(k,t,cls){var f=F[k]||{k:k,label:k,type:'text'},v=raw(k,t.id),sc=f.scope||'document',e=!v&&!f.optional,ph=sc=='profile'?FU('ph_mgr'):sc=='case'?FU('ph_case'):'';
+ var h='<label class="f'+(e?' empty':'')+'" data-w="'+E(k)+'"'+(f.type=='textarea'?' style="grid-column:1/-1"':'')+'><span>'+E(f.label||k)+(f.optional?' <span class="sm">('+E(FU('optional'))+')</span>':'')+'</span>'+inp(f,v,'df').replace(/<(input|textarea|select)/,'<$1 class="inp"'+(ph&&!v?' placeholder="'+E(ph)+'"':''))+'</label>';
+ if(f.hint)h+='<div class="src">'+E(f.hint)+'</div>';
+ if(sc=='profile'||sc=='case'){var who=sc=='profile'?FU('to_mgr',{m:mshort(curMgr())}):FU('to_case');h+='<label class="chk"><input type="checkbox" id="dsv_'+E(k)+'" checked><i></i>'+E(FU('save_to',{w:who}))+'</label>'}return h}
+function afBlock(t){var pf=t.fields.filter(function(k){return (F[k]||{}).scope=='profile'&&raw(k,t.id)}),cs=t.fields.filter(function(k){return (F[k]||{}).scope=='case'&&raw(k,t.id)}),n=pf.length+cs.length,c=curCase(),d=(c&&c.data)||{};if(!n)return '';
+ var kv=function(k){return '<div class="kv2" data-fafk="'+E(k)+'" role="button" tabindex="0"><span>'+E((F[k]||{}).label||k)+'</span><b>'+E(fmt(k,raw(k,t.id)))+'</b></div>'};
+ if(!FL.af)return '<div class="af"><div class="ic">'+IC.chk+'</div><div class="tx"><b>'+E(FU('af_f',{n:n}))+'</b><span class="sm">'+E([mshort(curMgr()),pf.length?FU('af_mgr'):'',d.НОМЕР_ДЕЛА?FU('case')+' '+d.НОМЕР_ДЕЛА:'',cs.length?FU('af_case'):''].filter(Boolean).join(', '))+'</span></div><button type="button" class="link" data-fl="afo">'+E(FU('show'))+'</button></div>';
+ return '<div class="af open"><div style="display:flex;gap:10px;align-items:flex-start"><div class="ic">'+IC.chk+'</div><div class="tx"><b>'+E(FU('af_f',{n:n}))+'</b><span class="sm">'+E(FU('af_local'))+'</span></div><button type="button" class="link" data-fl="afo">'+E(FU('hide'))+'</button></div>'+
+  (pf.length?'<div class="sub" style="margin:10px 0 2px">'+E(FU('af_g_mgr',{n:pf.length}))+'</div><div class="grid">'+pf.map(kv).join('')+'</div>':'')+(cs.length?'<div class="sub" style="margin:10px 0 2px">'+E(FU('af_g_case',{n:cs.length}))+'</div><div class="grid">'+cs.map(kv).join('')+'</div>':'')+
+  '<button type="button" class="link" data-fl="debcard" style="margin-top:6px">'+E(FU('edit_card'))+'</button></div>'}
+function regChips(){if(!window.ArbCP||!ArbCP.regChecked||!ArbCP.regMap)return '';var R=ArbCP.regMap(),L=ArbCP.regChecked();if(!Object.keys(R).length)return '';return '<div class="rgn" role="button" tabindex="0" data-fl="regs">'+E(FU('regs'))+' '+L.map(function(k){return '<span class="pc">'+E((R[k]||{}).n||k)+'</span>'}).join('')+'<span class="pc">'+E(FU('plus_fed'))+'</span></div>'}
+function formHtml(t){var cf=adrField(t),nk=FL.need||(FL.need=needKeys(t,cf)),ne=nk.filter(function(k){return !raw(k,t.id)&&!(F[k]||{}).optional}),sg=SIG.length,sn=((S.sign||{})[t.id]!==false),ix=sg?((S.sigNm||{})[sigKey()]||0)%sg+1:0,lh=lhFor(t,'auto'),lhOn=(S.lh||{})[t.id]!='none';
+ var need=nk.length?'<div class="need'+(ne.length?'':' ok')+'" id="dfneed"><h3>'+E(ne.length?FU('need'):FU('need_ok'))+'<span class="st '+(ne.length?'warn':'ok')+'" id="dfneedn">'+(ne.length?IC.warn+ne.length:IC.chk)+'</span><span class="sp"></span></h3>'+nk.map(function(k){return fld(k,t)}).join('')+'</div>':'';
+ var adr=cf?'<div class="card"><h3>'+E(FU('addressee'))+'</h3><div id="dfdir"></div>'+regChips()+'<div class="sm" style="margin-top:6px">'+E(FU('adr_multi'))+' <button type="button" class="link" data-fl="tobatch">'+E(FU('adr_batch'))+'</button></div></div>':'';
+ var doc='<div class="card"><h3>'+E(FU('doc'))+'</h3><div class="num">'+(t.fields.indexOf('ДАТА')>=0?'<label class="f"><span>'+E(FU('date'))+(raw('ДАТА',t.id)==todayISO()?' · <b style="color:var(--ok);font-weight:600">'+E(FU('today'))+'</b>':'')+'</span>'+inp(F['ДАТА'],raw('ДАТА',t.id),'df').replace(/<input/,'<input class="inp"')+'</label>':'')+
+  (t.fields.indexOf('ИСХ_НОМЕР')>=0?'<label class="f"><span>'+E(FU('out'))+(raw('ИСХ_НОМЕР',t.id)?'':' · <b style="color:var(--ok);font-weight:600">'+E(FU('auto'))+'</b>')+'</span>'+inp(F['ИСХ_НОМЕР'],raw('ИСХ_НОМЕР',t.id),'df').replace(/<input/,'<input class="inp"')+'</label>':'')+'</div>'+
+  (t.fields.indexOf('ДАТА_ОТЧЁТА')>=0?fld('ДАТА_ОТЧЁТА',t):'')+
+  '<div class="sw"><div class="tx"><b>'+E(FU('blank'))+'</b><span class="sm">'+E(lh?FU('blank_h',{n:lh.name}):FU('blank_none'))+'</span></div><button type="button" class="tg'+(lhOn&&lh?' on':'')+'" data-fl="lh" aria-pressed="'+!!(lhOn&&lh)+'"'+(lh?'':' disabled')+'></button></div>'+
+  '<div class="sw"><div class="tx"><b>'+E(FU('sign'))+'</b><span class="sm">'+E(sg?FU('sign_h',{i:ix,n:sg,mm:GC().height_mm||22}):FU('sign_none'))+'</span></div><span class="v">'+IC.sig+E(sg?FU('auto'):'—')+'</span></div></div>';
+ var rows=RF(t).length?'<div class="card">'+rowsHtml(t)+'</div>':'';
+ var pv='<div class="pv"><div class="pvh"><span>'+E(FU('pv_h'))+'</span><span class="sp"></span></div><div class="paperwrap"><div class="dprev" id="dprev"></div></div><div class="sm" style="margin-top:8px">'+E(FU('pv_note'))+'</div></div>';
+ return ctxBar()+stepper(3)+'<button type="button" class="back" data-fl="t">'+E(FU('back_t'))+'</button><h2 class="dtitle">'+E(t.title)+'</h2><div class="dmeta"><span class="kind">'+E(t.kind||'')+'</span>'+(t.deadline?'<span>'+E(t.deadline)+'</span>':'')+(t.norm?'<span>'+E(t.norm)+'</span>':'')+'</div>'+
+  '<div class="seg"><button type="button" class="'+(FL.tab=='f'?'on':'')+'" data-fl="tabf">'+E(FU('tab_f'))+' <span class="cnt" id="dfcnt"'+(ne.length?'':' hidden')+'>'+ne.length+'</span></button><button type="button" class="'+(FL.tab=='p'?'on':'')+'" data-fl="tabp">'+E(FU('tab_p'))+'</button></div>'+
+  '<div class="fl'+(FL.tab=='p'?' ph-pv':'')+'"><form class="fm" id="dform" autocomplete="off" onsubmit="return false">'+afBlock(t)+need+rows+adr+doc+'</form>'+pv+'</div>'}
+function formBar(){if(!CUR)return;var m=missing(CUR).filter(function(k){return k!='ИСХ_НОМЕР'}),n=m.length;fbar((n?'<div class="warnl">'+IC.warn+E(FU('bar_miss',{n:n+' '+pl(n,'поле','поля','полей')}))+'</div>':'')+'<button type="button" class="btn sec dlb" data-fl="dl" title="'+E(FU('dl_t'))+'">'+IC.dl+'<span class="lbl2">'+E(FU('dl'))+'</span></button><button type="button" class="btn pri grow" data-fl="signsave"'+(SIG.length?'':' title="'+E(FU('sign_none'))+'"')+'>'+IC.pen+E(SIG.length?FU('sign_save'):FU('save_arch'))+'</button>','two')}
+function needSync(){if(!CUR)return;var t=CUR,nk=FL.need||[],ne=nk.filter(function(k){return !raw(k,t.id)&&!(F[k]||{}).optional});
+ nk.forEach(function(k){var w=document.querySelector('#dfneed [data-w="'+k+'"]');if(w)w.classList.toggle('empty',!raw(k,t.id)&&!(F[k]||{}).optional)});
+ var b=$('dfneedn'),nd=$('dfneed'),c=$('dfcnt');if(b){b.className='st '+(ne.length?'warn':'ok');b.innerHTML=ne.length?IC.warn+ne.length:IC.chk}if(nd){nd.classList.toggle('ok',!ne.length);var h=nd.querySelector('h3');if(h&&h.firstChild)h.firstChild.nodeValue=ne.length?FU('need'):FU('need_ok')}if(c){c.textContent=ne.length;c.hidden=!ne.length}formBar()}
+async function flowMake(sign){var t=CUR;if(!t)return;var m=missing(t).filter(function(k){return k!='ИСХ_НОМЕР'});
+ if(sign&&m.length&&!confirm(FU('confirm_miss',{n:m.length+' '+pl(m.length,'поле','поля','полей')}))){FL.tab='f';var fl=document.querySelector('.fl');if(fl)fl.classList.remove('ph-pv');var e=document.querySelector('#dfneed .empty input,#dfneed .empty textarea,#dform .empty input');if(e){e.scrollIntoView({block:'center'});e.focus()}return}
+ var useSig=sign&&SIG.length>0;S.sign=S.sign||{};var was=S.sign[t.id];S.sign[t.id]=useSig;
+ var auto=t.fields.indexOf('ИСХ_НОМЕР')>=0&&!raw('ИСХ_НОМЕР',t.id),o=outCfg(),no=raw('ИСХ_НОМЕР',t.id),d=S.drafts[t.id]=S.drafts[t.id]||{};if(auto){no=outFmt(o.next,o,fmt('ДАТА',raw('ДАТА',t.id)));d.ИСХ_НОМЕР=no}
+ var sgv=useSig?(((S.sigNm||{})[sigKey()]||0)%SIG.length+1):0,lh=lhFor(t),blob;fbar('<div class="info"><b>'+E(FU('making'))+'</b></div>');
+ try{blob=await docx(t)}catch(x){S.sign[t.id]=was;if(auto)delete d.ИСХ_НОМЕР;toast(x.message);formBar();return}finally{if(auto)delete d.ИСХ_НОМЕР}
+ S.sign[t.id]=was;var n=outNum(no);if(no&&n&&n>=o.next)o.next=n+1;save();
+ var c=curCase(),cn=String((c&&c.data.НОМЕР_ДЕЛА)||'').replace(/[\\\/:*?"<>|\s]+/g,'-'),fn=(cn?cn+'_':'')+String(no||'').replace(/[\\\/:*?"<>|\s]+/g,'-')+(no?'_':'')+t.id+'.docx',ad=addrOf(t,null),id=null;
+ if(!sign)saveBlob(blob,fn);
+ if(window.ArbArch){try{id=await ArbArch.add(archMeta(t,{no:no||'',addressee:ad,blank:!!lh,signed:useSig,unsigned:!useSig,sig_variant:sgv||undefined,fname:fn,auto:auto}),blob);if(ArbArch.notify&&!sign)ArbArch.notify(1,'',id)}catch(x){if(ArbArch.notify)ArbArch.notify(0,x.message)}}
+ FL.res={t:t,no:no,blob:blob,fn:fn,signed:useSig,sgv:sgv,lh:!!lh,ad:ad,id:id,at:new Date(),date:fmt('ДАТА',raw('ДАТА',t.id))};CUR=null;$('ded').style.display='none';$('ded').innerHTML='';$('vdocs').classList.remove('editing');FL.step='r';drawCases();window.scrollTo(0,$('vdocs').offsetTop-60)}
+function scrR(){var r=FL.res;if(!r)return '';var c=curCase(),d=(c&&c.data)||{},m=curMgr(),at=r.at,ts=('0'+at.getDate()).slice(-2)+'.'+('0'+(at.getMonth()+1)).slice(-2)+'.'+at.getFullYear()+', '+('0'+at.getHours()).slice(-2)+':'+('0'+at.getMinutes()).slice(-2);
+ return ctxBar()+'<div class="big"><div class="ic">'+IC.chk+'</div><h2>'+E(r.signed?FU('r_signed'):FU('r_unsigned'))+'</h2><div class="sm">'+E(FU('r_where',{d:d.ДОЛЖНИК_НАИМЕНОВАНИЕ||FU('nodebtor'),t:ts}))+'</div></div>'+
+ '<div class="rc">'+(r.no?'<div class="kv2"><span>'+E(FU('out'))+'</span><b>'+E(r.no+(r.date?' '+FU('from')+' '+r.date:''))+'</b></div>':'')+'<div class="kv2"><span>'+E(FU('doc_l'))+'</span><b>'+E(r.t.title)+'</b></div>'+(r.ad?'<div class="kv2"><span>'+E(FU('addressee'))+'</span><b>'+E(r.ad)+'</b></div>':'')+
+ '<div class="kv2"><span>'+E(FU('sign'))+'</span><b>'+E([r.signed?mshort(m)+' · '+FU('variant')+' '+r.sgv:FU('unsigned'),r.lh?FU('on_blank'):''].filter(Boolean).join(' · '))+'</b></div><div class="kv2"><span>'+E(FU('file'))+'</span><b>'+E(r.fn)+'</b></div></div>'+
+ '<div class="dl"><button type="button" class="btn pri" data-fl="rdl">'+IC.dl+E(FU('dl_word'))+'</button></div><button type="button" class="btn sec" style="width:100%;min-height:46px" data-fl="rarch">'+IC.arch+E(FU('open_arch'))+'</button>'+
+ '<div class="secth"><span class="n">'+E(FU('next'))+'</span></div><div class="tl"><div class="nx" role="button" tabindex="0" data-fs="t"><div class="ki">'+IC.plus+'</div><div class="tx">'+E(FU('nx_more'))+'<span class="sm">'+E(mshort(m)+' · '+(d.ДОЛЖНИК_НАИМЕНОВАНИЕ||''))+'</span></div>'+IC.chev+'</div>'+
+ '<div class="nx" role="button" tabindex="0" data-fl="same"><div class="ki">'+IC.doc+'</div><div class="tx">'+E(FU('nx_same'))+'<span class="sm">'+E(FU('nx_same_h'))+'</span></div>'+IC.chev+'</div>'+
+ '<div class="nx" role="button" tabindex="0" data-fs="d"><div class="ki">'+IC.user+'</div><div class="tx">'+E(FU('nx_other'))+'<span class="sm">'+E(FU('nx_other_h'))+'</span></div>'+IC.chev+'</div></div>'}
+function chgSheet(on){var s=$('dfsheet');if(!s)return;s.hidden=!on;if(!on){s.innerHTML='';return}s.innerHTML='<div class="sh" role="dialog" aria-modal="true"><div class="grab"></div><h3>'+E(FU('change'))+'</h3><div class="tl"><div class="nx" role="button" tabindex="0" data-fs="m"><div class="ki">'+IC.user+'</div><div class="tx">'+E(FU('chg_m'))+'</div>'+IC.chev+'</div><div class="nx" role="button" tabindex="0" data-fs="d"><div class="ki">'+IC.bld+'</div><div class="tx">'+E(FU('chg_d'))+'</div>'+IC.chev+'</div></div><div class="acts"><button type="button" class="btn sec" data-fl="shx">'+E(FU('cancel'))+'</button></div></div>'}
+function flowBind(){var v=$('vdocs');
+ v.addEventListener('click',function(e){var b=e.target.closest('[data-fs],[data-fl],[data-fmg],[data-fdeb],[data-fpre],[data-ft],[data-fstar],[data-fafk]');if(!b||b.closest('.dbatch'))return;var d=b.dataset;
+  if(d.fstar){e.stopPropagation();S.fav=S.fav||[];var i=S.fav.indexOf(d.fstar);if(i<0)S.fav.push(d.fstar);else S.fav.splice(i,1);save();drawCases();return}
+  if(d.fs){e.preventDefault();chgSheet(false);if(d.fs=='d'&&FL.step=='m'&&!MGR.some(function(m){return m.id==S.mgr}))return;goStep(d.fs);return}
+  if(d.fmg){if(S.mgr==d.fmg&&FL.step=='m'){goStep('d');return}S.mgr=d.fmg;var c0=curCase();if(c0&&c0.mgr&&c0.mgr!=d.fmg)S.cur=null;save();curMgr();FL.step='m';refreshAll();return}
+  if(d.fdeb){pickDeb(d.fdeb);return}
+  if(d.fpre!=null){var P=((C.batch||{}).presets||[])[+d.fpre];if(P&&window.ArbBatch)startBatch(presetIds(P));return}
+  if(d.ft){openT(d.ft);return}
+  if(d.fafk){var k=d.fafk,cur=raw(k,CUR.id),nv=prompt(((F[k]||{}).label||k)+' — '+FU('af_local'),fmt(k,cur));if(nv!=null){(S.drafts[CUR.id]=S.drafts[CUR.id]||{})[k]=nv;save();var bb=b.querySelector('b');if(bb)bb.textContent=nv;prev();formBar()}return}
+  var a=d.fl;
+  if(a=='chg'){chgSheet(true);return}if(a=='shx'){chgSheet(false);return}
+  if(a=='mgadd'){showTab('cp');if(window.ArbCP&&ArbCP.openSec)ArbCP.openSec('managers');return}
+  if(a=='dadd'){showTab('cp');if(window.ArbCP&&ArbCP.openSec)ArbCP.openSec('debtors','add');return}
+  if(a=='debcard'){showTab('cp');if(window.ArbCP&&ArbCP.openSec)ArbCP.openSec('debtors');return}
+  if(a=='dqx'){FL.dq='';var q=$('dfdq');if(q){q.value='';q.focus()}b.hidden=true;drawDD();return}
+  if(a=='dmine'||a=='dall'){FL.dAll=a=='dall';drawDD();return}
+  if(a=='oth'){FL.oth=!FL.oth;drawCases();return}
+  if(a=='all'){FL.all=!FL.all;drawCases();if(FL.all)$('dlist').scrollIntoView({block:'start'});return}
+  if(a=='archall'||a=='rarch'){var c=curCase();showTab('arch');if(window.ArbArch&&c)ArbArch.focus([c.id],c.data.ДОЛЖНИК_НАИМЕНОВАНИЕ,c.data.ДОЛЖНИК_ИНН);return}
+  if(a=='t'){goStep('t');return}
+  if(a=='afo'){FL.af=!FL.af;var fm=$('dform'),ab=fm&&fm.querySelector('.af');if(ab){var tmp=document.createElement('div');tmp.innerHTML=afBlock(CUR);ab.replaceWith(tmp.firstChild)}return}
+  if(a=='tabf'||a=='tabp'){FL.tab=a=='tabp'?'p':'f';var fl=document.querySelector('#ded .fl');if(fl)fl.classList.toggle('ph-pv',FL.tab=='p');[].forEach.call(document.querySelectorAll('#ded .seg button'),function(x){x.classList.toggle('on',x.dataset.fl==a)});return}
+  if(a=='lh'&&CUR){S.lh=S.lh||{};S.lh[CUR.id]=S.lh[CUR.id]=='none'?'auto':'none';save();b.classList.toggle('on',S.lh[CUR.id]!='none');prev();return}
+  if(a=='regs'){showTab('cp');if(window.ArbCP&&ArbCP.openSec)ArbCP.openSec('adir');return}
+  if(a=='tobatch'&&CUR){startBatch([CUR.id]);return}
+  if(a=='dl'){flowMake(false);return}if(a=='signsave'){flowMake(true);return}
+  if(a=='rdl'&&FL.res){saveBlob(FL.res.blob,FL.res.fn);return}
+  if(a=='same'&&FL.res){openT(FL.res.t.id);return}});
+ v.addEventListener('input',function(e){var i=e.target;if(i.id=='dfdq'){FL.dq=i.value;var x=v.querySelector('[data-fl="dqx"]');if(x)x.hidden=!i.value;clearTimeout(drawDD.t);drawDD.t=setTimeout(function(){DDA=0;drawDD()},120);return}
+  if(i.id=='dftq'){FL.tq=i.value;var p=i.selectionStart;drawCases();var n=$('dftq');if(n){n.focus();try{n.setSelectionRange(p,p)}catch(x){}}return}
+  if(i.id=='dfms'){FL.ms=i.value;var p2=i.selectionStart;drawCases();var n2=$('dfms');if(n2){n2.focus();try{n2.setSelectionRange(p2,p2)}catch(x){}}return}
+  if(CUR&&i.id&&i.id.indexOf('df_')==0)setTimeout(needSync,0)});
+ v.addEventListener('keydown',function(e){var i=e.target;if(i.id=='dfdq'){var n=DDL.length;if(e.key=='ArrowDown'){e.preventDefault();DDA=Math.min(n-1,DDA+1);drawDD()}else if(e.key=='ArrowUp'){e.preventDefault();DDA=Math.max(0,DDA-1);drawDD()}else if(e.key=='Enter'){e.preventDefault();if(DDL[DDA])pickDeb(DDL[DDA].c.id)}else if(e.key=='Escape'){i.blur()}return}
+  var t=i.closest&&i.closest('[data-ft],[data-fs].nx,[data-fl].nx,[data-fl].ft,[data-fl].rgn,[data-fafk]');if(t&&t===i&&(e.key=='Enter'||e.key==' ')){e.preventDefault();t.click()}if(e.key=='Escape'&&!$('dfsheet').hidden)chgSheet(false)})}
+
+/* d6: поле даты — ручной ввод по маске __.__.____, кнопка календаря (на телефоне — системный выбор даты), «Сегодня», проверка */
+function toDMY(v){v=String(v||'').trim();var m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(v);return m?m[3]+'.'+m[2]+'.'+m[1]:v}
+function dmyOk(v){var m=/^(\d\d)\.(\d\d)\.(\d{4})$/.exec(v);if(!m)return false;var d=new Date(+m[3],+m[2]-1,+m[1]);return d.getFullYear()==+m[3]&&d.getMonth()==+m[2]-1&&d.getDate()==+m[1]}
+function dateInp(a,v,dl){var DU2=(C.date_ui||{}),dm=toDMY(v),bad=dm&&dm.length==10&&!dmyOk(dm);
+ return '<span class="ddate"><span class="ddw"><input'+a+' type="text" inputmode="numeric" data-date="1" maxlength="10" placeholder="'+E(DU2.ph||'ДД.ММ.ГГГГ')+'" value="'+E(dm)+'" autocomplete="off"'+(bad?' class="dbad" aria-invalid="true"':'')+'><button type="button" class="ddcal" data-ddcal="1" aria-label="'+E(DU2.cal||'Открыть календарь')+'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button><input type="date" class="ddnat" tabindex="-1" aria-hidden="true"></span>'+
+  '<span class="ddrow"><button type="button" class="ddtoday" data-ddtoday="1">'+E(DU2.today||'Сегодня')+'</button><span class="ddbad"'+(bad?'':' hidden')+'>'+E(DU2.bad||'Такой даты нет — проверьте день и месяц')+'</span></span></span>'+(dl||'')}
+function dmyNow(){var d=new Date();return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear()}
+function dSet(i,v){i.value=v;i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}))}
+function dCheck(i){var w=i.closest('.ddate'),b=w&&w.querySelector('.ddbad'),bad=i.value.length==10&&!dmyOk(i.value)||(i.value.length>0&&i.value.length<10&&document.activeElement!==i);i.classList.toggle('dbad',bad);i.setAttribute('aria-invalid',bad?'true':'false');if(b)b.hidden=!bad}
+var DPOP=null;
+function calClose(){if(DPOP){DPOP.remove();DPOP=null}}
+function calOpen(i){calClose();var U3=C.date_ui||{},MN=U3.months||['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],WD=U3.weekdays||['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+ var m=/^(\d\d)\.(\d\d)\.(\d{4})$/.exec(i.value),cur=m&&dmyOk(i.value)?new Date(+m[3],+m[2]-1,+m[1]):null,v=cur||new Date(),y=v.getFullYear(),mo=v.getMonth();
+ var p=document.createElement('div');p.className='ddpop';p.setAttribute('role','dialog');p.setAttribute('aria-label',U3.cal||'Календарь');
+ var draw=function(){var f=new Date(y,mo,1),off=(f.getDay()+6)%7,n=new Date(y,mo+1,0).getDate(),t=new Date(),h='<div class="ddph"><button type="button" data-ddm="-1" aria-label="‹">‹</button><b>'+MN[mo]+' '+y+'</b><button type="button" data-ddm="1" aria-label="›">›</button></div><div class="ddg">'+WD.map(function(w){return '<i>'+w+'</i>'}).join('');
+  for(var k=0;k<off;k++)h+='<span></span>';for(var d=1;d<=n;d++){var sel=cur&&cur.getFullYear()==y&&cur.getMonth()==mo&&cur.getDate()==d,td=t.getFullYear()==y&&t.getMonth()==mo&&t.getDate()==d;h+='<button type="button" data-ddd="'+d+'" class="'+(sel?'on':'')+(td?' td':'')+'">'+d+'</button>'}p.innerHTML=h+'</div>'};
+ draw();p.addEventListener('mousedown',function(e){e.preventDefault()});
+ p.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.ddm){mo+=+b.dataset.ddm;if(mo<0){mo=11;y--}if(mo>11){mo=0;y++}draw();return}if(b.dataset.ddd){dSet(i,('0'+b.dataset.ddd).slice(-2)+'.'+('0'+(mo+1)).slice(-2)+'.'+y);dCheck(i);calClose();i.focus()}});
+ i.closest('.ddw').appendChild(p);DPOP=p}
+function dateBind(){if(window.__ddb)return;window.__ddb=1;
+ document.addEventListener('input',function(e){var i=e.target;if(!i.dataset||!i.dataset.date)return;var d=i.value.replace(/\D/g,'').slice(0,8),o=d.slice(0,2)+(d.length>2?'.'+d.slice(2,4):'')+(d.length>4?'.'+d.slice(4):'');if(o!==i.value)i.value=o;dCheck(i)},true);
+ document.addEventListener('focusout',function(e){var i=e.target;if(i.dataset&&i.dataset.date)setTimeout(function(){dCheck(i)},0)});
+ document.addEventListener('click',function(e){var b=e.target.closest('[data-ddtoday],[data-ddcal]');if(!b){if(DPOP&&!e.target.closest('.ddpop'))calClose();return}var w=b.closest('.ddate'),i=w&&w.querySelector('[data-date]');if(!i)return;e.preventDefault();
+  if(b.dataset.ddtoday){dSet(i,dmyNow());dCheck(i);calClose();return}
+  if(DPOP&&w.contains(DPOP)){calClose();return}
+  var nat=w.querySelector('.ddnat');if(matchMedia('(pointer:coarse)').matches&&nat&&nat.showPicker){var m=/^(\d\d)\.(\d\d)\.(\d{4})$/.exec(i.value);nat.value=m&&dmyOk(i.value)?m[3]+'-'+m[2]+'-'+m[1]:'';nat.onchange=function(){if(nat.value)dSet(i,toDMY(nat.value));dCheck(i)};try{nat.showPicker();return}catch(x){}}
+  calOpen(i)});
+ document.addEventListener('keydown',function(e){if(e.key=='Escape')calClose()})}
 function init(){C=window.ARB_DOCS_CFG;X=window.ARB_DOCS;if(!C||!X)return;S=load();initFields();shell();
  $('dtl').textContent=C.title;$('dintro').textContent=C.intro||'';$('dpriv').textContent=C.privacy||'';$('dclear').textContent=U('clear');
- drawCases();drawList();bind();lhLoadLocal();
+ drawCases();bind();flowBind();dateBind();lhLoadLocal();
  var API={X:X,C:C,F:F,S:function(){return S},save:save,raw:raw,fmt:fmt,missing:missing,mlabel:mlabel,docx:docx,md:md,TXT:TXT,rows:rows,RF:RF,rowsFilled:rowsFilled,lhFor:lhFor,sigFor:sigFor,SIG:function(){return SIG},LH:function(){return LH},curCase:curCase,caseName:caseName,saveBlob:saveBlob,setVal:setVal,inp:inp,E:E,U:U,BU:BU,pl:pl,outCfg:outCfg,outFmt:outFmt,outNum:outNum,setOV:function(o){OV=o},MGR:function(){return MGR},curMgr:curMgr,setMgr:setMgr,mgrName:mgrName,mgrTop:mgrTop,mgrRO:mgrRO,mgrEdit:mgrEdit,mgrSave:mgrSave,showTab:showTab,MU2:MU2,encOK:encOK,htmlPrev:htmlPrev,pvWrap:pvWrap,lhPv:lhPv,sigFor:sigFor,expandRowsText:expandRowsText,drawCases:drawCases,bar:bar,toast:toast,showList:showList,sel:BSEL,multiOf:multiOf,prof:prof,ofScope:ofScope,addrOf:addrOf,setCur:function(id){S.cur=id||null;save();drawCases()}};
  if(window.ArbBatch)ArbBatch.mount($('ded'),API);if(window.ArbArch&&$('darchb'))ArbArch.mount($('darchb'),API);
- if(window.ArbCP&&$('dcpb'))ArbCP.mount($('dcpb'),{S:function(){return S},C:function(){return C},F:function(){return F},save:save,caseName:caseName,drawCases:drawCases,refresh:function(){drawCases();if(CUR)openT(CUR.id,1)},MGR:function(){return MGR},mgrName:mgrName,mgrEdit:mgrEdit,showTab:showTab,encOK:encOK,E:E,setMgr:setMgr,setCur:function(id){S.cur=id||null;save();curMgr();refreshAll()},vdec:vdec,vaultSalt:function(){return {s:reqSalt(),it:600000}},multiOf:multiOf,toast:function(m){toast(m)}});var n=0,iv=setInterval(function(){n++;if(nav(n>40))clearInterval(iv)},250)}
+ if(window.ArbCP&&$('dcpb'))ArbCP.mount($('dcpb'),{S:function(){return S},C:function(){return C},F:function(){return F},save:save,caseName:caseName,drawCases:drawCases,refresh:function(){drawCases();if(CUR)openT(CUR.id,1)},MGR:function(){return MGR},mgrName:mgrName,mgrEdit:mgrEdit,showTab:showTab,encOK:encOK,E:E,setMgr:setMgr,setCur:function(id){S.cur=id||null;save();curMgr();refreshAll()},dateInp:dateInp,vdec:vdec,vaultSalt:function(){return {s:reqSalt(),it:600000}},multiOf:multiOf,toast:function(m){toast(m)}});var n=0,iv=setInterval(function(){n++;if(nav(n>40))clearInterval(iv)},250)}
 window.__docsTest={fill:function(id){var t=X.templates.find(function(x){return x.id==id});return md(t).then(function(s){return plain(fill(s,t,'text'))})},docx:function(id){return docx(X.templates.find(function(x){return x.id==id}))},missing:function(id){return missing(X.templates.find(function(x){return x.id==id}))}};
 if(document.readyState=='loading')addEventListener('DOMContentLoaded',init);else init();
 })();
