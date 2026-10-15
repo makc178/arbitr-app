@@ -1,0 +1,32 @@
+#vdocs{max-width:1100px;margin:0 auto;padding:10px;box-sizing:border-box}
+#vdocs .dwrap{overflow-wrap:anywhere;min-width:0}
+#vdocs h2{margin:4px 0 6px}
+#vdocs .pfold{margin:8px 0}
+#vdocs .g2>div{min-width:0}
+#vdocs .g2 .dwide{grid-column:1/-1}
+#vdocs label{display:block;font-size:13px;color:var(--mut);margin:0 0 3px}
+#vdocs input,#vdocs select,#vdocs textarea{width:100%;max-width:100%;box-sizing:border-box;min-width:0;font:inherit;font-size:16px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--pan);color:var(--ink)}
+#vdocs input[type=date],#vdocs input[type=time]{-webkit-appearance:none;appearance:none;min-height:40px;display:block}
+#vdocs textarea{resize:vertical}
+#vdocs .dempty input,#vdocs .dempty textarea{border-color:#e0a020}
+#vdocs .dcrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:8px 0}
+#vdocs .dcrow select{flex:1 1 220px;width:auto}
+#vdocs .dcrow label{flex:1 1 100%;margin:0}
+#vdocs .dpriv{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#vdocs .dchips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+#vdocs .dgh{margin:16px 0 6px}
+#vdocs .dit{padding:10px 12px;cursor:pointer}
+#vdocs .dit:hover,#vdocs .dit:focus-visible{border-color:#14B8A6;outline:none}
+#vdocs .dit .sm{margin-top:3px}
+#vdocs .dkind{color:#14B8A6}
+#vdocs .dth{margin:12px 0 4px}
+#vdocs .dsh{margin:14px 0 6px;color:var(--mut);font-size:13px;text-transform:uppercase;letter-spacing:.04em}
+#vdocs .dact{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 4px}
+#vdocs .dact .lbtn{flex:1 1 180px}
+#vdocs .dprev{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--pan);font-family:"Times New Roman",Georgia,serif;font-size:15px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word}
+#vdocs .dprev .dhd{text-align:center;font-weight:700;margin:6px 0}
+#vdocs .dprev mark{background:#ffe08a;color:#3a2a00;border-radius:3px;padding:0 2px}
+html[data-theme=light] #vdocs .dprev{background:#fff;color:#0F2E2A}
+@media(max-width:600px){#vdocs{padding:6px}#vdocs .dprev{padding:10px;font-size:14px}#vdocs .dact .lbtn{flex:1 1 100%}}
+html body nav{grid-template-columns:repeat(4,minmax(0,1fr))!important;max-width:720px!important}@media(max-width:480px){html body nav{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+#vdocs.editing #dprof,#vdocs.editing #dcases,#vdocs.editing .dpriv,#vdocs.editing #dintro{display:none}
