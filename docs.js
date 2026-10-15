@@ -1,7 +1,7 @@
 /* Arbitr App — раздел «Документы». Шаблоны: window.ARB_DOCS (documents/index.json), настройки: window.ARB_DOCS_CFG.
    Персональные данные (профиль управляющего, дела, черновики) хранятся ТОЛЬКО в localStorage этого устройства и никуда не отправляются. */
 (function(){
-var C,X,F={},S,CUR=null,FLT='',Q='',LS='arbitr_docs_v1';
+var C,X,F={},S,CUR=null,FLT='',Q='',LS='arbitr_docs_v1',OV=null,BSEL=new Set(),DXC={};
 var $=function(i){return document.getElementById(i)};
 function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function U(k,o){var s=(C.ui||{})[k]||k;if(o)Object.keys(o).forEach(function(n){s=s.split('{'+n+'}').join(o[n])});return s}
@@ -30,7 +30,7 @@ async function auLoad(){var V=C.au_vault||{};if(!V.path||!AU.pin)return;AU.state
   SIG.sort(function(x,y){return (x.builtin?0:1)-(y.builtin?0:1)||(x.order||0)-(y.order||0)});
   AU.state='ok'}catch(e){AU.state='none'}
  AU.pin=null;drawProfile();if(CUR)openT(CUR.id,1)}
-window.__arbPin=function(pin){AU.pin=String(pin);AU.keys={};auLoad()};
+window.__arbPin=function(pin){AU.pin=String(pin);AU.keys={};if(window.ArbArch)ArbArch.unlock(String(pin)).then(function(){outSync();drawCases()}).catch(function(){});auLoad()};
 function prof(k){var v=S.profile[k];if(v!=null&&v!=='')return v;return AU.profile&&AU.profile[k]||''}
 /* --- бланки --- */
 function lhGuess(n){n=String(n).toLowerCase();var t=(LC().types||[]).find(function(t){return (t.keywords||[]).some(function(k){return n.indexOf(k)>=0})});return t?t.k:'any'}
@@ -51,7 +51,7 @@ async function lhAdd(f){var buf=await f.arrayBuffer(),r={id:ArbDB.uid('lh'),name
  try{await lhMeta(r)}catch(e){throw new Error(LU('bad_file',{name:f.name}))}
  await ArbDB.put('letterheads',{id:r.id,name:r.name,size:r.size,type:r.type,added:r.added,data:buf});LH.push(r)}
 function lhType(l){return (S.lht||{})[l.id]||l.type}
-function lhFor(t,ch){ch=ch||(S.lh||{})[t.id]||'auto';if(ch=='none')return null;if(ch!='auto'){var x=LH.find(function(l){return l.id==ch});if(x)return x}
+function lhFor(t,ch){if(OV&&!OV.blank)return null;ch=ch||(S.lh||{})[t.id]||'auto';if(ch=='none')return null;if(ch!='auto'){var x=LH.find(function(l){return l.id==ch});if(x)return x}
  var want=(LC().by_kind||{})[t.kind]||'any';return LH.find(function(l){return lhType(l)==want})||LH.find(function(l){return lhType(l)=='any'})||LH[0]||null}
 function lhSel(t){var a=lhFor(t,'auto'),ch=(S.lh||{})[t.id]||'auto';return '<div class="dcrow"><label for="dflh">'+E(LU('pick'))+'</label><select id="dflh"><option value="auto"'+(ch=='auto'?' selected':'')+'>'+E(a?LU('auto',{name:a.name}):LU('auto_none'))+'</option>'+LH.map(function(l){return '<option value="'+E(l.id)+'"'+(ch==l.id?' selected':'')+'>'+E(l.name)+'</option>'}).join('')+'<option value="none"'+(ch=='none'?' selected':'')+'>'+E(LU('none'))+'</option></select></div>'}
 function drawLH(){var T=LC().types||[],V=S.lhv||{};
@@ -95,6 +95,11 @@ async function sigApply(z,s){var G=GC(),hmm=G.height_mm||15,cy=Math.round(hmm*36
  if(!ok)return false;z.file('word/document.xml',dx);z.file('word/media/arb_podpis.png',s.data.slice(0));
  var rp='word/_rels/document.xml.rels',rl=await z.file(rp).async('string');if(rl.indexOf('Id="'+rid+'"')<0)rl=rl.replace('</Relationships>','<Relationship Id="'+rid+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/arb_podpis.png"/></Relationships>');z.file(rp,rl);
  var ct=await z.file('[Content_Types].xml').async('string');if(!/Extension="png"/i.test(ct))ct=ct.replace('<Default ','<Default Extension="png" ContentType="image/png"/><Default ');z.file('[Content_Types].xml',ct);return true}
+/* ===== исходящие номера: счётчик по делу (без дела — общий), согласован с архивом ===== */
+function outCfg(c){c=c===undefined?curCase():c;var o=c?(c.out=c.out||{}):(S.outNC=S.outNC||{});if(!o.next)o.next=1;if(!o.fmt)o.fmt=((C.batch||{}).out_formats||['{n}/{yy}'])[0];if(o.pfx==null)o.pfx='';return o}
+function outFmt(n,o,date){var y=String((String(date||'').match(/(\d{4})/)||[0,new Date().getFullYear()])[1]).slice(-2);return String(o.fmt).replace('{n}',n).replace('{yy}',y).replace('{p}',o.pfx||'')}
+function outNum(s){var m=String(s||'').match(/^\s*(\d+)/);return m?+m[1]:0}
+function outSync(){if(!window.ArbArch)return;S.cases.concat([null]).forEach(function(c){var m=ArbArch.maxNo(c?c.id:'');if(m){var o=outCfg(c);if(o.next<=m)o.next=m+1}});save()}
 function re(list,k){return (list||[]).some(function(p){return p.charAt(0)=='^'?new RegExp(p).test(k):p==k})}
 function initFields(){var src=Object.assign({},X.fields||{},C.extra_fields||{});
  Object.keys(src).forEach(function(k){var f=Object.assign({},src[k]);f.k=k;if((C.labels||{})[k])f.label=C.labels[k];if((C.scope_override||{})[k])f.scope=C.scope_override[k];
@@ -104,7 +109,8 @@ function ofScope(sc,order){var a=(order||[]).filter(function(k){return F[k]&&F[k
 function curCase(){return S.cases.find(function(c){return c.id==S.cur})||null}
 function caseName(c){var d=c.data||{};return [d.ДОЛЖНИК_НАИМЕНОВАНИЕ,d.НОМЕР_ДЕЛА].filter(Boolean).join(' · ')||U('case_unnamed')}
 function raw(k,tid){var f=F[k]||{},d=(S.drafts[tid]||{}),c=curCase(),v;
- if(d[k]!=null&&d[k]!=='')return d[k];
+ if(OV){if(OV.v[k]!=null&&OV.v[k]!=='')return OV.v[k];if(!f.scope||f.scope=='document')return ''}
+ else if(d[k]!=null&&d[k]!=='')return d[k];
  if(f.scope=='profile')v=prof(k);else if(f.scope=='case'&&c)v=c.data[k];
  if((v==null||v==='')&&k=='ВИД_УПРАВЛЯЮЩЕГО'){var p=raw('ПРОЦЕДУРА',tid);v=(C.procedure_manager||{})[p]||''}
  return v==null?'':v}
@@ -113,7 +119,10 @@ function setVal(k,v,tid){var f=F[k]||{},c=curCase();
  if(f.scope=='profile'){S.profile[k]=v;if(tid&&S.drafts[tid])delete S.drafts[tid][k]}
  else if(f.scope=='case'&&c){c.data[k]=v;if(tid&&S.drafts[tid])delete S.drafts[tid][k]}
  else if(tid){(S.drafts[tid]=S.drafts[tid]||{})[k]=v}save()}
-function inp(f,v,pre){var id=pre+'_'+f.k,a=' data-k="'+E(f.k)+'" id="'+E(id)+'"',dl='';
+function cpOpts(k){var r=((C.counterparties||{}).doc_fields||{})[k];if(!r||!window.ArbCP)return null;var c=curCase(),o=ArbCP.pick(r,c&&c.id).map(function(x){return x.name});return o.length?o:null}
+function inp(f,v,pre){var id=pre+'_'+f.k,a=' data-k="'+E(f.k)+'" id="'+E(id)+'"',dl='',co=cpOpts(f.k);
+ if(f.k=='ИСХ_НОМЕР'&&pre=='df'){var o=outCfg();a+=' placeholder="'+E(U('out_auto',{no:outFmt(o.next,o,'')}))+'"'}
+ if(co&&!f.opt){dl='<datalist id="'+E(id)+'_l">'+co.map(function(o){return '<option value="'+E(o)+'">'}).join('')+'</datalist>';a+=' list="'+E(id)+'_l"'}
  if(f.opt){dl='<datalist id="'+E(id)+'_l">'+f.opt.map(function(o){return '<option value="'+E(o)+'">'}).join('')+'</datalist>';a+=' list="'+E(id)+'_l"'}
  if(f.type=='textarea')return '<textarea'+a+' rows="3">'+E(v)+'</textarea>';
  return '<input'+a+(f.type=='date'?' type="date"':f.type=='time'?' type="time"':'')+(f.type=='inn'?' inputmode="numeric"':'')+(f.type=='text'&&/EMAIL/.test(f.k)?' type="email"':'')+(/ТЕЛ_/.test(f.k)?' type="tel"':'')+' value="'+E(v)+'" autocomplete="off">'+dl}
@@ -122,27 +131,44 @@ function shell(){var v=document.createElement('div');v.id='vdocs';v.style.displa
  v.innerHTML='<div class="md prc fin dwrap"><h2 id="dtl"></h2><p class="sm" id="dintro"></p>'+
  '<details class="pfold" id="dprof"><summary>'+E(U('profile'))+'</summary><div id="dprofb"></div></details>'+
  '<details class="pfold" id="dcases"><summary>'+E(U('cases'))+'</summary><div id="dcasesb"></div></details>'+
+ (window.ArbArch?'<details class="pfold" id="darch"><summary>'+E((C.archive||{}).title||'')+'</summary><div id="darchb"></div></details>':'')+
+ (window.ArbCP?'<details class="pfold" id="dcp"><summary>'+E((C.counterparties||{}).title||'')+'</summary><div id="dcpb"></div></details>':'')+
  '<p class="sm dpriv"><span id="dpriv"></span> <button type="button" class="lbtn sec" id="dclear"></button> <span class="sm" id="dclm"></span></p>'+
- '<div id="dlist"></div><div id="ded" style="display:none"></div></div>';
+ '<div id="dlist"></div><div id="ded" style="display:none"></div></div><div id="dbbar" class="dbbar" style="display:none"></div><div id="dtoast" class="dtoast" style="display:none" role="status"></div>';
  var a=$('veval')||$('vsrc');if(a&&a.parentNode)a.parentNode.insertBefore(v,a.nextSibling);else document.body.appendChild(v)}
 function caseSel(id){return '<select id="'+id+'">'+'<option value="">'+E(U('case_none'))+'</option>'+S.cases.map(function(c){return '<option value="'+E(c.id)+'"'+(c.id==S.cur?' selected':'')+'>'+E(caseName(c))+'</option>'}).join('')+'</select>'}
 function drawProfile(){var b=$('dprofb');if(!b)return;var st=AU.state=='ok'?LU('vault_ok'):AU.state=='loading'?LU('vault_loading'):'';b.innerHTML=(st?'<p class="sm">'+E(st)+'</p>':'')+grid(ofScope('profile',C.profile_order),function(k){return prof(k)},'dp')+drawLH()+drawSig()}
+function CU(k){return ((C.counterparties||{}).ui||{})[k]||k}
+function cpDeb(c){if(!window.ArbCP||!c)return '';var L=ArbCP.pick(null,c.id);if(!L.length)return '';return '<div class="dcrow"><label for="dcdeb">'+E(CU('debtor_pick'))+'</label><select id="dcdeb"><option value="">'+E(CU('debtor_none'))+'</option>'+L.map(function(x){return '<option value="'+E(x.id)+'">'+E(x.name+(x.inn?' · ИНН '+x.inn:''))+'</option>'}).join('')+'</select></div>'}
 function drawCases(){var c=curCase();$('dcasesb').innerHTML='<div class="dcrow">'+caseSel('dcsel')+' <button type="button" class="lbtn sec" id="dcnew">'+E(U('case_new'))+'</button>'+(c?' <button type="button" class="lbtn sec" id="dcdel">'+E(U('case_del'))+'</button>':'')+'</div>'+
- (c?grid(ofScope('case',C.case_order),function(k){return c.data[k]||''},'dc')+'<p class="sm">'+E(U('procedure_hint'))+'</p>':'')}
+ (window.ArbCP?'<div class="dcrow"><label class="lbtn sec dfile">'+E(CU('cases_import'))+'<input type="file" id="dcaseup" accept=".csv,.xlsx,.json" hidden></label>'+(S.cases.length?' <button type="button" class="lbtn sec" id="dcexp">'+E(CU('cases_export'))+'</button>':'')+'</div>':'')+cpDeb(c)+
+ (c?grid(ofScope('case',C.case_order),function(k){return c.data[k]||''},'dc')+'<p class="sm">'+E(U('procedure_hint'))+'</p>':'');if(window.ArbArch&&ArbArch.draw)ArbArch.draw()}
 function groups(){return X.groups||[]}
 function GL(g){return (C.group_labels||{})[g]||g}
-function drawList(){var g=groups(),q=Q.trim().toLowerCase(),n=0,h='<div class="pflt dflt"><input type="search" id="dq" placeholder="'+E(U('search'))+'" value="'+E(Q)+'"></div><div class="dchips" id="dchips"><button type="button" class="pchip'+(FLT?'':' on')+'" data-g="">'+E(U('all'))+'</button>'+g.map(function(x){return '<button type="button" class="pchip'+(FLT==x?' on':'')+'" data-g="'+E(x)+'">'+E(GL(x))+'</button>'}).join('')+'</div>';
- g.forEach(function(gr){if(FLT&&FLT!=gr)return;var ts=X.templates.filter(function(t){return t.group==gr&&(!q||(t.title+' '+t.norm+' '+t.kind+' '+t.deadline+' '+(TXT[t.id]||'').replace(/\{\{[^{}]+\}\}/g,' ')).toLowerCase().indexOf(q)>=0)});if(!ts.length)return;n+=ts.length;
-  h+='<h3 class="dgh">'+E(GL(gr))+' <span class="sm">'+ts.length+'</span></h3>'+ts.map(function(t){return '<div class="lot dit" data-t="'+E(t.id)+'" role="button" tabindex="0"><div class="d1">'+E(t.title)+'</div><div class="sm"><b>'+E(U('norm'))+':</b> '+E(t.norm)+'</div>'+(t.deadline?'<div class="sm"><b>'+E(U('deadline'))+':</b> '+E(t.deadline)+'</div>':'')+'<div class="sm dkind">'+E(t.kind)+'</div></div>'}).join('')});
+function BU(k,o){var x=((C.batch||{}).ui||{})[k]||k;if(o)Object.keys(o).forEach(function(n){x=x.split('{'+n+'}').join(o[n])});return x}
+function pl(n,a,b,c){var m=Math.abs(n)%100,d=m%10;return m>10&&m<20?c:d>1&&d<5?b:d==1?a:c}
+function visT(){var q=Q.trim().toLowerCase();return X.templates.filter(function(t){return (!FLT||t.group==FLT)&&(!q||(t.title+' '+t.norm+' '+t.kind+' '+t.deadline+' '+(TXT[t.id]||'').replace(/\{\{[^{}]+\}\}/g,' ')).toLowerCase().indexOf(q)>=0)})}
+function multiOf(t){var m=(C.batch||{}).multi||{};return t.fields.find(function(k){return m[k]})}
+function drawList(){var g=groups(),q=Q.trim().toLowerCase(),vis=visT(),bat=!!window.ArbBatch,n=0,h='<div class="pflt dflt"><input type="search" id="dq" placeholder="'+E(U('search'))+'" value="'+E(Q)+'"></div><div class="dchips" id="dchips"><button type="button" class="pchip'+(FLT?'':' on')+'" data-g="">'+E(U('all'))+'</button>'+g.map(function(x){return '<button type="button" class="pchip'+(FLT==x?' on':'')+'" data-g="'+E(x)+'">'+E(GL(x))+'</button>'}).join('')+'</div>';
+ if(bat){var P=(C.batch||{}).presets||[];if(P.length)h+='<div class="sm dlbl">'+E(BU('presets'))+'</div><div class="dpres">'+P.map(function(p,i){var on=p.ids.length&&p.ids.every(function(id){return BSEL.has(id)});return '<button type="button" class="pchip dpre'+(on?' on':'')+'" data-pre="'+i+'" aria-pressed="'+on+'">'+E(p.name)+' <b>'+p.ids.length+'</b></button>'}).join('')+'</div>';
+  var all=vis.length&&vis.every(function(t){return BSEL.has(t.id)});
+  h+='<div class="adh dadh"><span class="adt">'+E(vis.length+' '+pl(vis.length,'шаблон','шаблона','шаблонов'))+'</span><button type="button" class="adall" data-bsel="1">'+E(all?BU('unselect_all'):BU('select_all'))+'</button><button type="button" class="lbtn dmk'+(BSEL.size?'':' off')+'" data-bgo="1"'+(BSEL.size?'':' aria-disabled="true"')+'>'+E(BSEL.size?BU('make_n',{n:BSEL.size}):BU('make'))+'</button></div>'}
+ g.forEach(function(gr){if(FLT&&FLT!=gr)return;var ts=vis.filter(function(t){return t.group==gr});if(!ts.length)return;n+=ts.length;var gon=ts.every(function(t){return BSEL.has(t.id)});
+  h+='<h3 class="dgh"><span class="dght">'+E(GL(gr))+' <span class="sm">'+ts.length+'</span></span>'+(bat?'<button type="button" class="adall" data-bgrp="'+E(gr)+'">'+E(gon?BU('grp_none'):BU('grp_all'))+'</button>':'')+'</h3>'+ts.map(function(t){var on=BSEL.has(t.id),m=multiOf(t);return '<div class="lot dit'+(bat?' dbat':'')+(on?' dsel':'')+'" data-t="'+E(t.id)+'" role="button" tabindex="0">'+(bat?'<span class="adcb'+(on?' on':'')+'" role="checkbox" aria-checked="'+on+'" aria-label="Отметить" tabindex="0" data-bt="'+E(t.id)+'"></span>':'')+'<div class="dbd"><div class="d1">'+E(t.title)+'</div><div class="sm"><b>'+E(U('norm'))+':</b> '+E(t.norm)+'</div>'+(t.deadline?'<div class="sm"><b>'+E(U('deadline'))+':</b> '+E(t.deadline)+'</div>':'')+'<div class="sm"><span class="dkind">'+E(t.kind)+'</span>'+(bat&&m&&m!='РЕГИОН'?' · '+E(BU('by_addr')):'')+'</div></div></div>'}).join('')});
  h+=n?'':'<div class="empty">'+E(U('empty'))+'</div>';
- var L=$('dlist');var foc=document.activeElement&&document.activeElement.id=='dq',pos=foc?document.activeElement.selectionStart:0;L.innerHTML=h;if(foc){var i=$('dq');i.focus();try{i.setSelectionRange(pos,pos)}catch(e){}}}
+ var L=$('dlist');var foc=document.activeElement&&document.activeElement.id=='dq',pos=foc?document.activeElement.selectionStart:0;L.innerHTML=h;if(foc){var i=$('dq');i.focus();try{i.setSelectionRange(pos,pos)}catch(e){}}listBar()}
+function bar(h){var b=$('dbbar');if(!b)return;b.innerHTML=h||'';b.style.display=h?'':'none';$('vdocs').classList.toggle('dbaron',!!h)}
+function listBar(){if(!window.ArbBatch||CUR||$('dlist').style.display=='none')return;var n=BSEL.size;
+ bar('<div class="dbi"><b>'+E(BU('picked',{n:n}))+'</b>'+(n?'':'<span class="sm">'+E(BU('pick_hint'))+'</span>')+'</div>'+(n?'<button type="button" class="lbtn sec dbx" data-bclr="1" title="'+E(BU('clear'))+'" aria-label="'+E(BU('clear'))+'">✕</button>':'')+'<button type="button" class="lbtn dbgo'+(n?'':' off')+'" data-bgo="1"'+(n?'':' aria-disabled="true"')+'>'+E(n?BU('make_n',{n:n}):BU('make'))+'</button>')}
+function toast(t){var x=$('dtoast');if(!x)return;x.textContent=t;x.style.display='';clearTimeout(toast.t);toast.t=setTimeout(function(){x.style.display='none'},2200)}
+function showList(){CUR=null;$('vdocs').classList.remove('editing');$('ded').style.display='none';$('ded').innerHTML='';$('dlist').style.display='';drawList()}
 var TXT={},PF=0;
 function prefetch(){if(PF)return;PF=1;Promise.all(X.templates.map(function(t){return md(t).catch(function(){})})).then(function(){if(Q)drawList()})}
 async function md(t){if(TXT[t.id]==null){var r=await fetch('docs/'+t.md+'?v='+(window.ARB_DOCS_VH||''));if(!r.ok)throw new Error('шаблон не загрузился ('+r.status+')');TXT[t.id]=await r.text()}return TXT[t.id]}
 function RF(t){return t.repeat_row_fields||[]}
 function rows(t){var d=S.drafts[t.id]=S.drafts[t.id]||{};if(!Array.isArray(d._rows))d._rows=[{}];return d._rows}
 function rowsFilled(t){return rows(t).filter(function(r){return RF(t).some(function(k){return r[k]})})}
-function missing(t){var rf=RF(t),m=t.fields.filter(function(k){return rf.indexOf(k)<0&&!raw(k,t.id)&&!(F[k]&&F[k].optional)});if(rf.length&&!rowsFilled(t).length)m.push('_rows');return m}
+function missing(t){var rf=RF(t),m=t.fields.filter(function(k){return rf.indexOf(k)<0&&k!='ИСХ_НОМЕР'&&!raw(k,t.id)&&!(F[k]&&F[k].optional)});if(rf.length&&!rowsFilled(t).length)m.push('_rows');return m}
 function mlabel(k){return k=='_rows'?U('rows_missing'):(F[k]||{}).label||k}
 function rowsHtml(t){var rf=RF(t);if(!rf.length)return '';return '<h4 class="dsh">'+E(U('rows_title'))+'</h4><div id="drows">'+rows(t).map(function(r,i){return '<div class="lot drow"><div class="d1">'+E(U('row_n',{n:i+1}))+'</div><div class="g2">'+rf.map(function(k){var f=F[k]||{k:k,label:k,type:'text'};return '<div'+(f.type=='textarea'?' class="dwide"':'')+'><label for="dr_'+i+'_'+E(k)+'">'+E(f.label)+'</label>'+inp(f,r[k]||'','dr_'+i).replace('data-k=','data-row="'+i+'" data-rk=')+'</div>'}).join('')+'</div>'+(rows(t).length>1?'<p><button type="button" class="lbtn sec" data-rowdel="'+i+'">'+E(U('row_del'))+'</button></p>':'')+'</div>'}).join('')+'</div><p><button type="button" class="lbtn sec" id="drowadd">'+E(U('row_add'))+'</button></p>'}
 function rowLine(l,t){var rf=RF(t);if(!rf.length||!rf.some(function(k){return l.indexOf('{{'+k+'}}')>=0}))return null;var rs=rowsFilled(t);if(!rs.length)return null;
@@ -159,7 +185,7 @@ function sigFor(t){if(!SIG.length)return null;var m=S.sigSel||'rotate';if(m!='ro
 function sigCtl(t){if(!SIG.length)return '<p class="sm">'+E(LU('sig_none'))+'</p>';var on=!!(S.sign||{})[t.id],m=S.sigSel||'rotate';
  return '<div class="dsigctl"><label class="dchk"><input type="checkbox" id="dfsign"'+(on?' checked':'')+'> '+E(LU('sign'))+'</label>'+(on?'<select id="dfsigsel" aria-label="'+E(LU('sig_pick'))+'"><option value="rotate"'+(m=='rotate'?' selected':'')+'>'+E(LU('sig_rotate'))+'</option>'+SIG.map(function(g){return '<option value="'+E(g.id)+'"'+(m==g.id?' selected':'')+'>'+E(g.name)+'</option>'}).join('')+'</select>':'')+'</div>'}
 function htmlPrev(s,t){var sg=(S.sign||{})[t.id]&&sigFor(t);return s.split('\n').map(function(l){var hd=/^#+\s+/.test(l),sl=sg&&SIGLINE.test(l);l=l.replace(/^#+\s+/,'');var x=fill(l,t,'html');if(sl)x='<span class="dsigw"><img class="dsig" src="'+sg.url+'" alt=""></span>'+x;return hd?'<div class="dhd">'+x+'</div>':'<div>'+(x||'&nbsp;')+'</div>'}).join('')}
-async function openT(id,keep){var t=X.templates.find(function(x){return x.id==id});if(!t)return;CUR=t;$('dlist').style.display='none';$('vdocs').classList.add('editing');var ed=$('ded');ed.style.display='';ed.innerHTML='<p class="sm">…</p>';
+async function openT(id,keep){var t=X.templates.find(function(x){return x.id==id});if(!t)return;CUR=t;$('dlist').style.display='none';bar('');$('vdocs').classList.add('editing');var ed=$('ded');ed.style.display='';ed.innerHTML='<p class="sm">…</p>';
  try{await md(t)}catch(e){ed.innerHTML='<p class="sm ewarn">'+E(e.message)+'</p><button type="button" class="lbtn sec" data-back>'+E(U('back'))+'</button>';return}
  var by={profile:[],case:[],document:[]};t.fields.forEach(function(k){if(RF(t).indexOf(k)>=0)return;(by[(F[k]||{}).scope]||by.document).push(k)});
  var ord=function(a,o){return a.sort(function(x,y){var i=(o||[]).indexOf(x),j=(o||[]).indexOf(y);return (i<0?999:i)-(j<0?999:j)})};ord(by.profile,C.profile_order);ord(by.case,C.case_order);
@@ -185,25 +211,42 @@ function runXml(xml,t){return xml.replace(/<w:r>([\s\S]*?)<\/w:r>/g,function(all
   m[1].split(/(\{\{[^{}]+\}\})/).forEach(function(seg){if(!seg)return;var k=(seg.match(/^\{\{([^{}]+)\}\}$/)||[])[1],r=rp,txt;
    if(k){var v=fmt(k,raw(k,t.id));if(v)txt=xe(v);else if(F[k]&&F[k].optional)return;else{txt=xe('['+((F[k]||{}).label||k)+']');r=rp?rp.replace('</w:rPr>','<w:highlight w:val="yellow"/></w:rPr>'):'<w:rPr><w:highlight w:val="yellow"/></w:rPr>'}}else txt=seg;
    out+='<w:r>'+r+'<w:t xml:space="preserve">'+txt.split(/\r?\n/).join('</w:t><w:br/><w:t xml:space="preserve">')+'</w:t></w:r>'})});return out})}
-async function docx(t){var r=await fetch('docs/'+t.docx+'?v='+(window.ARB_DOCS_VH||''));if(!r.ok)throw new Error('шаблон Word не загрузился ('+r.status+')');var z=await JSZip.loadAsync(await r.arrayBuffer());
+async function docx(t){if(!DXC[t.id]){var r=await fetch('docs/'+t.docx+'?v='+(window.ARB_DOCS_VH||''));if(!r.ok)throw new Error('шаблон Word не загрузился ('+r.status+')');DXC[t.id]=await r.arrayBuffer()}var z=await JSZip.loadAsync(DXC[t.id].slice(0));
  var names=Object.keys(z.files).filter(function(n){return /^word\/(document|header\d*|footer\d*)\.xml$/.test(n)});
  for(var i=0;i<names.length;i++){var xx=await z.file(names[i]).async('string');if(names[i]=='word/document.xml')xx=expandRowsXml(xx,t);z.file(names[i],runXml(xx,t))}
  var l=lhFor(t);if(l)z=await lhMerge(z,l,t);
- if((S.sign||{})[t.id]){var g=sigFor(t);if(g){if(!(await sigApply(z,g)))throw new Error(LU('sig_noline'));if((S.sigSel||'rotate')=='rotate'){S.sigN=((S.sigN||0)+1)%SIG.length;save()}}}
+ if(OV?OV.sign:(S.sign||{})[t.id]){var g=sigFor(t);if(g){if(!(await sigApply(z,g)))throw new Error(LU('sig_noline'));if((S.sigSel||'rotate')=='rotate'){S.sigN=((S.sigN||0)+1)%SIG.length;save()}}}
  return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
+async function single(t){var auto=t.fields.indexOf('ИСХ_НОМЕР')>=0&&!raw('ИСХ_НОМЕР',t.id),c=curCase(),o=outCfg(),no=raw('ИСХ_НОМЕР',t.id),d=S.drafts[t.id]=S.drafts[t.id]||{};
+ if(auto){no=outFmt(o.next,o,fmt('ДАТА',raw('ДАТА',t.id)));d.ИСХ_НОМЕР=no}
+ var lh=lhFor(t),sg=(S.sign||{})[t.id]&&!!sigFor(t),blob;try{blob=await docx(t)}finally{if(auto)delete d.ИСХ_НОМЕР}
+ var n=outNum(no);if(no&&n&&n>=o.next)o.next=n+1;save();var fn=fname(t,'docx');saveBlob(blob,fn);
+ if(window.ArbArch)try{await ArbArch.add({case:c?c.id:'',kind:'out',no:no||'',title:t.title,tid:t.id,addressee:addrOf(t,null),blank:!!lh,signed:sg,fname:fn,auto:auto},blob)}catch(x){}
+ if(auto)openT(t.id,1)}
+function addrOf(t,v){var m=((C.batch||{}).multi)||{},k=t.fields.find(function(x){return m[x]});return k?(v&&v[k]!=null?v[k]:raw(k,t.id)):''}
 function bind(){var v=$('vdocs');
- v.addEventListener('input',function(e){var i=e.target;if(i.id=='dq'){Q=i.value;drawList();return}if(i.dataset&&i.dataset.rk&&CUR){rows(CUR)[+i.dataset.row][i.dataset.rk]=i.value;save();prev();return}if(i.dataset&&i.dataset.lhf){S.lhv=S.lhv||{};(S.lhv[i.dataset.lhf]=S.lhv[i.dataset.lhf]||{})[i.dataset.fk]=i.value;save();return}var k=i.dataset&&i.dataset.k;if(!k)return;
+ v.addEventListener('input',function(e){var i=e.target;if(i.closest('.dbatch'))return;if(i.id=='dq'){Q=i.value;drawList();return}if(i.dataset&&i.dataset.rk&&CUR){rows(CUR)[+i.dataset.row][i.dataset.rk]=i.value;save();prev();return}if(i.dataset&&i.dataset.lhf){S.lhv=S.lhv||{};(S.lhv[i.dataset.lhf]=S.lhv[i.dataset.lhf]||{})[i.dataset.fk]=i.value;save();return}var k=i.dataset&&i.dataset.k;if(!k)return;
   var pre=i.id.split('_')[0];if(pre=='dp'){S.profile[k]=i.value;save()}else if(pre=='dc'){var c=curCase();if(c){c.data[k]=i.value;save()}}else if(pre=='df'&&CUR){setVal(k,i.value,CUR.id);if(k=='ПРОЦЕДУРА'){var w=$('df_ВИД_УПРАВЛЯЮЩЕГО');if(w&&!w.value)w.placeholder=raw('ВИД_УПРАВЛЯЮЩЕГО',CUR.id)}prev()}});
- v.addEventListener('change',async function(e){var i=e.target;
+ v.addEventListener('change',async function(e){var i=e.target;if(i.closest('.dbatch'))return;
+  if(i.id=='dcaseup'&&window.ArbCP){var fs=[].slice.call(i.files);i.value='';$('dcp').open=true;await ArbCP.importCases(fs);return}
+  if(i.id=='dcdeb'&&window.ArbCP&&i.value){var cc=curCase(),cp=await ArbCP.linkDebtor(i.value,cc&&cc.id);if(cc&&cp){var M=(C.counterparties||{}).debtor_map||{};Object.keys(M).forEach(function(k){if(cp[M[k]])cc.data[k]=cp[M[k]]});save();drawCases();if(CUR)openT(CUR.id,1)}return}
   if(i.id=='dflh'&&CUR){S.lh=S.lh||{};S.lh[CUR.id]=i.value;save();prev();return}
   if(i.id=='dfsign'&&CUR){S.sign=S.sign||{};S.sign[CUR.id]=i.checked;save();openT(CUR.id,1);return}
   if(i.id=='dfsigsel'){S.sigSel=i.value;save();prev();return}
   if(i.dataset&&i.dataset.lht){S.lht=S.lht||{};S.lht[i.dataset.lht]=i.value;save();return}
   if(i.id=='dlhup'||i.id=='dsigup'){var m=$(i.id=='dlhup'?'dlhm':'dsigm'),fs=[].slice.call(i.files);try{for(var q=0;q<fs.length;q++)await (i.id=='dlhup'?lhAdd(fs[q]):sigAdd(fs[q]));drawProfile();$('dprof').open=true;var mm=$(i.id=='dlhup'?'dlhm':'dsigm');if(mm)mm.textContent=LU(i.id=='dlhup'?'added':'sig_added')}catch(x){m.textContent=x.message}return}if(i.id=='dcsel'||i.id=='dfcase'){S.cur=i.value||null;save();drawCases();if(CUR)openT(CUR.id)}else if(i.dataset&&i.dataset.k&&i.id.indexOf('dc_')==0){var o=$('dcsel').selectedOptions[0],c=curCase();if(o&&c)o.textContent=caseName(c)}});
- v.addEventListener('click',async function(e){var b=e.target.closest('button,[data-t]');if(!b)return;
+ v.addEventListener('click',async function(e){var cb=e.target.closest('[data-bt]');if(cb){e.preventDefault();e.stopPropagation();var id=cb.dataset.bt;BSEL.has(id)?BSEL.delete(id):BSEL.add(id);drawList();return}
+  var b=e.target.closest('button,[data-t]');if(!b)return;
+  if(b.dataset.pre!=null){var P=((C.batch||{}).presets||[])[+b.dataset.pre],on=P.ids.every(function(id){return BSEL.has(id)});P.ids.forEach(function(id){on?BSEL.delete(id):BSEL.add(id)});drawList();return}
+  if(b.dataset.bsel){var vs=visT(),al=vs.every(function(t){return BSEL.has(t.id)});vs.forEach(function(t){al?BSEL.delete(t.id):BSEL.add(t.id)});drawList();return}
+  if(b.dataset.bgrp){var gs=visT().filter(function(t){return t.group==b.dataset.bgrp}),ga=gs.every(function(t){return BSEL.has(t.id)});gs.forEach(function(t){ga?BSEL.delete(t.id):BSEL.add(t.id)});drawList();return}
+  if(b.dataset.bclr){BSEL.clear();drawList();return}
+  if(b.dataset.bgo){if(!BSEL.size){toast(BU('need_pick'));return}$('dlist').style.display='none';$('vdocs').classList.add('editing');$('ded').style.display='';ArbBatch.open(X.templates.filter(function(t){return BSEL.has(t.id)}).map(function(t){return t.id}));window.scrollTo(0,$('vdocs').offsetTop-60);return}
+  if(b.closest('#ded .dbatch'))return;
   if(b.dataset.g!=null&&b.classList.contains('pchip')){FLT=b.dataset.g;drawList();return}
   if(b.dataset.t){openT(b.dataset.t);return}
-  if(b.hasAttribute('data-back')){CUR=null;$('vdocs').classList.remove('editing');$('ded').style.display='none';$('ded').innerHTML='';$('dlist').style.display='';return}
+  if(b.hasAttribute('data-back')){showList();return}
+  if(b.id=='dcexp'&&window.ArbCP){ArbCP.exportCases();return}
   if(b.id=='dcnew'){var c={id:'c'+Date.now().toString(36),data:{}};S.cases.push(c);S.cur=c.id;save();drawCases();$('dcases').open=true;return}
   if(b.id=='dcdel'){var cc=curCase();if(cc&&confirm(U('case_del_confirm',{name:caseName(cc)}))){S.cases=S.cases.filter(function(x){return x!==cc});S.cur=null;save();drawCases()}return}
   if(b.id=='drowadd'&&CUR){rows(CUR).push({});save();openT(CUR.id,1);return}
@@ -211,20 +254,23 @@ function bind(){var v=$('vdocs');
   if(b.dataset.lhdel){var l=LH.find(function(x){return x.id==b.dataset.lhdel});if(l&&confirm(LU('del_confirm',{name:l.name}))){await ArbDB.del('letterheads',l.id);LH=LH.filter(function(x){return x!==l});drawProfile()}return}
   if(b.dataset.sigdel){var g=SIG.find(function(x){return x.id==b.dataset.sigdel});if(g&&confirm(LU('sig_del_confirm',{name:g.name}))){await ArbDB.del('signatures',g.id);SIG=SIG.filter(function(x){return x!==g});drawProfile()}return}
   if(b.dataset.sigpick){S.sigSel=b.dataset.sigpick;save();drawProfile();return}
-  if(b.id=='dclear'){if(confirm(U('clear_confirm'))){localStorage.removeItem(LS);S=load();try{await ArbDB.wipe()}catch(x){}LH=LH.filter(function(x){return x.builtin});SIG=SIG.filter(function(x){return x.builtin});if(window.ArbCP&&ArbCP.reset)ArbCP.reset();drawProfile();drawCases();if(CUR)openT(CUR.id);$('dclm').textContent=U('cleared')}return}
+  if(b.id=='dclear'){if(confirm(U('clear_confirm'))){localStorage.removeItem(LS);S=load();try{await ArbDB.wipe()}catch(x){}LH=LH.filter(function(x){return x.builtin});SIG=SIG.filter(function(x){return x.builtin});if(window.ArbCP&&ArbCP.reset)ArbCP.reset();if(window.ArbArch)ArbArch.reset();BSEL.clear();drawList();drawProfile();drawCases();if(CUR)openT(CUR.id);$('dclm').textContent=U('cleared')}return}
   if(!CUR)return;
-  try{if(b.id=='ddocx'){if(!gate(b))return;saveBlob(await docx(CUR),fname(CUR,'docx'))}
+  try{if(b.id=='ddocx'){if(!gate(b))return;await single(CUR)}
    else if(b.id=='dtxt'){if(!gate(b))return;saveBlob(new Blob([plain(fill(expandRowsText(TXT[CUR.id],CUR),CUR,'text'))],{type:'text/plain;charset=utf-8'}),fname(CUR,'txt'))}
    else if(b.id=='dcopy'){var s=plain(fill(expandRowsText(TXT[CUR.id],CUR),CUR,'text'));try{await navigator.clipboard.writeText(s)}catch(x){var ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove()}$('dmiss').dataset.warn='';$('dmiss').className='sm';$('dmiss').textContent=U('copied')}}
   catch(x){$('dmiss').className='sm ewarn';$('dmiss').textContent='Не удалось: '+x.message}});
- v.addEventListener('keydown',function(e){var t=e.target.closest&&e.target.closest('[data-t]');if(t&&(e.key=='Enter'||e.key==' ')){e.preventDefault();openT(t.dataset.t)}})}
+ v.addEventListener('keydown',function(e){var cb=e.target.closest&&e.target.closest('[data-bt]');if(cb&&(e.key=='Enter'||e.key==' ')){e.preventDefault();cb.click();return}var t=e.target.closest&&e.target.closest('[data-t]');if(e.target.closest&&e.target.closest('.dbatch'))return;if(t&&(e.key=='Enter'||e.key==' ')){e.preventDefault();openT(t.dataset.t)}})}
 function nav(force){var ex=document.querySelector('nav button[data-v="docs"]');if(ex)return true;var after=document.querySelector('nav button[data-v="eval"]')||(force&&document.querySelector('nav button[data-v="fin"]'));if(!after)return false;
  var nb=document.createElement('button');nb.dataset.v='docs';nb.textContent=C.title;after.after(' ',nb);
  nb.onclick=function(){document.querySelectorAll('nav button[data-v]').forEach(function(x){x.classList.toggle('on',x===nb)});['vreg','vman','vmet','vsrc','vrep','vprc','vfin','veval','vprop','vperr','vfav'].forEach(function(i){var e=$(i);if(e)e.style.display='none'});$('vdocs').style.display='';prefetch()};
  document.querySelector('nav').addEventListener('click',function(e){var b=e.target.closest('button[data-v]');if(b&&b.dataset.v!='docs'){var d=$('vdocs');if(d)d.style.display='none'}});return true}
 function init(){C=window.ARB_DOCS_CFG;X=window.ARB_DOCS;if(!C||!X)return;S=load();initFields();shell();
  $('dtl').textContent=C.title;$('dintro').textContent=C.intro||'';$('dpriv').textContent=C.privacy||'';$('dclear').textContent=U('clear');
- drawProfile();drawCases();drawList();bind();lhLoadLocal();var n=0,iv=setInterval(function(){n++;if(nav(n>40))clearInterval(iv)},250)}
+ drawProfile();drawCases();drawList();bind();lhLoadLocal();
+ var API={X:X,C:C,F:F,S:function(){return S},save:save,raw:raw,fmt:fmt,missing:missing,mlabel:mlabel,docx:docx,md:md,TXT:TXT,rows:rows,RF:RF,rowsFilled:rowsFilled,lhFor:lhFor,sigFor:sigFor,SIG:function(){return SIG},LH:function(){return LH},curCase:curCase,caseName:caseName,saveBlob:saveBlob,setVal:setVal,inp:inp,E:E,U:U,BU:BU,pl:pl,outCfg:outCfg,outFmt:outFmt,outNum:outNum,setOV:function(o){OV=o},htmlPrev:htmlPrev,expandRowsText:expandRowsText,drawCases:drawCases,bar:bar,toast:toast,showList:showList,sel:BSEL,multiOf:multiOf,prof:prof,ofScope:ofScope,addrOf:addrOf,setCur:function(id){S.cur=id||null;save();drawCases()}};
+ if(window.ArbBatch)ArbBatch.mount($('ded'),API);if(window.ArbArch&&$('darchb'))ArbArch.mount($('darchb'),API);
+ if(window.ArbCP&&$('dcpb'))ArbCP.mount($('dcpb'),{S:function(){return S},C:function(){return C},F:function(){return F},save:save,caseName:caseName,drawCases:drawCases,refresh:function(){drawCases();if(CUR)openT(CUR.id,1)}});var n=0,iv=setInterval(function(){n++;if(nav(n>40))clearInterval(iv)},250)}
 window.__docsTest={fill:function(id){var t=X.templates.find(function(x){return x.id==id});return md(t).then(function(s){return plain(fill(s,t,'text'))})},docx:function(id){return docx(X.templates.find(function(x){return x.id==id}))},missing:function(id){return missing(X.templates.find(function(x){return x.id==id}))}};
 if(document.readyState=='loading')addEventListener('DOMContentLoaded',init);else init();
 })();

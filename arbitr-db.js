@@ -1,6 +1,6 @@
 /* Arbitr App — локальное хранилище устройства (IndexedDB). Бланки, контрагенты и их файлы живут только в этом браузере и никуда не отправляются. */
 (function(){
-var NAME='arbitr_local',VER=1,STORES=['letterheads','signatures','counterparties','cp_files','cp_cases'],P=null;
+var NAME='arbitr_local',VER=2,STORES=['letterheads','signatures','counterparties','cp_files','cp_cases','archive'],P=null;
 function open(){if(P)return P;P=new Promise(function(res,rej){var r=indexedDB.open(NAME,VER);r.onupgradeneeded=function(){var d=r.result;STORES.forEach(function(s){if(!d.objectStoreNames.contains(s))d.createObjectStore(s,{keyPath:'id'})})};r.onsuccess=function(){var d=r.result;d.onversionchange=function(){d.close();P=null};res(d)};r.onerror=function(){P=null;rej(r.error)}});return P}
 function tx(s,m,f){return open().then(function(d){return new Promise(function(res,rej){var t=d.transaction(s,m),st=t.objectStore(s),out=f(st);t.oncomplete=function(){res(out&&out.result!==undefined?out.result:out)};t.onerror=function(){rej(t.error)};t.onabort=function(){rej(t.error)}})})}
 window.ArbDB={
