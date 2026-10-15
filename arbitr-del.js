@@ -28,7 +28,11 @@ var css='.adcb{flex:0 0 22px;width:22px;height:22px;border-radius:50%;border:2px
 '#adbar{position:fixed;left:0;right:0;bottom:0;z-index:50;display:none;align-items:center;gap:10px;padding:10px 14px calc(10px + env(safe-area-inset-bottom));background:var(--card,#10302a);border-top:1px solid #8884;box-shadow:0 -4px 16px #0004}'+
 '#adbar b{flex:1;font-weight:600;min-width:0}.adred{background:transparent!important;color:#EF4444!important;border:1px solid #EF444466!important;font-weight:600;display:inline-flex;align-items:center;gap:6px}.adred:disabled{opacity:.45}'+
 '#adbar .lbtn,#addlg .lbtn{margin:0}#addlg{border:0;border-radius:14px;padding:20px;max-width:340px;width:calc(100% - 40px);background:var(--card,#10302a);color:inherit}#addlg::backdrop{background:#0008}#addlg p{margin:0 0 16px}#addlg .r{display:flex;gap:10px;justify-content:flex-end}'+
-'body.adon-any{padding-bottom:72px}';
+'body.adon-any{padding-bottom:72px}'+
+'html,body{overflow-x:hidden}#evl,#finl,#prcl{min-width:0;max-width:100%}#evl .lot,#finl .lot,#prcl .lot{min-width:0;max-width:100%;box-sizing:border-box}'+
+'.lot[data-ad] .row,.lot[data-ad] .row>*,.lot[data-ad] .row>*>*{min-width:0}.lot[data-ad] .d1,.lot[data-ad] .sm{overflow-wrap:anywhere;word-break:break-word}'+
+'.lot[data-ad] .evbt{display:flex;flex-wrap:wrap;gap:8px}.lot[data-ad] .evbt .lbtn{margin:0;max-width:100%}.adh>.adt{min-width:0}'+
+'#adtoast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:140;background:#3a1512;color:#fff;border:1px solid #EF444466;padding:12px 16px;border-radius:12px;box-shadow:0 6px 24px #0006;max-width:min(520px,calc(100vw - 32px));box-sizing:border-box;font-size:14px;line-height:1.4;overflow-wrap:anywhere}#adtoast.ok{background:#0D4F47;border-color:#14B8A666}';
 var DL=Object.assign({icon:'🗑',btn:'Удалить',btn_n:'Удалить ({n})',hint_empty:'Отметьте отчёты',hint_n:'Удалить отмеченные отчёты: {n}',login:'Удаление доступно после входа (PIN).',confirm:'Удалить {reports}? Действие необратимо',select_all:'Выбрать все',unselect_all:'Снять все',bar_count:'Выбрано: {n}',bar_clear:'Снять'},window.ARB_DEL||{});
 function F(s,o){return String(s).replace(/\{(\w+)\}/g,function(m,k){return o[k]!=null?o[k]:m})}
 var TR='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>';
@@ -76,18 +80,25 @@ async function commit(k,ids){
  var n0=0,nx;
  if(Array.isArray(ix)){n0=ix.length;nx=ix.filter(function(e){var id=e&&(e.request_id||e.case_id||e.id);return ids.indexOf(id)<0});var gone=n0-nx.length}
  else{nx={};var gone=0;Object.keys(ix).forEach(function(key){var e=ix[key],id=key;if(k=='eval'&&e&&e.request_id)id=e.request_id;if(ids.indexOf(id)>=0||ids.indexOf(key)>=0)gone++;else nx[key]=e})}
- if(!del.length&&!gone)throw new Error('нечего удалять — список устарел, обновите');
+ if(!del.length&&!gone){var se=new Error('stale');se.stale=true;throw se}
  var t=del.map(function(p){return {path:p,mode:'100644',type:'blob',sha:null}});
  t.push({path:L[k].idx,mode:'100644',type:'blob',content:JSON.stringify(nx,null,1)+'\n'});
  var nt=await gh('git/trees',{method:'POST',body:JSON.stringify({base_tree:cm.tree.sha,tree:t})});
  var nc=await gh('git/commits',{method:'POST',body:JSON.stringify({message:'arbitr: удалено '+pl(ids.length)+' ('+L[k].idx.split('/')[0]+')',tree:nt.sha,parents:[head]})});
  await gh('git/refs/heads/'+BRANCH,{method:'PATCH',body:JSON.stringify({sha:nc.sha,force:false})});return del.length}
-async function go(){if(busy||!mode||!SEL[mode].size)return;if(!ok()){$('adm').textContent='Нужен вход (PIN).';return}
- busy=true;var k=mode,ids=[].slice.call(SEL[mode]),n=ids.length;$('adyes').disabled=true;$('adno').disabled=true;$('adm').textContent='Удаляю…';
- try{var f;try{f=await commit(k,ids)}catch(e){if(e.status==422||e.status==409){$('adm').textContent='Повторяю…';f=await commit(k,ids)}else throw e}
-  $('addlg').close();stop();toast('✓ Удалено: '+pl(n)+' (файлов: '+f+')',6000);await L[k].reload()}
- catch(e){var m=e.status==403||e.status==404?'Ключу GitHub не хватает прав на запись (Contents: Read and write).':e.message;$('adm').textContent='Не удалось: '+m;$('adyes').disabled=false}
- finally{busy=false;$('adno').disabled=false}}
+function btoast(msg,ok){var t=$('adtoast');if(!t){t=document.createElement('div');t.id='adtoast';t.setAttribute('role','status');document.body.appendChild(t)}t.className=ok?'ok':'';t.textContent=msg;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},ok?4000:3500)}
+async function live(k,ids){try{await L[k].reload()}catch(e){}paint();var have=new Set(allIds(k));return ids.filter(function(i){return have.has(i)})}
+async function go(){if(busy||!mode||!SEL[mode].size)return;if(!ok()){$('addlg').close();btoast(DL.login);return}
+ busy=true;var k=mode,ids=Array.from(SEL[mode]),n=ids.length;$('adyes').disabled=true;$('adno').disabled=true;$('adm').textContent='Удаляю…';
+ try{var f;
+  for(var att=0;;att++){try{f=await commit(k,ids);break}
+   catch(e){if(att>=2)throw e;
+    if(e.stale){ids=await live(k,ids);n=ids.length;if(!ids.length){f=0;break}}      /* список изменился: обновили и пересчитали выбор */
+    else if(e.status==409||e.status==422){ids=await live(k,ids);n=ids.length;if(!ids.length){f=0;break}}  /* ветка ушла вперёд: повтор на свежей версии */
+    else throw e}}
+  $('addlg').close();stop();btoast(n?'✓ Удалено: '+pl(n)+' (файлов: '+f+')':'✓ Эти отчёты уже удалены',true);await L[k].reload()}
+ catch(e){var m=e.status==403||e.status==404?'Ключу GitHub не хватает прав на запись (Contents: Read and write).':e.message;$('addlg').close();btoast('Не удалось удалить: '+m);try{await live(k,ids)}catch(x){}}
+ finally{busy=false;$('adyes').disabled=false;$('adno').disabled=false;$('adm').textContent=''}}
 function tick(){setup()}document.addEventListener('click',function(e){if(e.target.closest('nav button'))setTimeout(paint,50)});
 var t=0;new MutationObserver(function(){clearTimeout(t);t=setTimeout(tick,80)}).observe(document.body,{childList:true,subtree:true});
 addEventListener('load',tick);addEventListener('resize',function(){paint()});setTimeout(tick,500);
