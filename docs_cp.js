@@ -18,19 +18,24 @@ function guessKind(c){var n=norm(c.name);if(/банк/.test(n)&&(c.bik||/бан�
 /* ---------- список ---------- */
 function visible(){var q=norm(Q),cur=A.S().cur;return CP.filter(function(c){if(FLT&&(c.roles||[]).indexOf(FLT)<0)return false;if(KF&&c.kind!=KF)return false;if(ONLY&&cur&&(c.cases||[]).indexOf(cur)<0)return false;
  if(q){var h=norm([c.name,c.inn,c.bik,c.ogrn,c.kpp,c.addr_legal,c.addr_post,c.head,c.email,c.phone,c.note].join(' '));if(h.indexOf(q)<0&&digits(Q)&&digits([c.inn,c.bik,c.ks,c.ogrn,c.phone].join(' ')).indexOf(digits(Q))<0)return false;if(h.indexOf(q)<0&&!digits(Q))return false}return true}).sort(function(a,b){return String(a.name).localeCompare(String(b.name),'ru')})}
+function archLink(c){if(!window.ArbArch||ArbArch.locked()||(c.roles||[]).indexOf('debtor_main')<0)return '';var n=ArbArch.countFor(c.cases||[],c.name,c.inn);return '<button type="button" class="lbtn sec darl" data-cparch="'+E(c.id)+'">'+E(U('arch_link',{n:n}))+'</button>'}
+function MU(k,o){var x=((A.C().manager||{}).ui||{})[k]||k;if(o)Object.keys(o).forEach(function(n){x=x.split('{'+n+'}').join(o[n])});return x}
+function mgrBlock(){var M=A.MGR?A.MGR():[],q=norm(Q);if(KF&&KF!='au')return '';if(FLT)return '';M=M.filter(function(m){return !q||norm([m.f.ФИО_УПРАВЛЯЮЩЕГО,m.f.ИНН_УПРАВЛЯЮЩЕГО,m.f.СРО,m.f.РЕГ_НОМЕР_АУ].join(' ')).indexOf(q)>=0});
+ return '<h4 class="dsh">'+E(kinds().au||MU('kind'))+' <span class="sm">'+M.length+'</span></h4>'+(A.encOK&&!A.encOK()?'<p class="sm ewarn">'+E(MU('locked'))+'</p>':'')+M.map(function(m){var f=m.f,todo=Object.keys(f).some(function(k){return String(f[k]||'').indexOf('[__]')>=0});return '<div class="lot dit dcp dmgc" data-mgid="'+E(m.id)+'" role="button" tabindex="0"><div class="d1">'+E(A.mgrName(m))+'</div><div class="sm">'+E([f.ИНН_УПРАВЛЯЮЩЕГО?'ИНН '+f.ИНН_УПРАВЛЯЮЩЕГО:'',f.РЕГ_НОМЕР_АУ?'рег. № '+f.РЕГ_НОМЕР_АУ:'',f.СРО||''].filter(Boolean).join(' · '))+'</div><div class="sm dkind">'+E(MU('assets',{l:m.lh.length,s:m.sig.length}))+'</div>'+(todo?'<div class="sm ewarn">'+E(MU('addr_todo'))+'</div>':'')+'</div>'}).join('')+
+  (A.encOK&&A.encOK()?'<p><button type="button" class="lbtn sec" data-cp="mgnew">'+E(MU('add'))+'</button></p>':'')+(KF=='au'?'':'<h4 class="dsh">'+E(U('others'))+'</h4>')}
 function vList(){var R=roles(),vs=visible(),cur=A.S().cur;
- var h='<p class="sm">'+E(K().help||'')+'</p><div class="dact dcpbar"><button type="button" class="lbtn" data-cp="new">'+E(U('add'))+'</button><label class="lbtn sec dfile">'+E(U('import'))+'<input type="file" id="dcpup" accept=".csv,.xlsx,.json,.vcf,.pdf,.docx,.txt,text/csv,application/json,text/vcard" multiple hidden></label><label class="lbtn sec dfile">'+E(U('bik_import'))+'<input type="file" id="dcpbik" accept=".xml,.zip,.csv,text/xml,application/zip,text/csv" hidden></label>'+
+ var h='<p class="sm">'+E(K().help||'')+'</p><div class="dact dcpbar"><button type="button" class="lbtn" data-cp="new">'+E(U('add'))+'</button><label class="lbtn sec dfile">'+E(U('import'))+'<input type="file" id="dcpup" accept=".csv,.xlsx,.json,.vcf,.pdf,.docx,.txt,text/csv,application/json,text/vcard" multiple hidden></label>'+((window.ARB_DIR||{}).banks?'<button type="button" class="lbtn sec" data-cp="banks">'+E(U('banks_dir'))+'</button>':'')+((window.ARB_DIR||{}).addressees?'<button type="button" class="lbtn sec" data-cp="adir">'+E(AU_('title'))+'</button>':'')+'<label class="lbtn sec dfile">'+E(U('bik_import'))+'<input type="file" id="dcpbik" accept=".xml,.zip,.csv,text/xml,application/zip,text/csv" hidden></label>'+
   (CP.length?'<button type="button" class="lbtn sec" data-cp="exj">'+E(U('export_json'))+'</button><button type="button" class="lbtn sec" data-cp="exc">'+E(U('export_csv'))+'</button>':'')+'</div><p class="sm">'+E(U('import_help'))+'</p><p class="sm">'+E(U('bik_help'))+'</p>'+(MSG?'<p class="sm dok" id="dcpmsg">'+E(MSG)+'</p>':'');
- if(CP.length){h+='<div class="pflt dflt"><input type="search" id="dcpq" placeholder="'+E(U('search'))+'" value="'+E(Q)+'"></div><div class="dchips"><button type="button" class="pchip'+(FLT?'':' on')+'" data-cpr="">'+E(U('all'))+'</button>'+Object.keys(R).filter(function(r){return CP.some(function(c){return (c.roles||[]).indexOf(r)>=0})}).map(function(r){return '<button type="button" class="pchip'+(FLT==r?' on':'')+'" data-cpr="'+E(r)+'">'+E(R[r])+'</button>'}).join('')+'</div>'+
-  (function(){var ks=Object.keys(kinds()).filter(function(k){return CP.some(function(c){return c.kind==k})});return ks.length>1?'<div class="dchips"><button type="button" class="pchip'+(KF?'':' on')+'" data-cpk="">'+E(U('kinds_all'))+'</button>'+ks.map(function(k){var n=CP.filter(function(c){return c.kind==k}).length;return '<button type="button" class="pchip'+(KF==k?' on':'')+'" data-cpk="'+k+'">'+E((K().kinds_short||{})[k]||kinds()[k])+' <b>'+n+'</b></button>'}).join('')+'</div>':''})()+
+ var MB=mgrBlock();if(CP.length||MB){h+='<div class="pflt dflt"><input type="search" id="dcpq" placeholder="'+E(U('search'))+'" value="'+E(Q)+'"></div><div class="dchips"><button type="button" class="pchip'+(FLT?'':' on')+'" data-cpr="">'+E(U('all'))+'</button>'+Object.keys(R).filter(function(r){return CP.some(function(c){return (c.roles||[]).indexOf(r)>=0})}).map(function(r){return '<button type="button" class="pchip'+(FLT==r?' on':'')+'" data-cpr="'+E(r)+'">'+E(R[r])+'</button>'}).join('')+'</div>'+
+  (function(){var nm=A.MGR?A.MGR().length:0,ks=Object.keys(kinds()).filter(function(k){return k=='au'?nm>0:CP.some(function(c){return c.kind==k})});return ks.length>1?'<div class="dchips"><button type="button" class="pchip'+(KF?'':' on')+'" data-cpk="">'+E(U('kinds_all'))+'</button>'+ks.map(function(k){var n=k=='au'?nm:CP.filter(function(c){return c.kind==k}).length;return '<button type="button" class="pchip'+(KF==k?' on':'')+'" data-cpk="'+k+'">'+E((K().kinds_short||{})[k]||kinds()[k])+' <b>'+n+'</b></button>'}).join('')+'</div>':''})()+
   (cur?'<label class="dchk"><input type="checkbox" id="dcponly"'+(ONLY?' checked':'')+'> '+E(U('this_case'))+'</label>':'');
-  var all=vs.length;vs=vs.slice(0,LIM);h+=all>LIM||all>20?'<p class="sm">'+E(U('shown',{a:vs.length,b:all}))+'</p>':'';h+=vs.length?vs.map(function(c){var rs=(c.roles||[]).map(function(r){return R[r]||r}).join(', ');return '<div class="lot dit dcp" data-cpid="'+E(c.id)+'" role="button" tabindex="0"><div class="d1">'+E(c.name||'—')+'</div><div class="sm">'+E([(kinds()[c.kind]||''),c.kind=='bank'&&c.bik?'БИК '+c.bik:'',c.inn?'ИНН '+c.inn:'',rs].filter(Boolean).join(' · '))+'</div><div class="sm dkind">'+E([U('n_cases',{n:(c.cases||[]).length}),(c.files||[]).length?U('n_files',{n:c.files.length}):''].filter(Boolean).join(' · '))+'</div></div>'}).join('')+(all>LIM?'<button type="button" class="lbtn sec" data-cp="more">'+E(U('more',{n:Math.min(100,all-LIM)}))+'</button>':''):'<div class="empty">'+E(U('nothing'))+'</div>'}
+  h+=MB;if(KF=='au')return h;var all=vs.length;vs=vs.slice(0,LIM);h+=all>LIM||all>20?'<p class="sm">'+E(U('shown',{a:vs.length,b:all}))+'</p>':'';h+=vs.length?vs.map(function(c){var rs=(c.roles||[]).map(function(r){return R[r]||r}).join(', ');return '<div class="lot dit dcp" data-cpid="'+E(c.id)+'" role="button" tabindex="0"><div class="d1">'+E(c.name||'—')+'</div><div class="sm">'+E([(kinds()[c.kind]||''),c.kind=='bank'&&c.bik?'БИК '+c.bik:'',c.inn?'ИНН '+c.inn:'',rs].filter(Boolean).join(' · '))+'</div><div class="sm dkind">'+E([U('n_cases',{n:(c.cases||[]).length}),(c.files||[]).length?U('n_files',{n:c.files.length}):''].filter(Boolean).join(' · '))+'</div>'+archLink(c)+'</div>'}).join('')+(all>LIM?'<button type="button" class="lbtn sec" data-cp="more">'+E(U('more',{n:Math.min(100,all-LIM)}))+'</button>':''):'<div class="empty">'+E(U('nothing'))+'</div>'}
  else h+='<div class="empty">'+E(U('empty'))+'</div>';
  return h}
 /* ---------- карточка ---------- */
 function vEdit(){var c=ED,R=roles(),KD=kinds(),L=K().inn_lookup||{},cs=A.S().cases;
  var h='<h4 class="dsh">'+E(c._new?U('new'):U('edit'))+'</h4>'+(c._extract?'<p class="sm dok">'+E(U('extract_title',{name:c._extract}))+'</p><p class="sm">'+E(c._found?U('extract_help'):U('extract_none'))+'</p>':'')+
- '<div class="g2"><div><label for="dcp_kind">'+E(U('kind'))+'</label><select id="dcp_kind" data-cf="kind">'+Object.keys(KD).map(function(k){return '<option value="'+k+'"'+(c.kind==k?' selected':'')+'>'+E(KD[k])+'</option>'}).join('')+'</select></div>'+
+ '<div class="g2"><div><label for="dcp_kind">'+E(U('kind'))+'</label><select id="dcp_kind" data-cf="kind">'+Object.keys(KD).filter(function(k){return k!='au'}).map(function(k){return '<option value="'+k+'"'+(c.kind==k?' selected':'')+'>'+E(KD[k])+'</option>'}).join('')+'</select></div>'+
  '<div><label>&nbsp;</label><button type="button" class="lbtn sec dinn" disabled aria-disabled="true" title="'+E(L.note||'')+'">'+E(L.label||'')+'</button><div class="sm dhint">'+E(L.note||'')+'</div></div>'+
  (K().fields||[]).map(function(f){var id='dcp_'+f.k,v=c[f.k]||'',bad=f.k=='inn'&&v&&!innOK(v);return '<div'+(f.wide?' class="dwide"':'')+(f.req&&!v?' data-w="1" class="'+(f.wide?'dwide ':'')+'dempty"':'')+'><label for="'+id+'">'+E(f.label)+'</label>'+(f.type=='textarea'?'<textarea id="'+id+'" data-cf="'+f.k+'" rows="3">'+E(v)+'</textarea>':'<input id="'+id+'" data-cf="'+f.k+'" value="'+E(v)+'" autocomplete="off"'+(f.type=='inn'?' inputmode="numeric"':f.type=='tel'?' type="tel"':f.type=='email'?' type="email"':'')+'>')+(bad?'<div class="sm ewarn">ИНН не прошёл проверку контрольной суммы</div>':'')+'</div>'}).join('')+'</div>'+
  '<h4 class="dsh">'+E(U('roles'))+'</h4><div class="dchks">'+Object.keys(R).map(function(r){return '<label class="dchk"><input type="checkbox" data-crole="'+r+'"'+((c.roles||[]).indexOf(r)>=0?' checked':'')+'> '+E(R[r])+'</label>'}).join('')+'</div>'+
@@ -49,7 +54,7 @@ function vMap(){var T=targets(),hd=MAP.head,rows=MAP.rows,R=roles(),cur=A.S().cu
  hd.map(function(x,i){var ex=rows.slice(0,3).map(function(r){return r[i]}).filter(Boolean).join(' · ');return '<div class="dmaprow"><div><b>'+E(x||('Колонка '+(i+1)))+'</b><div class="sm">'+E(ex.slice(0,90))+'</div></div><select data-map="'+i+'" aria-label="'+E(x)+'"><option value="">'+E(U('map_skip'))+'</option>'+T.map(function(t){return '<option value="'+t[0]+'"'+(MAP.map[i]==t[0]?' selected':'')+'>'+E(t[1])+'</option>'}).join('')+'</select></div>'}).join('')+'</div>';
  if(MAP.kind!='case')h+='<div class="g2"><div><label for="dcpmrole">'+E(U('map_role'))+'</label><select id="dcpmrole"><option value="">—</option>'+Object.keys(R).map(function(r){return '<option value="'+r+'"'+(MAP.role==r?' selected':'')+'>'+E(R[r])+'</option>'}).join('')+'</select></div>'+(cur?'<div><label>&nbsp;</label><label class="dchk"><input type="checkbox" id="dcpmlink"'+(MAP.link?' checked':'')+'> '+E(U('map_link'))+'</label></div>':'')+'</div><p class="sm">'+E(U('dup_merge'))+'</p>';
  h+='<div class="dact"><button type="button" class="lbtn" data-cp="mapgo">'+E(U('map_go',{n:rows.length}))+'</button><button type="button" class="lbtn sec" data-cp="cancel">'+E(U('cancel'))+'</button></div>';return h}
-function draw(){if(!ROOT)return;ROOT.innerHTML=V=='edit'?vEdit():V=='map'?vMap():vList();var c=$c('dcpcount');}
+function draw(){if(!ROOT)return;if(V=='mgr')return;ROOT.innerHTML=V=='edit'?vEdit():V=='map'?vMap():V=='adir'?vDir():vList();var c=$c('dcpcount');}
 function $c(i){return document.getElementById(i)}
 function rerenderKeepFocus(){var a=document.activeElement,id=a&&a.id,p=a&&a.selectionStart;draw();if(id&&$c(id)){$c(id).focus();try{$c(id).setSelectionRange(p,p)}catch(e){}}}
 /* ---------- разбор файлов ---------- */
@@ -120,6 +125,58 @@ async function importBik(f){var nm=f.name,buf=await f.arrayBuffer(),ext=(nm.matc
   else{x=Object.assign(blank(),s);x.kind='bank';CP.push(x);byB[s.bik]=x;if(s.inn)byI[s.inn]=x;ch.push(x);n++}});
  for(var i=0;i<ch.length;i+=500)await ArbDB.putMany('counterparties',ch.slice(i,i+500));
  MSG=U('bik_done',{n:n,u:u,t:CP.filter(function(c){return c.kind=='bank'}).length});KF='bank';LIM=100;V='list';draw();A.refresh()}
+/* ---------- встроенные публичные справочники (bank_data/*.js), подгружаются лениво ---------- */
+var DIRP={};
+function dirLoad(n){var P=(window.ARB_DIR||{})[n];if(!P)return Promise.resolve(null);if(DIRP[n])return DIRP[n];
+ DIRP[n]=new Promise(function(res){var sc=document.createElement('script');sc.src=P;sc.onload=function(){res(window[{banks:'ARBITR_BANKS',banks_branches:'ARBITR_BANK_BRANCHES',addressees:'ARBITR_ADDRESSEES',addressees_ifns:'ARBITR_ADDRESSEES_IFNS',addressees_securities:'ARBITR_ADDRESSEES_SEC'}[n]||'ARBITR_ADDRESSEES_EXTRA'])};sc.onerror=function(){DIRP[n]=null;res(null)};document.head.appendChild(sc)});return DIRP[n]}
+
+/* ---- справочник адресатов (органы): только чтение, ленивая загрузка ---- */
+function ACF(){return A.C().addressees||{}}
+function AU_(k){return (ACF().ui||{})[k]||k}
+var ADP=null,AD=null,ADT='',ADR='',ADQ='',ADL=60;
+function addrLoad(){if(ADP)return ADP;var ks=Object.keys(window.ARB_DIR||{}).filter(function(k){return k.indexOf('addressees')==0});if(!ks.length)return Promise.resolve(null);
+ ADP=Promise.all(ks.map(function(k){return dirLoad(k)})).then(function(){var M=window.ARBITR_ADDRESSEES;if(!M||!M.orgs){ADP=null;return null}var o=M.orgs.slice(),seen={};
+  [window.ARBITR_ADDRESSEES_IFNS,window.ARBITR_ADDRESSEES_SEC].forEach(function(x){if(x&&x.orgs)o=o.concat(x.orgs)});if(Array.isArray(window.ARBITR_ADDRESSEES_EXTRA))o=o.concat(window.ARBITR_ADDRESSEES_EXTRA);
+  o=o.filter(function(x){var k=x.type+'|'+norm(x.name)+'|'+norm(x.address);if(seen[k])return false;seen[k]=1;return true});
+  var T=(M.types||[]).slice();o.forEach(function(x){if(!T.some(function(t){return t.id==x.type}))T.push({id:x.type,label:x.type,template_field:''})});
+  AD={types:T,orgs:o,version:M.version||'',date:M.source_date||''};return AD});return ADP}
+var RSTOP={'область':1,'обл':1,'край':1,'республика':1,'республики':1,'республике':1,'области':1,'края':1,'крае':1,'город':1,'г':1,'автономный':1,'автономного':1,'округ':1,'округа':1,'округу':1,'по':1,'и':1,'в':1,'федерального':1,'значения':1,'россия':1,'российская':1,'федерация':1,'ао':1};
+function rstems(s){return norm(s).replace(/[^а-яёa-z0-9\- ]+/g,' ').split(/\s+/).filter(function(w){return w.length>2&&!RSTOP[w]&&!/^\d+$/.test(w)}).map(function(w){return w.replace(/-/g,'').slice(0,Math.max(4,Math.min(6,w.length-2)))})}
+function regionOf(o){var m=/\sпо\s+(.+)$/i.exec(o.name||'');return [o.region||'',m?m[1]:'',o.type=='court'?(o.name||''):''].join(' ')}
+function rmatch(o,st){if(!st.length)return true;var t=norm(regionOf(o)+' '+(o.address||'').split(',').slice(0,2).join(' ')).replace(/-/g,'');return st.some(function(w){return t.indexOf(w)>=0})}
+function caseRegion(r){var ps=String(r||'').split(','),i,st;for(i=0;i<ps.length;i++){st=rstems(ps[i]);if(st.length)return st.slice(0,2)}return []}
+function dirVal(o,tf){if(tf=='НОМЕР_ИФНС'){var m=/№\s*(.+)$/.exec(o.name||'');return m?m[1].trim():(o.code||o.name)}if(tf=='РЕГИОН'){var m2=/\sпо\s+(.+)$/i.exec(o.name||'');return m2?m2[1].trim():(o.region||'')}return o.name||''}
+function orgLine(o){return [[o.index,o.address].filter(Boolean).join(', '),o.email?'e-mail: '+o.email:'',o.phone?'тел. '+o.phone:''].filter(Boolean).join(' · ')}
+function tLabel(id){var t=(AD&&AD.types||[]).find(function(x){return x.id==id});return t?t.label:id}
+function vDir(){var h='<button type="button" class="lbtn sec" data-cp="back">'+E(AU_('back'))+'</button><h4 class="dsh">'+E(AU_('title'))+'</h4>';
+ if(!AD)return h+'<p class="sm">…</p>';
+ h+='<p class="sm">'+E(AU_('help')||'')+(AD.date?' '+E(AU_('date')||'Актуальность')+': '+E(AD.date.split('-').reverse().join('.')):'')+'</p>';
+ h+='<div class="g2"><div><label for="dadt">'+E(AU_('type')||'Тип')+'</label><select id="dadt"><option value="">'+E(AU_('all_types'))+'</option>'+AD.types.filter(function(t){return AD.orgs.some(function(o){return o.type==t.id})}).map(function(t){return '<option value="'+E(t.id)+'"'+(ADT==t.id?' selected':'')+'>'+E(t.label)+' ('+AD.orgs.filter(function(o){return o.type==t.id}).length+')</option>'}).join('')+'</select></div>'+
+  '<div><label for="dadr">'+E(AU_('region'))+'</label><input id="dadr" type="search" value="'+E(ADR)+'" placeholder="'+E(AU_('region_ph')||'напр. Ленинградская')+'"></div></div><div class="pflt dflt" style="margin-top:10px"><input type="search" id="dadq" placeholder="'+E(AU_('search'))+'" value="'+E(ADQ)+'"></div>';
+ var st=rstems(ADR),q=norm(ADQ),L=AD.orgs.filter(function(o){return (!ADT||o.type==ADT)&&rmatch(o,st)&&(!q||norm([o.name,o.address,o.code,o.email,o.inn].join(' ')).indexOf(q)>=0)}),all=L.length;L=L.slice(0,ADL);
+ h+='<p class="sm">'+E(U('shown',{a:L.length,b:all}))+'</p>';
+ h+=L.length?L.map(function(o){var i=AD.orgs.indexOf(o),ex=CP.some(function(c){return c.src=='dir'&&norm(c.name)==norm(o.name)});return '<div class="lot dit dadir"><div class="d1">'+E(o.name)+'</div><div class="sm">'+E(tLabel(o.type)+(o.code?' · код '+o.code:''))+'</div><div class="sm">'+E(orgLine(o))+'</div>'+(o.verify?'<div class="sm ewarn">'+E(AU_('verify')||'Проверьте перед отправкой')+'</div>':'')+'<div class="dact"><button type="button" class="lbtn sec" data-cpads="'+i+'"'+(ex?' disabled':'')+'>'+E(ex?(AU_('saved')||'Уже в контрагентах'):AU_('save_cp'))+'</button></div></div>'}).join('')+(all>ADL?'<button type="button" class="lbtn sec" data-cp="admore">'+E(U('more',{n:Math.min(60,all-ADL)}))+'</button>':''):'<div class="empty">'+E(U('nothing'))+'</div>';
+ return h}
+function openDir(){V='adir';draw();addrLoad().then(function(){if(V=='adir')draw()})}
+async function saveDirOrg(i){var o=AD&&AD.orgs[i];if(!o)return;var x=Object.assign(blank(),{kind:/registrar|depositary/.test(o.type)?'ul':'gov',name:o.name,addr_legal:[o.index,o.address].filter(Boolean).join(', '),phone:o.phone||'',email:o.email||'',inn:o.inn||'',ogrn:o.ogrn||'',note:[tLabel(o.type),o.site||'',o.verify?(AU_('verify')||''):''].filter(Boolean).join('. '),src:'dir',dir_type:o.type,region:(o.okato||[])[0]||''});
+ var d=findDup(x);if(d){Object.keys(x).forEach(function(k){if(x[k]&&!d[k]&&k!='id')d[k]=x[k]});await save1(d)}else await save1(x);MSG=AU_('saved_ok')||'Сохранено в контрагенты';draw();A.refresh()}
+/* выбор адресата из справочника в форме документа */
+function dirPick(tid,host,region,setFn){if(!host)return;var ty=(ACF().directory||{})[tid];if(!ty||ty=='bank'||!(window.ARB_DIR||{}).addressees){host.innerHTML='';return}
+ host.innerHTML='<p class="sm">…</p>';addrLoad().then(function(D){if(!D){host.innerHTML='';return}var tp=D.types.find(function(t){return t.id==ty})||{},L=D.orgs.filter(function(o){return o.type==ty||(ty=='ifns'&&o.type=='ufns'&&false)});if(!L.length){host.innerHTML='';return}
+  var st=caseRegion(region),A1=L.filter(function(o){return st.length&&rmatch(o,st)}),A2=L.filter(function(o){return A1.indexOf(o)<0});
+  var opt=function(o){return '<option value="'+D.orgs.indexOf(o)+'">'+E(o.name)+'</option>'};
+  host.innerHTML='<div class="dcrow ddirp"><label for="dfdirsel">'+E(AU_('pick')||'Адресат из справочника')+' · '+E(tp.label||ty)+'</label><select id="dfdirsel"><option value="">—</option>'+(A1.length?'<optgroup label="'+E(AU_('in_region')||'Регион дела')+'">'+A1.map(opt).join('')+'</optgroup>':'')+(A2.length?'<optgroup label="'+E(A1.length?(AU_('other_regions')||'Другие регионы'):(tp.label||ty))+'">'+A2.map(opt).join('')+'</optgroup>':'')+'</select><div class="sm" id="dfdirinfo"></div></div>';
+  var sel=host.querySelector('select');sel.addEventListener('change',function(){var o=D.orgs[+sel.value],inf=host.querySelector('#dfdirinfo');if(!o){inf.textContent='';return}var tf=tp.template_field;if(tf)setFn(tf,dirVal(o,tf),o);inf.innerHTML=E(orgLine(o))+(o.verify?' <span class="ewarn">'+E(AU_('verify')||'')+'</span>':'')})})}
+var BKV='arbitr_banks_ver',BKP=null;
+function ensureBanks(force){if(!(window.ARB_DIR||{}).banks)return Promise.resolve(0);if(BKP&&!force)return BKP;BKP=(async function(){var R3=await Promise.all([dirLoad('banks'),dirLoad('banks_branches')]),D=R3[0];if(!D||!D.banks)return 0;
+  var VER=[D.version,(R3[1]||{}).version||''].join('/');
+  if(!force&&localStorage.getItem(BKV)==VER&&CP.some(function(c){return c.src=='cbr'}))return 0;
+  var ST=D.statuses||{},L=D.banks.map(function(b){return [b,b.kind||'head']}).concat(((R3[1]||{}).branches||[]).map(function(b){return [b,'branch']}));
+  var byB={};CP.forEach(function(c){if(c.kind=='bank'&&c.bik)byB[digits(c.bik)]=c});var ch=[];
+    L.forEach(function(q){var b=q[0],s={name:b.name,bik:b.bik,ks:b.ks||'',inn:b.inn||'',ogrn:b.ogrn||'',addr_legal:b.legal_address||[b.index,b.city,b.adr].filter(Boolean).join(', '),phone:b.phone||'',email:b.email||'',note:[b.full_name,ST[b.status]||'',q[1]=='branch'&&b.parent_bik?'филиал, БИК головного '+b.parent_bik:''].filter(Boolean).join('. ')},x=byB[digits(b.bik)];
+   if(x){Object.keys(s).forEach(function(k){if(s[k]&&!x[k])x[k]=s[k]})}else{x=Object.assign(blank(),s,{kind:'bank',roles:['bank'],src:'cbr'});CP.push(x);byB[digits(b.bik)]=x}
+   x.bkind=q[1];x.region=b.region||'';x.rank_assets=b.rank_assets||null;x.assets_rub=b.assets_rub||null;x.rank_date=b.rank_assets?(b.rank_date||D.rank_date||''):'';x.dir_ver=VER;ch.push(x)});
+  for(var i=0;i<ch.length;i+=500)await ArbDB.putMany('counterparties',ch.slice(i,i+500));localStorage.setItem(BKV,VER);return ch.length})();return BKP}
 function roleOf(s){var n=norm(s),R=roles(),r='';Object.keys(R).forEach(function(k){if(!r&&(norm(R[k])==n||n&&norm(R[k]).indexOf(n)==0||n.indexOf(norm(R[k]).split(' ')[0])==0))r=k});return r}
 function caseByNo(s){var n=norm(s);return n?A.S().cases.find(function(c){return norm((c.data||{}).НОМЕР_ДЕЛА)==n}):null}
 async function runMap(){var n=0,u=0,cur=A.S().cur;
@@ -154,8 +211,8 @@ function exportCSV(){var fl=K().fields||[],R=roles(),q=function(s){s=String(s==n
 function exportCases(){dl(new Blob([JSON.stringify({format:'arbitr-cases',version:1,exported:new Date().toISOString(),cases:A.S().cases},null,1)],{type:'application/json'}),'dela_'+stamp()+'.json')}
 /* ---------- события ---------- */
 function bind(el){
- el.addEventListener('input',function(e){var i=e.target;if(i.id=='dcpq'){Q=i.value;LIM=100;rerenderKeepFocus();return}if(i.dataset.cf&&ED){ED[i.dataset.cf]=i.value}});
- el.addEventListener('change',async function(e){var i=e.target;
+ el.addEventListener('input',function(e){var i=e.target;if(V=='mgr')return;if(V=='adir'&&(i.id=='dadr'||i.id=='dadq')){if(i.id=='dadr')ADR=i.value;else ADQ=i.value;ADL=60;rerenderKeepFocus();return}if(i.id=='dcpq'){Q=i.value;LIM=100;rerenderKeepFocus();return}if(i.dataset.cf&&ED){ED[i.dataset.cf]=i.value}});
+ el.addEventListener('change',async function(e){var i=e.target;if(V=='mgr')return;if(i.id=='dadt'){ADT=i.value;ADL=60;draw();return}
   if(i.id=='dcpbik'){var bf=i.files[0];i.value='';if(bf)await importBik(bf);return}
   if(i.id=='dcpup'){var fs=[].slice.call(i.files);i.value='';await importFiles(fs);return}
   if(i.id=='dcpatt'&&ED){[].forEach.call(i.files,function(f){PEND.push(f)});draw();return}
@@ -164,7 +221,13 @@ function bind(el){
   if(i.dataset.crole&&ED){var r=i.dataset.crole;ED.roles=(ED.roles||[]).filter(function(x){return x!=r});if(i.checked)ED.roles.push(r);return}
   if(i.dataset.ccase&&ED){var c=i.dataset.ccase;ED.cases=(ED.cases||[]).filter(function(x){return x!=c});if(i.checked)ED.cases.push(c);return}
   if(i.dataset.map!=null&&MAP){MAP.map[+i.dataset.map]=i.value;return}if(i.id=='dcpmrole'&&MAP){MAP.role=i.value;return}if(i.id=='dcpmlink'&&MAP){MAP.link=i.checked;return}});
- el.addEventListener('click',async function(e){var b=e.target.closest('[data-cp],[data-cpr],[data-cpk],[data-cpid],[data-cpfget],[data-cpfdel]');if(!b)return;var d=b.dataset;
+ el.addEventListener('click',async function(e){if(V=='mgr')return;var b=e.target.closest('[data-cpads],[data-cparch],[data-cp],[data-cpr],[data-cpk],[data-cpid],[data-cpfget],[data-cpfdel],[data-mgid]');if(!b)return;var d=b.dataset;
+  if(d.cparch){e.stopPropagation();var ca=CP.find(function(x){return x.id==d.cparch});A.showTab('arch');if(ca)ArbArch.focus(ca.cases||[],ca.name,ca.inn);return}
+  if(d.mgid){editMgr(d.mgid);return}
+  if(d.cp=='mgnew'){editMgr(null);return}
+  if(d.cp=='adir'){openDir();return}if(d.cp=='back'){V='list';draw();return}if(d.cp=='admore'){ADL+=60;draw();return}if(d.cpads!=null&&d.cpads!==''){await saveDirOrg(+d.cpads);return}
+  if(d.cp=='banks'){MSG=U('bik_loading');draw();var nb=await ensureBanks(false);MSG=U('banks_ok',{n:CP.filter(function(c){return c.kind=='bank'}).length,d:(window.ARBITR_BANKS||{}).source_date||''});KF='bank';LIM=100;draw();A.refresh();return}
+  if(d.cpk=='bank'){await ensureBanks(false)}
   if(d.cpr!=null){FLT=d.cpr;LIM=100;draw();return}
   if(d.cpk!=null){KF=d.cpk;LIM=100;draw();return}
   if(d.cpid){var c=CP.find(function(x){return x.id==d.cpid});if(c){ED=JSON.parse(JSON.stringify(c));PEND=[];MSG='';V='edit';draw();ROOT.scrollIntoView({block:'start'})}return}
@@ -181,11 +244,13 @@ function bind(el){
    var i=CP.findIndex(function(x){return x.id==o.id});if(i>=0)CP[i]=o;await save1(o);ED=null;PEND=[];MSG=U('saved');V='list';draw();A.refresh();return}
   if(a=='del'&&ED){if(!confirm(U('del_confirm',{name:ED.name||''})))return;for(var w=0;w<(ED.files||[]).length;w++)await ArbDB.del('cp_files',ED.files[w]);await ArbDB.del('counterparties',ED.id);CP=CP.filter(function(x){return x.id!=ED.id});ED=null;V='list';draw();A.refresh();return}
   if(a=='mapgo'&&MAP){await runMap();return}});
- el.addEventListener('keydown',function(e){var t=e.target.closest&&e.target.closest('[data-cpid]');if(t&&(e.key=='Enter'||e.key==' ')){e.preventDefault();t.click()}})}
+ el.addEventListener('keydown',function(e){var t=e.target.closest&&e.target.closest('[data-cpid],[data-mgid]');if(t&&(e.key=='Enter'||e.key==' ')){e.preventDefault();t.click()}})}
+function editMgr(id){V='mgr';ROOT.innerHTML='<div class="dmgwrap"></div>';A.mgrEdit(ROOT.firstChild,id,function(msg){V='list';MSG=msg||'';draw();ROOT.scrollIntoView({block:'start'})});ROOT.scrollIntoView({block:'start'})}
 /* ---------- API для «Документов» ---------- */
 window.ArbCP={
  mount:function(el,api){A=api;ROOT=el;bind(el);load()},
  reset:function(){CP=[];FM={};ED=null;MAP=null;V='list';MSG='';draw()},
+ redraw:function(){if(V=='list')draw()},editMgr:editMgr,ensureBanks:function(){return ensureBanks(false).then(function(n){if(n)draw();return n})},dirLoad:dirLoad,dirPick:dirPick,addrLoad:addrLoad,
  list:function(){return CP},
  /* карточки с ролью из списка; привязанные к делу — первыми */
  pick:function(rs,caseId,ks){return CP.filter(function(c){return (!rs||!rs.length)&&!(ks&&ks.length)||(c.roles||[]).some(function(r){return (rs||[]).indexOf(r)>=0})||(ks||[]).indexOf(c.kind)>=0}).sort(function(a,b){var x=(a.cases||[]).indexOf(caseId)>=0?0:1,y=(b.cases||[]).indexOf(caseId)>=0?0:1;return x-y||String(a.name).localeCompare(String(b.name),'ru')})},
