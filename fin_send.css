@@ -1,0 +1,7 @@
+/* Финанализ: ошибка отправки — красная полоса на всю ширину под кнопкой, «↻ Повторить» справа */
+#vfin .ffail{display:flex;align-items:center;gap:12px;width:100%;box-sizing:border-box;margin:8px 0 4px;padding:10px 12px;border-radius:8px;background:rgba(220,38,38,.12);border:1px solid rgba(220,38,38,.55);color:#fecaca;font-size:14px;line-height:1.35}
+#vfin .ffail[hidden]{display:none}
+#vfin .ffail-t{flex:1 1 auto;min-width:0}
+#vfin .ffail-r{flex:0 0 auto;white-space:nowrap;background:transparent;border:1px solid rgba(254,202,202,.6);color:inherit;border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit}
+#vfin .ffail-r:hover{background:rgba(220,38,38,.2)}
+html[data-theme=light] #vfin .ffail{color:#991b1b;background:#fef2f2;border-color:#fca5a5}
