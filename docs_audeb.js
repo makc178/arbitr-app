@@ -7,7 +7,7 @@
    Настройки и тексты — config/au_debtors.json → assets/docs_audeb_cfg.js (tools/gen_audeb_cfg.py). */
 window.ArbAUDEB=(function(){
  var CF=window.ARB_AUDEB_CFG||{},UI=CF.ui||{},TT=UI.t||{};
- var BUN={},LD={},FT={},UO={},SEL={},PH={},ED={},CK={},REV={},AUTO={},OTH={},OV=null,PO=null,BYP=0,KEYS={};
+ var BUN={},LD={},FT={},FD={},UO={},SEL={},PH={},ED={},CK={},REV={},AUTO={},OTH={},OV=null,PO=null,BYP=0,KEYS={};
  function Q(){return window.ArbCP&&ArbCP.qapi?ArbCP.qapi():null}
  function A(){return (Q()||{}).A||{}}
  function on(){return CF.enabled!==false&&UI.enabled!==false}
@@ -43,9 +43,9 @@ window.ArbAUDEB=(function(){
  async function fetchB(mid,force){if(!encOK()||typeof ghApi!='function'||!A().vdec)return;var poll=(+UI.card_poll_s||600)*1000;if(!force&&FT[mid]&&Date.now()-FT[mid]<poll)return;FT[mid]=Date.now();
   var k=await auKey(mid);if(!k)return;
   try{var r=await ghApi((CF.repo_dir||'arbitr/appt_cards/')+k+'.enc',{headers:{Accept:'application/vnd.github.raw'}});
-   if(r.status==404){if(!BUN[mid]){BUN[mid]={at:Date.now(),missing:1}}return}
+   if(r.status==404){FD[mid]=Date.now();if(!BUN[mid]){BUN[mid]={at:Date.now(),missing:1}}return}
    if(!r.ok)return;var txt=await r.text();if(/^\s*\{\s*"(name|sha|content)"/.test(txt)){var j=JSON.parse(txt);txt=atob(String(j.content||'').replace(/\s/g,''))}
-   var b=JSON.parse(new TextDecoder().decode(await A().vdec(txt)));if(BUN[mid]&&BUN[mid].b&&BUN[mid].b.updated_at==b.updated_at)return;
+   var b=JSON.parse(new TextDecoder().decode(await A().vdec(txt)));FD[mid]=Date.now();if(BUN[mid]&&BUN[mid].b&&BUN[mid].b.updated_at==b.updated_at)return;
    BUN[mid]={at:Date.now(),b:b};await dput('_apc_'+mid,BUN[mid]);draw();redrawOV();try{ArbAUAP.draw()}catch(x){}}catch(e){}}
  function bun(mid){var o=BUN[mid];return o&&o.b?o.b:null}
  function cards(mid){var b=bun(mid);if(!b)return [];return Object.keys(b.cards||{}).map(function(a){return b.cards[a]})}
@@ -277,4 +277,5 @@ window.ArbAUDEB=(function(){
  document.addEventListener('visibilitychange',function(){if(document.hidden&&OPN){OPN=0;draw();redrawOV()}});window.addEventListener('pagehide',function(){OPN=0});
  setInterval(function(){if(OPN&&OPN<=Date.now()){OPN=0;draw();redrawOV()}},15000);
  var MT=0;new MutationObserver(function(ms){if(MT)return;if(ms.every(function(m){var t=m.target;return t&&t.closest&&(t.closest('.apx')||t.classList&&t.classList.contains('apbdg'))}))return;MT=setTimeout(function(){MT=0;if(!on())return;if(stepD())draw();badges()},120)}).observe(document.documentElement,{childList:true,subtree:true});
- return {ensure:function(mid){if(!mid||!encOK())return;if(!LD[mid])load(mid).then(function(){fetchB(mid);try{ArbAUAP.draw()}catch(e){}});else fetchB(mid)},draw:draw,open:function(mid,a){openOV(mid,'card',a)},openCred:function(mid,c){openOV(mid,'cred',c)},_bun:function(){return BUN},_set:function(mid,o){BUN[mid]=o;LD[mid]=Promise.resolve(o);UO[mid]=UO[mid]||{};draw();redrawOV()},_fetch:fetchB,cards:cards,active:active,mask:mask,pOpen:pOpen}})();
+ return {ensure:function(mid){if(!mid||!encOK())return;if(!LD[mid])load(mid).then(function(){fetchB(mid);try{ArbAUAP.draw()}catch(e){}});else fetchB(mid)},draw:draw,open:function(mid,a){openOV(mid,'card',a)},openCred:function(mid,c){openOV(mid,'cred',c)},_bun:function(){return BUN},fresh:function(mid){return FD[mid]||0},   /* пакет назначений получен из репозитория в этом сеансе (не только локальная копия) */
+ _set:function(mid,o){BUN[mid]=o;LD[mid]=Promise.resolve(o);UO[mid]=UO[mid]||{};draw();redrawOV()},_fetch:fetchB,cards:cards,active:active,mask:mask,pOpen:pOpen}})();

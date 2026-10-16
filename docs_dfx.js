@@ -7,13 +7,15 @@
       Назначения по делу нет — заявка «Судебной практике» (ArbPRQ.auto, заглушка без ПДн). Статус — в карточке должника. */
 window.ArbDFX=(function(){
  var CF=window.ARB_DFX_CFG||{},DC=CF.dates||{},CC=CF.courts||{},CR=CF.creditors||{},CU=CR.ui||{},UI=CF.ui||{};
- var RQK='arbitr_dfx_crq',LAST={},BUSY=0,BT={},STAT={};
+ var RQK='arbitr_dfx_crq',LAST={},BUSY=0,BT={},STAT={},MISS={};
  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function T(s,o){s=String(s==null?'':s);o=o||{};Object.keys(o).forEach(function(n){s=s.split('{'+n+'}').join(o[n])});return s}
  function dmy(x){var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(x||''));if(m)return m[3]+'.'+m[2]+'.'+m[1];var d=new Date(x);if(x&&!isNaN(d)){var p=function(n){return ('0'+n).slice(-2)};return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()}return String(x||'')}
  function digits(x){return String(x||'').replace(/\D/g,'')}
  function norm(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'.,]/g,' ').replace(/\s+/g,' ').trim()}
  function canon(no){return String(no||'').trim().toUpperCase().replace(/A/g,'А').replace(/\s+/g,'')}
+ /* ключ дела для сверки: «№ А56–97144/21 (з-1)», «A56-97144/2021», неразрывные/длинные тире → «А56-97144/2021» */
+ function ckey(no){var t=String(no||'').toUpperCase().replace(/[\u2010-\u2015\u2212\u00AD]/g,'-').replace(/\u00A0/g,' '),m=/[АA]\s*(\d{2}П?)\s*-\s*(\d+)\s*\/\s*(\d{2,4})/.exec(t);if(!m)return '';var y=m[3].length==2?'20'+m[3]:m[3];return 'А'+m[1]+'-'+(+m[2])+'/'+y}
  function fvv(o){return o&&typeof o=='object'?o.value:o}
  /* ---------- 1. «Сегодня» ---------- */
  var NRE=(DC.no_re||[]).map(function(r){try{return new RegExp(r)}catch(e){return null}}).filter(Boolean);
@@ -40,9 +42,18 @@ window.ArbDFX=(function(){
  function cases(){var a=A();try{return (a&&a.S().cases)||[]}catch(e){return []}}
  function unlocked(){return !!(window.ArbArch&&!ArbArch.locked()&&window.ArbDB&&window.ArbAUDEB)}
  function bundles(){var B=(window.ArbAUDEB&&ArbAUDEB._bun&&ArbAUDEB._bun())||{},out=[];Object.keys(B).forEach(function(mid){if(B[mid]&&B[mid].b)out.push({mid:mid,b:B[mid].b})});return out}
- function apptOf(cs){var no=canon((cs.data||{}).НОМЕР_ДЕЛА);if(!no)return null;var L=bundles();for(var i=0;i<L.length;i++){var cards=L[i].b.cards||{};for(var a in cards)if(canon(cards[a].case_no)==no)return {mid:L[i].mid,b:L[i].b,a:a,card:cards[a]}}return null}
+ function cardInn(c){var ap=c.appointment||{},f=c.fields||{};return digits(fvv(ap.inn)||fvv(f.ДОЛЖНИК_ИНН)||fvv((c.debtor||{}).inn))}
+ function apptOf(cs){var d=cs.data||{},no=ckey(d.НОМЕР_ДЕЛА),inn=digits(d.ДОЛЖНИК_ИНН),L=bundles(),byInn=null;if(!no&&!inn)return null;
+  for(var i=0;i<L.length;i++){var cards=L[i].b.cards||{};for(var a in cards){var c=cards[a],k=ckey(c.case_no)||ckey(fvv((c.fields||{}).НОМЕР_ДЕЛА));
+   if(no&&k==no)return {mid:L[i].mid,b:L[i].b,a:a,card:c};
+   if(!byInn&&inn&&inn.length>=10&&cardInn(c)==inn&&(!no||!k))byInn={mid:L[i].mid,b:L[i].b,a:a,card:c}}}
+  return byInn}
+ /* требования из пакета по делу (claims[].case_no / appointment_id), даже если блок «Кредиторы» карточки ещё не собран */
+ function claimsFor(b,a,no){var out=[],C=b.creditors||{};Object.keys(C).forEach(function(id){var cr=C[id];if((cr.claims||[]).some(function(c){return (a&&c.appointment_id==a)||(no&&ckey(c.case_no)==no)}))out.push(id)});return out}
+ function anyClaims(no){if(!no)return false;return bundles().some(function(x){return claimsFor(x.b,null,no).length>0})}
  function ensureBundles(){if(!window.ArbAUDEB||!ArbAUDEB.ensure)return;var a=A(),M=(a&&a.MGR&&a.MGR())||[],t=Date.now(),per=(+CR.bundle_refresh_min||10)*60000;M.forEach(function(m){if(m.id=='au_builtin'||!(m.f||{}).ИНН_УПРАВЛЯЮЩЕГО)return;if(BT[m.id]&&t-BT[m.id]<per)return;BT[m.id]=t;try{ArbAUDEB.ensure(m.id)}catch(e){}})}
- function credList(ap){var it=((ap.card.creditors||{}).items)||[],C=ap.b.creditors||{};return it.map(function(x){var c=C[x.creditor_id]||{};return {cid:x.creditor_id,kind:c.kind||x.kind||'ul',name:fvv(c.name)||x.name||'',inn:digits(fvv(c.inn)||x.inn),ogrn:digits(fvv(c.ogrn)),birth:String(fvv(c.birth)||''),sum:x.sum_kop,status:x.status,src:x.added_from||(ap.card.creditors||{}).source||'kad'}})}
+ function allFresh(){var a=A(),M=((a&&a.MGR&&a.MGR())||[]).filter(function(m){return m.id!='au_builtin'&&(m.f||{}).ИНН_УПРАВЛЯЮЩЕГО});if(!M.length)return true;if(!window.ArbAUDEB||!ArbAUDEB.fresh)return false;return M.every(function(m){return ArbAUDEB.fresh(m.id)>0})}
+ function credList(ap){var it=(((ap.card.creditors||{}).items)||[]).slice(),C=ap.b.creditors||{},seen={};it.forEach(function(x){seen[x.creditor_id]=1});claimsFor(ap.b,ap.a,ckey(ap.card.case_no)).forEach(function(id){if(!seen[id]){seen[id]=1;it.push({creditor_id:id,kind:(C[id]||{}).kind,added_from:(C[id].claims||[])[0]&&C[id].claims[0].source})}});return it.map(function(x){var c=C[x.creditor_id]||{};return {cid:x.creditor_id,kind:c.kind||x.kind||'ul',name:fvv(c.name)||x.name||'',inn:digits(fvv(c.inn)||x.inn),ogrn:digits(fvv(c.ogrn)),birth:String(fvv(c.birth)||''),sum:x.sum_kop,status:x.status,src:x.added_from||(ap.card.creditors||{}).source||'kad'}})}
  function maskN(n){var p=String(n||'').trim().split(/\s+/);if(!p[0])return '•••••••';return p[0][0]+'••••••'+(p.length>1?' '+p.slice(1,3).map(function(x){return x[0]+'.'}).join(' '):'')}
  function sealedKind(k){return (CR.sealed_kinds||['fl','ip']).indexOf(k)>=0}
  async function unseal(cp){if(!cp.sealed)return cp;try{return JSON.parse(new TextDecoder().decode(await ArbArch.dec(cp.sealed)))}catch(e){return {}}}
@@ -68,13 +79,15 @@ window.ArbDFX=(function(){
   return {mid:null,a:null,b:{creditors:C},card:{creditors:{source:'kad',updated_at:res.updated_at||new Date().toISOString(),items:items}}}}
  async function scan(){if(BUSY||CR.enabled===false||!unlocked())return;BUSY=1;try{ensureBundles();var L=cases();
   for(var i=0;i<L.length;i++){var cs=L[i];if(!(cs.data||{}).НОМЕР_ДЕЛА)continue;var ap=apptOf(cs)||await fromResult(cs);
-   var sig=ap?JSON.stringify([ap.a,(ap.card.creditors||{}).updated_at,((ap.card.creditors||{}).items||[]).length]):'none';if(LAST[cs.id]==sig&&STAT[cs.id])continue;
-   if(ap&&((ap.card.creditors||{}).items||[]).length){LAST[cs.id]=sig;await syncCase(cs,ap)}
+   var cl=ap?credList(ap):[],sig=ap?JSON.stringify([ap.a,(ap.card.creditors||{}).updated_at,cl.length]):'none';if(LAST[cs.id]==sig&&STAT[cs.id])continue;
+   if(ap&&cl.length){LAST[cs.id]=sig;await syncCase(cs,ap)}
    else if(ap){LAST[cs.id]=sig;STAT[cs.id]={n:0,wait:1,mid:ap.mid,a:ap.a,src:'kad',at:(ap.card.creditors||{}).updated_at||''}}
-   else{var bl=bundles().length;if(!bl&&((A()&&A().MGR&&A().MGR())||[]).some(function(m){return m.id!='au_builtin'&&(m.f||{}).ИНН_УПРАВЛЯЮЩЕГО}))continue;   /* пакеты назначений ещё грузятся */
-    LAST[cs.id]=sig;try{await ask(cs)}catch(e){}var r=rqMap()[cs.id];STAT[cs.id]=r?{n:0,asked:r}:{n:0,wait:1}}}
+   else{if(!allFresh()||anyClaims(ckey((cs.data||{}).НОМЕР_ДЕЛА))){STAT[cs.id]=STAT[cs.id]||{n:0,wait:1};continue}   /* пакеты назначений ещё не получены из репозитория — не спрашиваем */
+    MISS[cs.id]=(MISS[cs.id]||0)+1;if(MISS[cs.id]<2){STAT[cs.id]={n:0,wait:1};continue}   /* «нет назначения» — только если так два прохода подряд */
+    LAST[cs.id]=sig;try{await ask(cs)}catch(e){}var r=rqMap()[cs.id];STAT[cs.id]=r?{n:0,asked:r}:{n:0,wait:1}}
+   if(ap)MISS[cs.id]=0}
   try{ArbCP.qapi().draw()}catch(e){}}finally{BUSY=0}apFill();paint()}
- function caseOfView(){var no=document.querySelector('[data-dk="НОМЕР_ДЕЛА"]');if(!no)return null;var v=canon(no.value);if(!v)return null;return cases().find(function(c){return canon((c.data||{}).НОМЕР_ДЕЛА)==v})||null}
+ function caseOfView(){var no=document.querySelector('[data-dk="НОМЕР_ДЕЛА"]');if(!no)return null;var v=ckey(no.value)||canon(no.value);if(!v)return null;return cases().find(function(c){var d=(c.data||{}).НОМЕР_ДЕЛА;return (ckey(d)||canon(d))==v})||null}
  function etaTxt(min){min=+min||0;return min>=60?Math.round(min/60)+' ч':min+' мин'}
  function paint(){var no=document.querySelector('[data-dk="НОМЕР_ДЕЛА"]');if(!no)return;var g=no.closest('.g2');if(!g)return;var box=g.parentNode.querySelector(':scope > .dfxcr');
   var cs=caseOfView(),st=cs&&STAT[cs.id],h;
@@ -101,4 +114,4 @@ window.ArbDFX=(function(){
    if(b.dataset.dfx=='cred'&&window.ArbAUDEB)ArbAUDEB.openCred(b.dataset.mid,b.dataset.cid)});
   setInterval(scan,(+CR.scan_s||20)*1000);setTimeout(scan,3000)}
  if(document.readyState=='loading')document.addEventListener('DOMContentLoaded',init);else init();
- return {today:today,court:court,scan:scan,stat:function(){return STAT},_findDup:findDup,_paint:paint}})();
+ return {today:today,court:court,scan:scan,ckey:ckey,_apptOf:apptOf,stat:function(){return STAT},_findDup:findDup,_paint:paint}})();
