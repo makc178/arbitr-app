@@ -2,7 +2,7 @@
 html[data-theme] #pin{--p-ink:#E6F4F1;--p-mut:#9CC3BB;--p-mut2:#7FA39C;--p-line:rgba(230,244,241,.13);--p-acc:#14B8A6;--p-acc-hi:#5EEAD4;--p-on-acc:#06201C;--p-err:#EF4444;--p-err-t:#FCA5A5;--p-key:64px;
  --p-font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Inter","Segoe UI",Roboto,sans-serif;
  position:fixed;inset:0;z-index:50;flex-direction:column!important;align-items:center;justify-content:center;gap:0!important;
- padding:max(24px,env(safe-area-inset-top)) 16px max(20px,env(safe-area-inset-bottom))!important;overflow:hidden auto;isolation:isolate;box-sizing:border-box;
+ padding:max(32px,env(safe-area-inset-top)) 16px max(32px,env(safe-area-inset-bottom))!important;overflow:hidden auto;isolation:isolate;box-sizing:border-box;
  background:#06171A!important;color:var(--p-ink)!important;font-family:var(--p-font);-webkit-font-smoothing:antialiased}
 html[data-theme] #pin,html[data-theme] #pin *{touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 html[data-theme] #pin .bgl{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
@@ -12,7 +12,7 @@ html[data-theme] #pin .b2{width:520px;height:520px;left:calc(50% + 60px);top:cal
 html[data-theme] #pin .b3{width:380px;height:380px;left:calc(50% - 60px);top:-60px;background:#185048;opacity:.9}
 html[data-theme] #pin .b4{width:300px;height:300px;left:calc(50% - 420px);bottom:-120px;background:#0F766E;opacity:.55}
 html[data-theme] #pin .noise{position:absolute;inset:0;opacity:.05;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E")}
-html[data-theme] #pin .glass{position:relative;width:100%;max-width:392px;margin:auto 0;padding:36px 28px 22px;border-radius:28px;box-sizing:border-box;background:rgba(11,42,36,.55);border:1px solid rgba(230,244,241,.14);
+html[data-theme] #pin .glass{position:relative;width:100%;max-width:392px;max-height:calc(100vh - 64px);max-height:calc(100dvh - 64px);overflow:auto;scrollbar-width:none;margin:auto 0;padding:36px 28px 22px;border-radius:28px;box-sizing:border-box;background:rgba(11,42,36,.55);border:1px solid rgba(230,244,241,.14);
  box-shadow:0 30px 80px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08);-webkit-backdrop-filter:blur(28px) saturate(140%);backdrop-filter:blur(28px) saturate(140%)}
 /* запасной вариант: браузер без backdrop-filter — плотный фон карточки, текст читается */
 @supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){html[data-theme] #pin .glass{background:rgba(11,42,36,.94)}}
@@ -58,16 +58,10 @@ html[data-theme] #pin .tip{position:absolute;left:50%;bottom:calc(100% + 8px);tr
 html[data-theme] #pin .tip::after{content:"";position:absolute;left:50%;top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:#E6F4F1}
 html[data-theme] #pin .info[aria-expanded=true] .tip,html[data-theme] #pin .info:hover .tip,html[data-theme] #pin .info:focus-visible .tip{opacity:1}
 @media (max-width:480px){html[data-theme] #pin .glass{padding:28px 14px 16px;border-radius:24px;max-width:360px}html[data-theme] #pin .b1{left:-260px}html[data-theme] #pin .b2{left:120px}}
-@media (max-height:760px){html[data-theme] #pin .glass{padding-top:20px;padding-bottom:10px}html[data-theme] #pin .greet{margin-top:18px}html[data-theme] #pin .dots{margin:16px 0 20px}html[data-theme] #pin .foot{margin-top:18px}html[data-theme] #pin .plogo img{width:56px!important;height:56px!important}}
+@media (max-height:820px){html[data-theme] #pin .glass{padding-top:20px;padding-bottom:10px}html[data-theme] #pin .greet{margin-top:18px}html[data-theme] #pin .dots{margin:16px 0 20px}html[data-theme] #pin .foot{margin-top:18px}html[data-theme] #pin .plogo img{width:56px!important;height:56px!important}}
 @media (prefers-reduced-motion:reduce){html[data-theme] #pin .dots.shake{animation:none!important}html[data-theme] #pin *{transition:none!important}}
-/* светлая тема (в макете только тёмная): то же стекло на светлом бирюзовом фоне */
-html[data-theme=light] #pin{--p-ink:#0F2E2A;--p-mut:#4B6E68;--p-mut2:#5F7F79;--p-line:#CDEBE2;--p-acc:#0D9488;--p-acc-hi:#0D9488;--p-on-acc:#FFFFFF;--p-err-t:#B91C1C;background:#E6F6F1!important}
-html[data-theme=light] #pin .b1{background:#99F6E4}html[data-theme=light] #pin .b2{background:#CCFBF1}html[data-theme=light] #pin .b3{background:#5EEAD4;opacity:.45}html[data-theme=light] #pin .b4{background:#A7F3D0}
-html[data-theme=light] #pin .glass{background:rgba(255,255,255,.6);border-color:rgba(15,46,42,.10);box-shadow:0 30px 80px rgba(15,46,42,.15),inset 0 1px 0 rgba(255,255,255,.7)}
-@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){html[data-theme=light] #pin .glass{background:rgba(255,255,255,.95)}}
-html[data-theme=light] #pin .plogo img{content:url(arbitr-mark-light.svg)}
-html[data-theme=light] #pin .kp button{background:rgba(255,255,255,.85)!important;border-color:#CDEBE2!important}
-html[data-theme=light] #pin .kp button.x{background:transparent!important;border-color:transparent!important}
-html[data-theme=light] #pin.lock .dots i{border-color:rgba(15,46,42,.25)!important}
-html[data-theme=light] #pin .info:hover,html[data-theme=light] #pin .info:focus-visible{background:rgba(15,46,42,.06)}
-html[data-theme=light] #pin .tip{background:#0F2E2A;color:#E6F4F1}html[data-theme=light] #pin .tip::after{border-top-color:#0F2E2A}
+/* низкие окна ПК (≤700 px по высоте): поля 32 px сверху и снизу, клавиши 56 px, отступы плотнее (Дизайнер 16.10 19:23) */
+@media (max-height:700px){html[data-theme] #pin{--p-key:56px}html[data-theme] #pin .glass{padding-top:16px;padding-bottom:8px}html[data-theme] #pin .brand{gap:6px}html[data-theme] #pin .plogo img{width:48px!important;height:48px!important}
+ html[data-theme] #pin .brand-n{font-size:24px}html[data-theme] #pin .greet{margin-top:12px}html[data-theme] #pin .sub{margin-top:2px}html[data-theme] #pin .dots{margin:10px 0 14px}
+ html[data-theme] #pin .kp{row-gap:10px!important;column-gap:22px!important}html[data-theme] #pin .kp button{font-size:24px}html[data-theme] #pin .foot{margin-top:10px;gap:4px}html[data-theme] #pin .kbd{margin-top:4px}}
+@media (max-height:620px){html[data-theme] #pin .plogo img{width:40px!important;height:40px!important}html[data-theme] #pin .brand-n{font-size:22px}html[data-theme] #pin .kp{row-gap:8px!important}html[data-theme] #pin .dots{margin:8px 0 12px}html[data-theme] #pin .greet{margin-top:8px}html[data-theme] #pin .kbd{display:none!important}}

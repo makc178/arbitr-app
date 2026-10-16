@@ -1,0 +1,11 @@
+/* Arbitr · страница ПИН v2: светлый вариант (не входил в утверждённый макет). Подключается только при config/pin_v2.json → light_theme=true. */
+html[data-theme=light] #pin{--p-ink:#0F2E2A;--p-mut:#4B6E68;--p-mut2:#5F7F79;--p-line:#CDEBE2;--p-acc:#0D9488;--p-acc-hi:#0D9488;--p-on-acc:#FFFFFF;--p-err-t:#B91C1C;background:#E6F6F1!important}
+html[data-theme=light] #pin .b1{background:#99F6E4}html[data-theme=light] #pin .b2{background:#CCFBF1}html[data-theme=light] #pin .b3{background:#5EEAD4;opacity:.45}html[data-theme=light] #pin .b4{background:#A7F3D0}
+html[data-theme=light] #pin .glass{background:rgba(255,255,255,.6);border-color:rgba(15,46,42,.10);box-shadow:0 30px 80px rgba(15,46,42,.15),inset 0 1px 0 rgba(255,255,255,.7)}
+@supports not ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){html[data-theme=light] #pin .glass{background:rgba(255,255,255,.95)}}
+html[data-theme=light] #pin .plogo img{content:url(arbitr-mark-light.svg)}
+html[data-theme=light] #pin .kp button{background:rgba(255,255,255,.85)!important;border-color:#CDEBE2!important}
+html[data-theme=light] #pin .kp button.x{background:transparent!important;border-color:transparent!important}
+html[data-theme=light] #pin.lock .dots i{border-color:rgba(15,46,42,.25)!important}
+html[data-theme=light] #pin .info:hover,html[data-theme=light] #pin .info:focus-visible{background:rgba(15,46,42,.06)}
+html[data-theme=light] #pin .tip{background:#0F2E2A;color:#E6F4F1}html[data-theme=light] #pin .tip::after{border-top-color:#0F2E2A}
