@@ -42,6 +42,11 @@ function added(sec,ts){var k=sortKey(sec);ts=validTs(ts);if(!ts||(k!='new'&&k!='
 function label(k){var o=(SC().options||[]).find(function(x){return x.id==k});return o?o.label:k}
 function sortBtn(sec){var k=sortKey(sec);return '<div class="dsrt" data-srt="'+E(sec)+'"><button type="button" class="dsrtb" data-cpsortopen="'+E(sec)+'" aria-haspopup="menu" aria-expanded="false" aria-label="'+E((SC().aria||'Сортировка')+': '+label(k))+'"><span class="dsrtl">↕ '+E(label(k))+' ▾</span><span class="dsrti" aria-hidden="true">↕</span></button>'+
  '<div class="dsrtm" role="menu" hidden>'+(SC().options||[]).map(function(o){return '<button type="button" role="menuitemradio" aria-checked="'+(o.id==k)+'" data-cpsort="'+E(sec)+'|'+E(o.id)+'"><span class="dsrtc" aria-hidden="true">'+(o.id==k?'✓':'')+'</span>'+E(o.label)+'</button>'}).join('')+'</div></div>'}
+/* строка из двух одинаковых кнопок над списком: «Загрузить файл» (label с input type=file) и «Экспорт ▾» (меню форматов; пункты — data-cp существующих функций экспорта в docs_cp.js) */
+function UI(k){return (CF().ui||{})[k]||''}
+function ioRow(sec,fileInput,items){var IO=CF().io||{},F=IO.formats||{};items=items||[];
+ return '<div class="dio" data-io="'+E(sec)+'"><label class="lbtn sec dfile dioi">'+E(IO.import||'')+fileInput+'</label><div class="dexw"><button type="button" class="lbtn sec dexb" data-cpmenu="export|'+E(sec)+'" aria-haspopup="menu" aria-expanded="false"'+(items.length?'':' disabled')+'>'+E(IO.export||'')+' ▾</button>'+
+  '<div class="dexm" role="menu" hidden>'+items.map(function(it){return '<button type="button" role="menuitem" data-cp="'+E(it.cp)+'">'+E(F[it.k]||it.k)+'</button>'}).join('')+'</div></div></div>'}
 /* строка «поиск + сортировка»; search — готовый html поля поиска или '' */
 function bar(sec,search){return '<div class="dsrow'+(search?'':' nos')+'">'+(search?'<div class="dsrq">'+search+'</div>':'')+sortBtn(sec)+'</div>'}
 /* ---- разметка раздела (data-cpsec на пунктах колонки — совместимость со старыми ссылками/тестами аккордеона; щелчок обрабатывает data-cpnav) ---- */
@@ -57,14 +62,15 @@ function render(o){/* o: {sec, count(id), body(id), msg, setSec(id)} */
  h+='<section class="dnvc" data-sec="'+E(sec)+'"><h3 class="dnvct">'+(dirOn?'<span class="dnvpre">'+E(D.title||'')+' · </span>':'')+E(t.title||'')+(cnt(sec)?' <span class="dnvn">'+E(cnt(sec))+'</span>':'')+'</h3>'+o.body(sec)+'</section></div>';
  return h}
 /* ---- меню сортировки и переключение разделов (делегирование на документ) ---- */
-function closeAll(ex){[].forEach.call(document.querySelectorAll('.dsrtm:not([hidden])'),function(m){if(m===ex)return;m.hidden=true;var b=m.parentNode.querySelector('.dsrtb');if(b)b.setAttribute('aria-expanded','false')})}
+function closeAll(ex){[].forEach.call(document.querySelectorAll('.dsrtm:not([hidden]),.dexm:not([hidden])'),function(m){if(m===ex)return;m.hidden=true;var b=m.parentNode.querySelector('.dsrtb,.dexb');if(b)b.setAttribute('aria-expanded','false')})}
 document.addEventListener('click',function(e){var t=e.target;if(!t.closest)return;
- var ob=t.closest('[data-cpsortopen]');if(ob){e.preventDefault();e.stopPropagation();var m=ob.parentNode.querySelector('.dsrtm');closeAll(m);m.hidden=!m.hidden;ob.setAttribute('aria-expanded',String(!m.hidden));if(!m.hidden){var c=m.querySelector('[aria-checked="true"]')||m.querySelector('button');if(c)c.focus()}return}
+ if(t.closest('.dexm [data-cp]')){setTimeout(closeAll,0);return}
+ var ob=t.closest('[data-cpsortopen],[data-cpmenu]');if(ob){e.preventDefault();e.stopPropagation();var m=ob.parentNode.querySelector('.dsrtm,.dexm');closeAll(m);m.hidden=!m.hidden;ob.setAttribute('aria-expanded',String(!m.hidden));if(!m.hidden){var c=m.querySelector('[aria-checked="true"]')||m.querySelector('button');if(c)c.focus()}return}
  var it=t.closest('[data-cpsort]');if(it){e.preventDefault();e.stopPropagation();var p=it.dataset.cpsort.split('|');setSort(p[0],p[1]);closeAll();if(DRAW)DRAW();return}
  var nv=t.closest('[data-cpnav]');if(nv&&window.ArbCP&&ArbCP.openSec){e.preventDefault();e.stopPropagation();ArbCP.openSec(nv.dataset.cpnav);var w=document.querySelector('.dnvw');if(w&&w.getBoundingClientRect().top<0)w.scrollIntoView({block:'start'});return}
- if(!t.closest('.dsrt'))closeAll()},true);
-document.addEventListener('keydown',function(e){if(e.key=='Escape'&&document.querySelector('.dsrtm:not([hidden])')){closeAll();return}
- var m=e.target.closest&&e.target.closest('.dsrtm');if(m&&(e.key=='ArrowDown'||e.key=='ArrowUp')){e.preventDefault();var L=[].slice.call(m.querySelectorAll('button')),i=L.indexOf(e.target);L[(i+(e.key=='ArrowDown'?1:L.length-1))%L.length].focus()}});
+ if(!t.closest('.dsrt,.dexw'))closeAll()},true);
+document.addEventListener('keydown',function(e){if(e.key=='Escape'&&document.querySelector('.dsrtm:not([hidden]),.dexm:not([hidden])')){closeAll();return}
+ var m=e.target.closest&&e.target.closest('.dsrtm,.dexm');if(m&&(e.key=='ArrowDown'||e.key=='ArrowUp')){e.preventDefault();var L=[].slice.call(m.querySelectorAll('button')),i=L.indexOf(e.target);L[(i+(e.key=='ArrowDown'?1:L.length-1))%L.length].focus()}});
 window.ArbCpNav={on:function(){return !!(CF().sections||[]).length},render:render,alias:alias,grpCP:grpCP,grpType:grpType,dirTypes:dirTypes,misc:misc,secs:allSecs,isDir:isDir,first:first,
- sort:sortList,sortKey:sortKey,setSort:setSort,sortName:sortName,caseTs:caseTs,validTs:validTs,added:added,bar:bar,sortBtn:sortBtn,setDraw:function(f){DRAW=f},cfg:CF};
+ sort:sortList,sortKey:sortKey,setSort:setSort,sortName:sortName,caseTs:caseTs,validTs:validTs,added:added,bar:bar,sortBtn:sortBtn,ioRow:ioRow,ui:UI,setDraw:function(f){DRAW=f},cfg:CF};
 })();
