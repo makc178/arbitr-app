@@ -61,3 +61,8 @@ html[data-theme=dark] .apxc{background:linear-gradient(160deg,#0B2A24 0%,#13403A
 .apxc.apov .apxin{max-width:720px;background:var(--bg);border-radius:18px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 .apx .rqw{overflow-x:auto;-webkit-overflow-scrolling:touch}
 .apx .rqw .rqt{min-width:460px}
+/* реестр из требований блока creditors (не официальный реестр АУ) */
+.rqno{display:flex;gap:6px;align-items:flex-start;margin:0 14px 8px;color:var(--mut,#7a8a86)}
+.rqno svg{flex:0 0 auto;width:14px;height:14px;margin-top:2px}
+.rqq{flex-wrap:wrap;gap:4px 14px}
+.nod{color:var(--mut,#7a8a86);font-style:italic}

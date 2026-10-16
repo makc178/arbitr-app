@@ -6,7 +6,7 @@
       кредитора с ролью «Кредитор», привязанная к делу; без дублей; ручные карточки не меняются (только привязка и роль). Граждане/ИП — целиком под PIN (sealed).
       Назначения по делу нет — заявка «Судебной практике» (ArbPRQ.auto, заглушка без ПДн). Статус — в карточке должника. */
 window.ArbDFX=(function(){
- var CF=window.ARB_DFX_CFG||{},DC=CF.dates||{},CC=CF.courts||{},CR=CF.creditors||{},CU=CR.ui||{},UI=CF.ui||{};
+ var CF=window.ARB_DFX_CFG||{},DC=CF.dates||{},CC=CF.courts||{},CR=CF.creditors||{},CU=CR.ui||{},UI=CF.ui||{},CN=CF.case_numbers||{};
  var RQK='arbitr_dfx_crq',LAST={},BUSY=0,BT={},STAT={},MISS={};
  function E(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
  function T(s,o){s=String(s==null?'':s);o=o||{};Object.keys(o).forEach(function(n){s=s.split('{'+n+'}').join(o[n])});return s}
@@ -15,7 +15,10 @@ window.ArbDFX=(function(){
  function norm(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'.,]/g,' ').replace(/\s+/g,' ').trim()}
  function canon(no){return String(no||'').trim().toUpperCase().replace(/A/g,'А').replace(/\s+/g,'')}
  /* ключ дела для сверки: «№ А56–97144/21 (з-1)», «A56-97144/2021», неразрывные/длинные тире → «А56-97144/2021» */
- function ckey(no){var t=String(no||'').toUpperCase().replace(/[\u2010-\u2015\u2212\u00AD]/g,'-').replace(/\u00A0/g,' '),m=/[А-ЯЁA-Z][А-ЯA-Z]?\s*(\d{2}П?)\s*-\s*(\d+)\s*\/\s*(\d{2,4})/.exec(t);if(!m)return '';var y=m[3].length==2?'20'+m[3]:m[3];return 'А'+m[1]+'-'+(+m[2])+'/'+y}
+ /* номер арбитражного дела «Р56-…/…», «P56-…», «A56-…» → кириллическая «А» — только точное совпадение шаблона и только поля номера дела (config/case_numbers.json) */
+ function fixNo(v){if(typeof v!='string'||!CN.pattern)return v;var m;try{m=new RegExp(CN.pattern).exec(v)}catch(e){return v}if(!m||(CN.fix_letters||[]).indexOf(m[1])<0)return v;return (CN.to||'А')+v.trim().slice(1)}
+ function fixCases(){var a=A(),S=a&&a.S&&a.S(),ch=0,F=(CN.fields||{}).app||['НОМЕР_ДЕЛА'];if(!S||!S.cases)return 0;S.cases.forEach(function(c){var d=c.data||{};F.forEach(function(k){var v=d[k],f=fixNo(v);if(f!==v){d[k]=f;ch++}})});if(ch)try{a.save()}catch(e){}return ch}
+ function ckey(no){var t=String(no||'').toUpperCase().replace(/[\u2010-\u2015\u2212\u00AD]/g,'-').replace(/\u00A0/g,' '),m=/(?:^|[^А-ЯЁA-Z0-9])[АAРP]\s*(\d{2}П?)\s*-\s*(\d+)\s*\/\s*(\d{2,4})/.exec(t);if(!m)return '';var y=m[3].length==2?'20'+m[3]:m[3];return 'А'+m[1]+'-'+(+m[2])+'/'+y}
  function fvv(o){return o&&typeof o=='object'?o.value:o}
  /* ---------- 1. «Сегодня» ---------- */
  var NRE=(DC.no_re||[]).map(function(r){try{return new RegExp(r)}catch(e){return null}}).filter(Boolean);
@@ -77,7 +80,7 @@ window.ArbDFX=(function(){
  async function fromResult(cs){var r=rqMap()[cs.id];if(!r||!window.ArbPRQ||!ArbPRQ._res)return null;var res=ArbPRQ._res()[r.id];if(!res)return null;var L=res.creditors||(res.result||{}).creditors||(res.answer||{}).creditors;if(!Array.isArray(L))return null;
   var items=L.map(function(c,i){return {creditor_id:'prq_'+r.id+'_'+i,name:fvv(c.name),inn:fvv(c.inn),kind:c.kind,added_from:'kad'}}),C={};L.forEach(function(c,i){C['prq_'+r.id+'_'+i]={kind:c.kind||(digits(fvv(c.inn)).length==12?'fl':'ul'),name:c.name,inn:c.inn,ogrn:c.ogrn,birth:c.birth}});
   return {mid:null,a:null,b:{creditors:C},card:{creditors:{source:'kad',updated_at:res.updated_at||new Date().toISOString(),items:items}}}}
- async function scan(){if(BUSY||CR.enabled===false||!unlocked())return;BUSY=1;try{ensureBundles();var L=cases();
+ async function scan(){if(BUSY||CR.enabled===false||!unlocked())return;BUSY=1;try{fixCases();ensureBundles();var L=cases();
   for(var i=0;i<L.length;i++){var cs=L[i];if(!(cs.data||{}).НОМЕР_ДЕЛА)continue;var ap=apptOf(cs)||await fromResult(cs);
    var cl=ap?credList(ap):[],sig=ap?JSON.stringify([ap.a,(ap.card.creditors||{}).updated_at,cl.length]):'none';if(LAST[cs.id]==sig&&STAT[cs.id])continue;
    if(ap&&cl.length){LAST[cs.id]=sig;await syncCase(cs,ap)}
@@ -108,10 +111,11 @@ window.ArbDFX=(function(){
  var MT=null;function onMut(){clearTimeout(MT);MT=setTimeout(function(){stripToday();apFill();courtScan();paint()},60)}
  function init(){if(window.__dfx)return;window.__dfx=1;cssToday();stripToday();courtScan();
   new MutationObserver(function(m){for(var i=0;i<m.length;i++){var t=m[i].target;if(t&&t.closest&&t.closest('.dfxcr,.dfxsrc,.dfxalt'))continue;onMut();return}}).observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('change',function(e){var i=e.target,d=i&&i.dataset,F=(CN.fields||{}).app||['НОМЕР_ДЕЛА'];if(!d)return;var k=d.dk||d.k||d.bk||d.apf;if(F.indexOf(k)<0)return;var f=fixNo(i.value);if(f!==i.value){i.value=f;i.dispatchEvent(new Event('input',{bubbles:true}))}},true);
   document.addEventListener('input',function(e){var i=e.target;if(i&&i.dataset&&(i.dataset.dk=='НОМЕР_ДЕЛА'||i.dataset.k=='НОМЕР_ДЕЛА')){i.dataset.dfxSeen=i.value;courtSync(i)}},true);
   document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-dfx]');if(!b)return;e.preventDefault();
    if(b.dataset.dfx=='court'){var w=b.closest('div,label'),su=w&&w.querySelector('[data-dk="СУД"],[data-k="СУД"]'),sc=su&&(su.closest('#vdocs,.dcard,form,.lot,body')||document),no=sc&&sc.querySelector(su.dataset.dk?'[data-dk="НОМЕР_ДЕЛА"]':'[data-k="НОМЕР_ДЕЛА"]');if(no)courtSync(no,true)}
    if(b.dataset.dfx=='cred'&&window.ArbAUDEB)ArbAUDEB.openCred(b.dataset.mid,b.dataset.cid)});
   setInterval(scan,(+CR.scan_s||20)*1000);setTimeout(scan,3000)}
  if(document.readyState=='loading')document.addEventListener('DOMContentLoaded',init);else init();
- return {today:today,court:court,scan:scan,ckey:ckey,_apptOf:apptOf,stat:function(){return STAT},_findDup:findDup,_paint:paint}})();
+ return {today:today,court:court,scan:scan,ckey:ckey,fixNo:fixNo,_apptOf:apptOf,stat:function(){return STAT},_findDup:findDup,_paint:paint}})();
