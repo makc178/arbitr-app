@@ -9,7 +9,8 @@ var MOB_DIR=false,DRAW=null;
 /* ---- группы ---- */
 function misc(){var m=CF().misc_placement||'others';return /^(others|oaddr|banks|gov)$/.test(m)?m:'others'}
 function grpType(t){var g=(CF().dir_types||{})[t];if(!g||g=='misc')return misc();return g}
-function grpCP(c){if(!c)return 'others';var K=CF();if(c.src=='dir'&&c.dir_type)return grpType(c.dir_type);var g=(K.cp_kinds||{})[c.kind];if(g)return g=='misc'?misc():g;
+function grpCP(c){if(!c)return 'others';var K=CF();if((c.src=='dir'||c.auto_dir)&&c.dir_type)return grpType(c.dir_type);   /* auto_dir — СРО из блоков кредиторов (docs_crx.js) */
+ var g=(K.cp_kinds||{})[c.kind];if(g)return g=='misc'?misc():g;
  return (c.roles||[]).indexOf(K.creditor_role||'creditor')>=0?'creditors':'others'}
 function dirTypes(sec,all){/* типы справочника, которые показываются в разделе sec */return (all||[]).filter(function(t){return grpType(t)==sec})}
 function alias(id){return (CF().aliases||{})[id]||id}
@@ -20,7 +21,9 @@ function isDir(id){return dirSecs().some(function(s){return s.id==id})}
 function first(){var s=allSecs()[0];return s?s.id:null}
 /* ---- сортировка ---- */
 function SC(){return CF().sort||{}}
-function sortKey(sec){var k=null;try{k=localStorage.getItem('arbitr.sort.'+sec)}catch(e){}var ok=(SC().options||[]).some(function(o){return o.id==k});return ok?k:(SC().default||'new')}
+/* пункты меню раздела: option.sections — только в этих разделах (группировки «По должнику (А–Я)» / «По номеру дела» — docs_crx.js); sort.defaults[раздел] — сортировка по умолчанию */
+function opts(sec){return (SC().options||[]).filter(function(o){return !o.sections||o.sections.indexOf(sec)>=0})}
+function sortKey(sec){var k=null;try{k=localStorage.getItem('arbitr.sort.'+sec)}catch(e){}var L=opts(sec),ok=L.some(function(o){return o.id==k});if(ok)return k;var d=(SC().defaults||{})[sec];return L.some(function(o){return o.id==d})?d:(SC().default||'new')}
 function setSort(sec,k){try{localStorage.setItem('arbitr.sort.'+sec,k)}catch(e){}}
 var PRE=null;
 function preRx(){if(PRE)return PRE;var L=(SC().strip_prefixes||[]).slice().sort(function(a,b){return b.length-a.length}).map(function(p){return p.toLowerCase().replace(/ё/g,'е').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')});
@@ -41,7 +44,7 @@ function dd(ts){var d=new Date(ts);return ('0'+d.getDate()).slice(-2)+'.'+('0'+(
 function added(sec,ts){var k=sortKey(sec);ts=validTs(ts);if(!ts||(k!='new'&&k!='old'))return '';return '<div class="dadded">'+E((SC().added||'добавлен {d}').replace('{d}',dd(ts)))+'</div>'}
 function label(k){var o=(SC().options||[]).find(function(x){return x.id==k});return o?o.label:k}
 function sortBtn(sec){var k=sortKey(sec);return '<div class="dsrt" data-srt="'+E(sec)+'"><button type="button" class="dsrtb" data-cpsortopen="'+E(sec)+'" aria-haspopup="menu" aria-expanded="false" aria-label="'+E((SC().aria||'Сортировка')+': '+label(k))+'"><span class="dsrtl">↕ '+E(label(k))+' ▾</span><span class="dsrti" aria-hidden="true">↕</span></button>'+
- '<div class="dsrtm" role="menu" hidden>'+(SC().options||[]).map(function(o){return '<button type="button" role="menuitemradio" aria-checked="'+(o.id==k)+'" data-cpsort="'+E(sec)+'|'+E(o.id)+'"><span class="dsrtc" aria-hidden="true">'+(o.id==k?'✓':'')+'</span>'+E(o.label)+'</button>'}).join('')+'</div></div>'}
+ '<div class="dsrtm" role="menu" hidden>'+opts(sec).map(function(o){return '<button type="button" role="menuitemradio" aria-checked="'+(o.id==k)+'" data-cpsort="'+E(sec)+'|'+E(o.id)+'"><span class="dsrtc" aria-hidden="true">'+(o.id==k?'✓':'')+'</span>'+E(o.label)+'</button>'}).join('')+'</div></div>'}
 /* строка из двух одинаковых кнопок над списком: «Загрузить файл» (label с input type=file) и «Экспорт ▾» (меню форматов; пункты — data-cp существующих функций экспорта в docs_cp.js) */
 function UI(k){return (CF().ui||{})[k]||''}
 function ioRow(sec,fileInput,items){var IO=CF().io||{},F=IO.formats||{};items=items||[];

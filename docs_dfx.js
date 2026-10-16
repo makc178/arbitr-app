@@ -65,13 +65,9 @@ window.ArbDFX=(function(){
    if(x.inn&&inn&&x.inn==inn)return o;if(x.ogrn&&og&&x.ogrn==og)return o;
    if(sealedKind(x.kind)&&!x.inn&&x.name&&norm(d.name)==norm(x.name)&&(!x.birth||!d.birth||String(d.birth)==x.birth))return o;
    if(!sealedKind(x.kind)&&!x.inn&&!x.ogrn&&x.name&&norm(d.name)==norm(x.name))return o}return null}
- async function syncCase(cs,ap){var q=ArbCP.qapi(),CP=q.all(),L=credList(ap),made=0,linked=0,src=(ap.card.creditors||{}).source||'kad',at=(ap.card.creditors||{}).updated_at||'';
-  for(var i=0;i<L.length;i++){var x=L[i];if(!x.name&&!x.inn)continue;var ex=await findDup(x,CP);
-   if(ex){var ch=false;if((ex.cases||[]).indexOf(cs.id)<0){ex.cases=(ex.cases||[]).concat([cs.id]);ch=true}if((ex.roles||[]).indexOf('creditor')<0){ex.roles=(ex.roles||[]).concat(['creditor']);ch=true}if(ch){await q.save(ex);linked++}continue}
-   var c={id:ArbDB.uid('cp'),kind:['ul','ip','fl','gov','bank'].indexOf(x.kind)>=0?x.kind:'ul',roles:['creditor'],cases:[cs.id],files:[],created:Date.now(),auto:{source:src,at:at,creditor_id:x.cid,appointment_id:ap.a},note:T(CU.note_auto,{'case':(cs.data||{}).НОМЕР_ДЕЛА||'',s:(CU.src||{})[src]||src,d:dmy(at)})};
-   if(sealedKind(x.kind)){c.name=maskN(x.name);c.sealed=await ArbArch.enc(new TextEncoder().encode(JSON.stringify({name:x.name,inn:x.inn,ogrn:x.ogrn,birth:x.birth})))}else{c.name=x.name;c.inn=x.inn;c.ogrn=x.ogrn}
-   await q.save(c);made++}
-  STAT[cs.id]={n:L.length,src:src,at:at,made:made,linked:linked,mid:ap.mid,a:ap.a,items:L};return {made:made,linked:linked}}
+ /* карточки кредиторов создаёт docs_crx.js (все дела из пакетов, объединение только по ИНН/ОГРН); здесь — только статус для карточки должника */
+ async function syncCase(cs,ap){var L=credList(ap),src=(ap.card.creditors||{}).source||'kad',at=(ap.card.creditors||{}).updated_at||'',R=null;try{if(window.ArbCRX)R=await ArbCRX.run(true)}catch(e){}
+  STAT[cs.id]={n:L.length,src:src,at:at,made:R?R.created:0,linked:R?R.linked:0,mid:ap.mid,a:ap.a,items:L};return R}
  function rqMap(){try{return JSON.parse(localStorage.getItem(RQK)||'{}')}catch(e){return {}}}
  async function ask(cs){var R=CR.request||{};if(R.enabled===false||!window.ArbPRQ||!ArbPRQ.auto)return;var M=rqMap(),r=M[cs.id];if(r&&Date.now()-r.at<(+R.retry_h||24)*3600000)return;
   var id=await ArbPRQ.auto({origin:'debtor_creditors',category:R.category||'creditors_refresh',urgency:R.urgency||'normal',title:CU.title||'Кредиторы',source:'Arbitr App / Контрагенты · Должник',

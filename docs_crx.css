@@ -1,0 +1,12 @@
+/* «Контрагенты → Кредиторы»: выгрузка из карточек дел и группировка (assets/docs_crx.js). Размеры/цвета — переменные ниже. */
+:root{--crx-grp-fs:14px;--crx-sub-fs:13px;--crx-grp-bar:var(--acc,#2DD4BF);--crx-sub-bar:rgba(45,212,191,.55);--crx-src-fs:12px;--crx-sticky-top:0px;--crx-ban-bg:rgba(45,212,191,.12)}
+.crxban{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px;padding:8px 12px;border-radius:10px;background:var(--crx-ban-bg);border-left:3px solid var(--crx-grp-bar);font-size:13px}
+.crxban .lbtn{white-space:nowrap;flex:0 0 auto}
+#vcp .dcgrp.crxg>.dcgrph.crxh{position:sticky;top:var(--crx-sticky-top);z-index:2;font-size:var(--crx-grp-fs);font-weight:700;border-left:3px solid var(--crx-grp-bar);background:var(--card,var(--bg,#fff))}
+#vcp .dcgrp.crxg>.dcgrph.crxh .dcgrpt{font-weight:700}
+.dcgrp.crxg.crxsub>.dcgrph.crxh{font-size:var(--crx-sub-fs);z-index:1;border-left-color:var(--crx-sub-bar);min-height:40px}
+.crxrow{color:var(--mut,#7a8a86);margin:-4px 0 6px;padding:0 14px}.crxmore{color:var(--acc2,#1f8f86);white-space:nowrap}
+.crxsrc{font-size:var(--crx-src-fs);color:var(--mut,#7a8a86);margin:2px 0 6px}
+.crxinn{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0}
+.crxl{list-style:none;margin:0 0 10px;padding:0}.crxl li{margin:2px 0}
+.crxa{background:none;border:0;padding:4px 0;color:var(--acc2,#1f8f86);font:inherit;cursor:pointer;text-align:left}.crxa:hover{text-decoration:underline}
