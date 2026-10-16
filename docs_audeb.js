@@ -55,7 +55,8 @@ window.ArbAUDEB=(function(){
  function mask(n){var p=String(n||'').trim().split(/\s+/);if(!p[0])return '•••••••';return p[0][0]+'••••••'+(p.length>1?' '+p.slice(1,3).map(function(x){return x[0]+'.'}).join(' '):'')}
  function nm(c){var s=c.summary||{};return person(c)&&!pOpen()?(s.mask||mask(s.name)):(s.name||'—')}
  /* ---------- поля: источник, правки, подтверждения ---------- */
- function srcName(s){return ({appointment:'карточка АУ',manual:'вручную',au_card:'карточка АУ',efrsb:'ЕФРСБ',kad:'kad.arbitr.ru',egrul:'ЕГРЮЛ',egrip:'ЕГРИП',analyst:'ЕГРЮЛ'})[s]||s||''}
+ function srcName(s){return (UI.src_names||{})[s]||s||''}   /* подписи источников — config/au_debtors.json ui.src_names */
+ function asked(mid,a,f){var c=card(mid,a),rf=(c&&c.refresh)||{},M=((CF.requests||{}).missing)||{},r=null;Object.keys(M).forEach(function(w){var x=rf['asked_'+w];if(x&&(x.fields||[]).indexOf(f)>=0)r={s:M[w].provider||w,d:x.at}});return r}
  function isDF(f){return /^ДАТА_/.test(f)||(UI.date_fields||[]).indexOf(f)>=0}
  /* даты: хранение может быть ISO, показ и запись в дело — ДД.ММ.ГГГГ */
  function fval(mid,a,f){var v=fval0(mid,a,f);if(!v||!isDF(f))return v;var o={};for(var k in v)o[k]=v[k];o.value=dmy(v.value);if(v.alt)o.alt=v.alt.map(function(x){var y={};for(var kk in x)y[kk]=x[kk];y.value=dmy(x.value);return y});return o}
@@ -68,12 +69,12 @@ window.ArbAUDEB=(function(){
  function isMask(f){return (CF.mask_reveal||[]).indexOf(f)>=0}
  function maskV(v){return String(v||'').replace(/[0-9A-Za-zА-Яа-яЁё]/g,'•')}
  function fx(mid,a,f,key){var v=fval(mid,a,f),val=v?String(v.value==null?'':v.value):'',w=(UI.wide||[]).indexOf(f)>=0,ed=v&&v.edited,mk=isMask(f)&&!(REV[a+f]>Date.now()),hint=key&&(UI.hints||{})[f];
-  var bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?(function(bt){return '<i class="bdg" title="'+E(bt)+'">'+E(bt)+'</i>'})((v.saved?T('saved_cp'):T('src',{d:dmy(v.updated_at)}))+(v.source&&!v.saved?' · '+srcName(v.source):'')):'');
+  var ak=!v&&asked(mid,a,f),bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?(function(bt){return '<i class="bdg" title="'+E(bt)+'">'+E(bt)+'</i>'})(v.saved?T('saved_cp'):v.source?T('src_from',{s:srcName(v.source),d:dmy(v.updated_at)}):T('src',{d:dmy(v.updated_at)})):ak?(function(bt){return '<i class="bdg wait" title="'+E(bt)+'">'+I.clock+E(bt)+'</i>'})(T('asked',{s:ak.s,d:dmy(ak.d)})):'');
   var alt=v&&!ed&&v.alt&&v.alt.length?'<div class="alt">'+E(T('alt',{v:v.alt[0].value,s:srcName(v.alt[0].source)}))+'</div>':'';
   var nl=(UI.never_local||[]).indexOf(f)>=0?'<div class="hint">'+I.info+E(T('not_local'))+'</div>':'';
   return '<label class="fx'+(ed?' edited':'')+(key?' key':'')+(w?' w':'')+'"><span class="frow"><span class="fl">'+E(label(f))+'</span>'+bd+'</span>'+(mk&&val?'<span style="display:flex;gap:6px;align-items:center"><input class="inp" value="'+E(maskV(val))+'" disabled><button type="button" class="opn" data-apx="rev" data-f="'+E(f)+'">'+I.eye+E(T('show'))+'</button></span>':
    '<input class="inp" data-apf="'+E(f)+'" value="'+E(val)+'"'+(isDF(f)?' inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="off"':'')+'>')+(hint?'<div class="hint">'+I.clock+E(T(hint))+'</div>':'')+alt+nl+'</label>'}
- function fieldsHTML(mid,a,key){var c=card(mid,a);return groups(c).map(function(g){var fs=g.f.filter(function(f){return fval(mid,a,f)||needConf().indexOf(f)>=0});if(!fs.length)return '';
+ function fieldsHTML(mid,a,key){var c=card(mid,a);return groups(c).map(function(g){var fs=g.f.filter(function(f){return fval(mid,a,f)||needConf().indexOf(f)>=0||(UI.pending_show||[]).indexOf(f)>=0});if(!fs.length)return '';
   var src=Array.from(new Set(fs.map(function(f){var v=fval(mid,a,f);return v&&!v.edited?srcName(v.source):''}).filter(Boolean))).join(' · ');
   return '<div class="card"><h3>'+E(g.t)+'<span class="sp"></span><span class="sm" style="font-weight:400">'+E(src)+'</span></h3><div class="g2f">'+fs.map(function(f){return fx(mid,a,f,key&&needConf().indexOf(f)>=0)}).join('')+'</div></div>'}).join('')}
  /* сроки-примеры */
