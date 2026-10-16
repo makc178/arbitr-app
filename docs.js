@@ -196,7 +196,7 @@ function dlDecorate(){try{cbDecorate()}catch(e){}if(!CUR||DLC().enabled===false)
   if(nx&&nx.classList&&nx.classList.contains('dlc'))nx.remove();i.classList.remove('dlwarn');if(!cp)return;
   if(cp.st=='auto'&&!cp.manual&&document.activeElement!==i){var want=cp.iso.split('-').reverse().join('.');if(i.value!==want)i.value=want}
   var h='<div class="dlc sm" data-dlk="'+E(k)+'">'+(DLC().sigma_icon?'<span class="dlsig" aria-hidden="true">∑</span> ':'')+E(cp.txt)+(cp.bound?' · '+E(cp.bound):'')+(cp.shift?' <span class="dlsh">'+E(cp.shift)+'</span>':'')+(cp.manual?' · <span class="dlman">'+E(DLU('manual'))+'</span> <button type="button" class="link dlrev" data-dlrev="'+E(k)+'">'+E(DLU('revert'))+'</button>':'')+(cp.warn?'<div class="dlw">'+E(cp.warn)+'</div>':'')+'</div>';
-  w.insertAdjacentHTML('afterend',h);if(cp.warn)i.classList.add('dlwarn')})}
+  w.insertAdjacentHTML('afterend',h);if(cp.warn)i.classList.add('dlwarn')});window.ArbDLR&&ArbDLR.d(t,ed,raw,dlCalc)}
 (function(){var tm;function go(){clearTimeout(tm);tm=setTimeout(dlDecorate,60)}
  document.addEventListener('input',function(e){if(e.target.closest&&e.target.closest('#ded'))go()},true);document.addEventListener('change',function(e){if(e.target.closest&&e.target.closest('#ded'))go()},true);
  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-dlrev]');if(b&&CUR){e.preventDefault();var k=b.dataset.dlrev,d=S.drafts[CUR.id]=S.drafts[CUR.id]||{};delete d[k];save();var i=$('ded').querySelector('input[data-k="'+k+'"][data-date]');if(i){i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))}delete d[k];save();dlDecorate();try{refreshPrev&&refreshPrev()}catch(x){}}});
