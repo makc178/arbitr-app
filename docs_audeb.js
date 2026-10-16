@@ -7,7 +7,7 @@
    Настройки и тексты — config/au_debtors.json → assets/docs_audeb_cfg.js (tools/gen_audeb_cfg.py). */
 window.ArbAUDEB=(function(){
  var CF=window.ARB_AUDEB_CFG||{},UI=CF.ui||{},TT=UI.t||{};
- var BUN={},LD={},FT={},FD={},UO={},SEL={},PH={},ED={},CK={},REV={},AUTO={},OTH={},OV=null,PO=null,BYP=0,KEYS={};
+ var FE={},CMID=null,BUN={},LD={},FT={},FD={},UO={},SEL={},PH={},ED={},CK={},REV={},AUTO={},OTH={},OV=null,PO=null,BYP=0,KEYS={};
  function Q(){return window.ArbCP&&ArbCP.qapi?ArbCP.qapi():null}
  function A(){return (Q()||{}).A||{}}
  function on(){return CF.enabled!==false&&UI.enabled!==false}
@@ -44,9 +44,9 @@ window.ArbAUDEB=(function(){
   var k=await auKey(mid);if(!k)return;
   try{var r=await ghApi((CF.repo_dir||'arbitr/appt_cards/')+k+'.enc',{headers:{Accept:'application/vnd.github.raw'}});
    if(r.status==404){FD[mid]=Date.now();if(!BUN[mid]){BUN[mid]={at:Date.now(),missing:1}}return}
-   if(!r.ok){FT[mid]=0;try{console.warn('appt bundle fetch',r.status)}catch(x){}return}var txt=await r.text();if(/^\s*\{\s*"(name|sha|content)"/.test(txt)){var j=JSON.parse(txt);txt=atob(String(j.content||'').replace(/\s/g,''))}
+   if(!r.ok){FT[mid]=0;FE[mid]=Date.now();if(FL('loading_state'))redrawOV();try{console.warn('appt bundle fetch',r.status)}catch(x){}return}var txt=await r.text();if(/^\s*\{\s*"(name|sha|content)"/.test(txt)){var j=JSON.parse(txt);txt=atob(String(j.content||'').replace(/\s/g,''))}
    var b=JSON.parse(new TextDecoder().decode(await A().vdec(txt)));FD[mid]=Date.now();if(BUN[mid]&&BUN[mid].b&&BUN[mid].b.updated_at==b.updated_at)return;
-   BUN[mid]={at:Date.now(),b:b};await dput('_apc_'+mid,BUN[mid]);draw();redrawOV();try{ArbAUAP.draw()}catch(x){}}catch(e){FT[mid]=0;try{console.warn('appt bundle',e&&e.message)}catch(x){}}}   /* ошибка — повтор при следующем обращении, а не через card_poll_s */
+   delete FE[mid];BUN[mid]={at:Date.now(),b:b};await dput('_apc_'+mid,BUN[mid]);draw();redrawOV();try{ArbAUAP.draw()}catch(x){}}catch(e){FT[mid]=0;FE[mid]=Date.now();if(FL('loading_state'))redrawOV();try{console.warn('appt bundle',e&&e.message)}catch(x){}}}   /* ошибка — повтор при следующем обращении, а не через card_poll_s */
  function bun(mid){var o=BUN[mid];return o&&o.b?o.b:null}
  function cards(mid){var b=bun(mid);if(!b)return [];return Object.keys(b.cards||{}).map(function(a){return b.cards[a]})}
  function active(mid){return cards(mid).filter(function(c){return c.status!='archived'}).sort(function(x,y){return String((y.summary||{}).since||'').localeCompare(String((x.summary||{}).since||''))})}
@@ -152,15 +152,18 @@ window.ArbAUDEB=(function(){
  document.addEventListener('click',function(e){if(!on())return;var b=e.target.closest&&e.target.closest('[data-fl="dl"],[data-fl="signsave"],[data-fl="pkgo"]');if(!b||Date.now()-BYP<1500)return;var c=curCase();if(!c||!c.apc)return;
   if(stale(c).length){e.preventDefault();e.stopImmediatePropagation();gate(b)}},true);
  /* ---------- карточка назначения ---------- */
- function bk(t,src,cnt,body,o){o=o||{};return '<section class="bk"><div class="bh"><div class="tx"><h3>'+E(t)+(cnt!=null&&cnt!==''?' <span class="c">· '+E(cnt)+'</span>':'')+'</h3><span class="src2">'+E(src||'')+'</span></div></div>'+body+'</section>'}
+ function FL(k){return !!((UI.flags||{})[k])}  /* флаги ui.flags (config/au_debtors.json), по умолчанию выключены */
+ function sdot(s){return String(s==null?'':s).replace(/^\s*·\s*/,'').replace(/\s*·\s*$/,'')}  /* нет даты — нет и точки: «ЕФРСБ ·» → «ЕФРСБ» */
+ function srcH(src){src=sdot(src);var w=T('waiting_kad');if(FL('loading_state')&&src.indexOf(w)==0){var er=CMID&&FE[CMID];return er?'<span class="lderr">'+E(T('load_fail'))+'</span> <button type="button" class="link pull" data-apx="kadpull">'+E(T('pull'))+'</button>':'<span class="spin" aria-hidden="true"></span>'+E(T('loading_kad'))+E(src.slice(w.length))}return E(src)}
+ function bk(t,src,cnt,body,o){o=o||{};return '<section class="bk"><div class="bh"><div class="tx"><h3>'+E(t)+(cnt!=null&&cnt!==''?' <span class="c">· '+E(cnt)+'</span>':'')+'</h3><span class="src2">'+srcH(src)+'</span></div></div>'+body+'</section>'}
  function fvv(x){return x&&typeof x=='object'?x.value:x}
- function r(l,v,s){return v==null||v===''?'':'<div class="r"><span>'+E(l)+'</span><b>'+E(v)+'</b>'+(s?'<i>'+E(s)+'</i>':'')+'</div>'}
+ function r(l,v,s){s=sdot(s);return v==null||v===''?'':'<div class="r"><span>'+E(l)+'</span><b>'+E(v)+'</b>'+(s?'<i>'+E(s)+'</i>':'')+'</div>'}
  function rs(l,x){return x&&x.value!=null&&x.value!==''?r(l,x.value,srcName(x.source)+' · '+dmy(x.updated_at)):''}
  function rmask(id,l,x){if(!x||x.value==null||x.value==='')return '';var v=x.value;if(typeof v=='object')v=Object.keys(v).map(function(k){return v[k]}).filter(Boolean).join(' · ');var open=REV[id]>Date.now();
   return '<div class="r"><span>'+E(l)+'</span>'+(open?'<b>'+E(v)+'</b><i>'+E(srcName(x.source))+'</i>':'<b class="mask">'+E(maskV(v))+'</b><button type="button" class="opn" data-apx="revc" data-k="'+E(id)+'">'+I.eye+E(T('show'))+'</button>')+'</div>'}
  function more(id,n,lim){return n>lim?'<button type="button" class="more" data-apx="more" data-k="'+E(id)+'">'+E(OV&&OV.more[id]?T('less'):T('all_n',{n:n}))+I.chev+'</button>':''}
  function lim(id,L,n){return OV&&OV.more[id]?L:L.slice(0,n)}
- function cardHTML(mid,a){var c=card(mid,a);if(!c)return '';var s=c.summary||{},fl=person(c),arch=c.status=='archived',d=c.debtor||{},ca=c['case']||{},rf=c.refresh||{},m=mgr(mid);
+ function cardHTML(mid,a){CMID=mid;var c=card(mid,a);if(!c)return '';var s=c.summary||{},fl=person(c),arch=c.status=='archived',d=c.debtor||{},ca=c['case']||{},rf=c.refresh||{},m=mgr(mid);
   var aush=m?String(m.f.ФИО_УПРАВЛЯЮЩЕГО||'').trim():'';
   var head='<div class="crumb"><a data-apx="close">Контрагенты</a>›<span>'+E(T('card_title'))+'</span></div>';
   if(fl&&!pOpen())return head+'<div class="chd"><div class="t1"><div class="ki" style="width:44px;height:44px;border-radius:12px;background:rgba(127,163,156,.16);color:var(--mut);display:flex;align-items:center;justify-content:center;flex:0 0 auto">'+I.lock+'</div><div class="tx"><h2><span class="mask" style="color:var(--ink)">'+E(nm(c))+'</span></h2><div class="pills"><span class="pc'+(arch?' g':'')+'">'+E(arch?T('archived'):T('active'))+'</span><span class="pc n">'+E(T('person'))+'</span></div></div></div>'+lockedPanel()+'</div>'+
@@ -191,8 +194,8 @@ window.ArbAUDEB=(function(){
   /* реестр */
   if(UI.kad_blocks!==false){var rg=c.claims_register||{},RL=rg.items||[],b=bun(mid)||{},crn=function(id){var x=(b.creditors||{})[id];if(!x)return '—';return x.kind=='fl'&&!pOpen()?mask(fvv(x.name)):(fvv(x.name)||'—')};
    blocks.push(bk(T('b_reg'),rg.updated_at?srcName(rg.source)+' · '+dmy(rg.updated_at):T('waiting_kad'),RL.length||'',RL.length?'<div class="rqsum"><span>'+E(T('total'))+' <b>'+rub(rg.total_kop)+' ₽</b></span><span>'+E(T('secured_sum'))+' <b>'+rub(rg.secured_kop)+' ₽</b></span>'+(rg.closed_date?'<span>'+E(T('registry_closed',{d:dmy(rg.closed_date)}))+'</span>':'')+'</div>'+
-    '<table class="rqt"><colgroup><col style="width:31%"><col style="width:22%"><col style="width:12%"><col style="width:12%"><col></colgroup><thead><tr><th>'+E(T('th_cr'))+'</th><th class="n">'+E(T('th_sum'))+'</th><th>'+E(T('th_q'))+'</th><th>'+E(T('th_sec'))+'</th><th>'+E(T('th_act'))+'</th></tr></thead><tbody>'+
-    lim('rg',RL,8).map(function(x){var dt=x.determination||{};return '<tr><td>'+E(crn(x.creditor_id))+'</td><td class="n">'+rub((+x.amount_principal_kop||0)+(+x.amount_sanctions_kop||0))+'</td><td>'+E(x.queue||'—')+'</td><td>'+(x.secured?'<span class="pc w">'+E(T('secured'))+'</span>':'—')+'</td><td>'+(dt.url?'<a href="'+E(dt.url)+'" target="_blank" rel="noopener noreferrer">'+E(T('act_from',{d:dmy(dt.date)}))+I.ext+'</a>':E(dmy(dt.date)))+'</td></tr>'}).join('')+'</tbody></table>'+more('rg',RL.length,8):'<p class="sm" style="padding:0 14px 12px">'+E(T('none'))+'</p>'))}
+    '<div class="rqw"><table class="rqt"><colgroup><col style="width:31%"><col style="width:22%"><col style="width:12%"><col style="width:12%"><col></colgroup><thead><tr><th>'+E(T('th_cr'))+'</th><th class="n">'+E(T('th_sum'))+'</th><th>'+E(T('th_q'))+'</th><th>'+E(T('th_sec'))+'</th><th>'+E(T('th_act'))+'</th></tr></thead><tbody>'+
+    lim('rg',RL,8).map(function(x){var dt=x.determination||{};return '<tr><td>'+E(crn(x.creditor_id))+'</td><td class="n">'+rub((+x.amount_principal_kop||0)+(+x.amount_sanctions_kop||0))+'</td><td>'+E(x.queue||'—')+'</td><td>'+(x.secured?'<span class="pc w">'+E(T('secured'))+'</span>':'—')+'</td><td>'+(dt.url?'<a href="'+E(dt.url)+'" target="_blank" rel="noopener noreferrer">'+E(T('act_from',{d:dmy(dt.date)}))+I.ext+'</a>':E(dmy(dt.date)))+'</td></tr>'}).join('')+'</tbody></table></div>'+more('rg',RL.length,8):'<p class="sm" style="padding:0 14px 12px">'+E(T('none'))+'</p>'))}
   /* имущество */
   if(UI.assets_block!==false){var as=c.assets||{},AL=as.items||[],nap=AL.filter(function(x){return x.appraised_value_kop!=null}).length,ar=(OV&&OV.appr)||null;
    blocks.push(bk(T('b_assets'),'ЕФРСБ · '+dmy(as.updated_at),AL.length||'',(AL.length?'<div class="rqsum"><span>'+E(T('book'))+' <b>'+rub(as.book_total_kop)+' ₽</b></span><span>'+E(T('appr'))+' <b>'+rub(as.appraised_total_kop)+' ₽</b> ('+nap+' / '+AL.length+')</span></div>':'')+
@@ -257,9 +260,10 @@ window.ArbAUDEB=(function(){
   if(k=='savecp'){saveCP(mid,SEL[mid]);return}
   if(k=='rev'){var s4=OV&&OV.el.contains(b)?OV.id:SEL[mid];REV[s4+b.dataset.f]=Date.now()+(+CF.reveal_s||30)*1000;draw();redrawOV();setTimeout(function(){draw();redrawOV()},(+CF.reveal_s||30)*1000+50);return}
   if(k=='revc'){REV[b.dataset.k]=Date.now()+(+CF.reveal_s||30)*1000;redrawOV();setTimeout(redrawOV,(+CF.reveal_s||30)*1000+50);return}
-  if(k=='card'){e.stopPropagation();var inD=!!b.closest('.apxd');openOV(mid,'card',a);if(OV&&OV.el)OV.el.classList.toggle('apside',inD);return}
+  if(k=='card'){e.stopPropagation();var inD=!!b.closest('.apxd');openOV(mid,'card',a);if(OV&&OV.el){OV.el.classList.toggle('apside',inD&&!FL('card_overlay'));OV.el.classList.toggle('apov',FL('card_overlay'))}return}
   if(k=='cred'){openOV(mid,'cred',b.dataset.c);return}
   if(k=='close'){closeOV();return}
+   if(k=='kadpull'){if(OV){delete FE[OV.mid];redrawOV();fetchB(OV.mid,true)}return}
   if(k=='popen'){OPN=Date.now()+(+CF.person_open_min||5)*60000;draw();redrawOV();return}
   if(k=='phide'){OPN=0;draw();redrawOV();return}
   if(k=='more'){OV.more[b.dataset.k]=!OV.more[b.dataset.k];redrawOV();return}

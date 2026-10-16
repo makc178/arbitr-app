@@ -44,3 +44,20 @@ html[data-theme=dark] .apxc{background:linear-gradient(160deg,#0B2A24 0%,#13403A
 .apx .apl .ap .apo{display:flex;justify-content:flex-end;margin-top:6px}
 .apx .apl .ap .opn2{background:none;border:0;padding:4px 2px;color:var(--acc2);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
 .apx .apl .ap .opn2:hover{text-decoration:underline}
+/* 16.10 «Реквизиты» столбиком на планшете: строки «подпись / значение» — сетка, источник отдельной строкой под значением (серый, 12px), в панели до 480px подпись над значением */
+.apx .kvl{container-type:inline-size;container-name:kv}
+.apx .kvl .r,.apx .af .kv2,.apx .rc .kv2{display:grid;grid-template-columns:minmax(96px,30%) minmax(0,1fr);column-gap:10px;row-gap:2px;align-items:baseline;flex-wrap:nowrap}
+.apx .kvl .r>span,.apx .af .kv2>span,.apx .rc .kv2>span{grid-column:1;flex:none;min-width:0;overflow-wrap:break-word}
+.apx .kvl .r>:not(span),.apx .af .kv2>:not(span),.apx .rc .kv2>:not(span){grid-column:2;min-width:0;flex:none;margin-left:0;justify-self:start}
+.apx .kvl .r>b,.apx .af .kv2>b,.apx .rc .kv2>b{justify-self:stretch;overflow-wrap:anywhere}
+.apx .kvl .r>i,.apx .af .kv2>i,.apx .rc .kv2>i{font-style:normal;font-size:12px;color:var(--mut);white-space:normal;overflow-wrap:anywhere}
+.apx .af,.apx .rc{container-type:inline-size}
+@container (max-width:480px){.apx .kvl .r,.apx .af .kv2,.apx .rc .kv2{grid-template-columns:minmax(0,1fr)}.apx .kvl .r>span,.apx .af .kv2>span,.apx .rc .kv2>span,.apx .kvl .r>:not(span),.apx .af .kv2>:not(span),.apx .rc .kv2>:not(span){grid-column:1}}
+@supports not (container-type:inline-size){@media(max-width:560px){.apx .kvl .r,.apx .af .kv2,.apx .rc .kv2{grid-template-columns:minmax(0,1fr)}.apx .kvl .r>span,.apx .af .kv2>span,.apx .rc .kv2>span,.apx .kvl .r>:not(span),.apx .af .kv2>:not(span),.apx .rc .kv2>:not(span){grid-column:1}}}
+.apx .src2 .spin{display:inline-block;width:10px;height:10px;margin-right:6px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:-1px;animation:apspin .8s linear infinite}
+@keyframes apspin{to{transform:rotate(360deg)}}
+.apx .src2 .pull{font-size:12px;padding:0 4px}
+.apxc.apov{background:rgba(0,0,0,.4)!important;padding:24px 12px 90px}
+.apxc.apov .apxin{max-width:720px;background:var(--bg);border-radius:18px;padding:14px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.apx .rqw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.apx .rqw .rqt{min-width:460px}

@@ -584,3 +584,12 @@ html[data-theme=light] #dmbar{--bg:#ECFAF5;--pan:#FFFFFF;--pan2:#F4FBF8;--ink:#0
 .dualkeys button:active{transform:scale(.96)}
 .dualkeys span{width:64px;height:64px}
 .dualdots.shake{animation:dualsh .35s}
+/* 16.10: строки «подпись / значение» — сетка, источник под значением, в панели до 480px подпись над значением */
+#vdocs .dfx .af .kv2,#vdocs .dfx .rc .kv2{display:grid;grid-template-columns:minmax(96px,30%) minmax(0,1fr);column-gap:10px;row-gap:2px;align-items:baseline}
+#vdocs .dfx .af .kv2>span,#vdocs .dfx .rc .kv2>span{grid-column:1;flex:none;min-width:0;overflow-wrap:break-word}
+#vdocs .dfx .af .kv2>:not(span),#vdocs .dfx .rc .kv2>:not(span){grid-column:2;min-width:0;flex:none;margin-left:0}
+#vdocs .dfx .af .kv2>b,#vdocs .dfx .rc .kv2>b{overflow-wrap:anywhere}
+#vdocs .dfx .af .kv2>i,#vdocs .dfx .rc .kv2>i{font-style:normal;font-size:12px;color:var(--mut);white-space:normal}
+#vdocs .dfx .af,#vdocs .dfx .rc{container-type:inline-size}
+@container (max-width:480px){#vdocs .dfx .af .kv2,#vdocs .dfx .rc .kv2{grid-template-columns:minmax(0,1fr)}#vdocs .dfx .af .kv2>span,#vdocs .dfx .rc .kv2>span,#vdocs .dfx .af .kv2>:not(span),#vdocs .dfx .rc .kv2>:not(span){grid-column:1}}
+#vdocs .dfx .lot.drow{display:block;cursor:default}  /* строки таблицы в форме: не карточка-флекс, иначе «Строка 1» сжимается в столбик */
