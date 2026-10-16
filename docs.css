@@ -415,3 +415,5 @@ html[data-theme=light] .ddpop{background:#fff;color:#0F2E2A;border-color:#CDEBE2
 :is(#vdocs) .dpchips{flex-wrap:wrap;gap:6px}
 :is(#vdocs) .dpchip:disabled{opacity:.5;cursor:not-allowed}
 :is(#vdocs) .dmuted{background:none!important;border:0!important;color:var(--mut,#8a9a96)!important;padding-left:0!important}:is(#vdocs) .dmuted::before{content:none!important}
+#vdocs .dvfull{font-size:12px;color:var(--mut,#8a9a96);margin:-2px 0 8px;line-height:1.35}
+#vdocs .dvfull{grid-column:1/-1;width:100%;max-width:none}

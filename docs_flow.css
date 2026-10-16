@@ -504,3 +504,9 @@ html,body{overflow-x:clip!important;overflow-y:visible!important}
 @media(min-width:700px){#vdocs .dfx .ctx{padding-right:140px}}
 @media(max-width:699px){#vdocs #dfrst{position:static;pointer-events:auto}}
 #vdocs :is([data-w],.drg,.drgi,h3,h4,.dreqbad,input,textarea,select,button){scroll-margin-top:76px}
+#vdocs .dcondw>label.dcond{display:flex;gap:8px;align-items:center;margin:6px 0}
+#vdocs .dcondw>label.dcond input{margin:0;flex:0 0 auto;width:18px;height:18px}
+#vdocs .dcond.dcauto{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;margin:6px 0}
+#vdocs .dcauto .dcai{display:inline-flex;justify-content:center;width:18px;height:18px;border-radius:5px;border:1px solid var(--line,#2c5a52);color:var(--mut,#8a9a96);font-size:12px;line-height:17px;flex:0 0 auto}
+#vdocs .dcauto.on .dcai{background:var(--acc,#1fbfa5);border-color:var(--acc,#1fbfa5);color:#04241f}
+#vdocs .dcauto .sm{color:var(--mut,#8a9a96)}

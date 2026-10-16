@@ -64,7 +64,7 @@ window.ArbRG=function(D){
  function procOpts(dt,d,PO){PO=PO||X().procedure_options||{};return (((PO.by_debtor_type||{})[dt||'legal'])||[]).filter(function(o){return (!o.valid_from||d>=o.valid_from)&&(!o.valid_until||d<=o.valid_until)})}
  function applyOpt(q,o,PO){PO=PO||X().procedure_options||{};var ap=PO.apply||{},re=new RegExp(ap.replace_pattern||'(о |об )?переход[а-яё]* к следующ[а-яё]* процедур[а-яё]*','i'),m=re.exec(q);
   if(!m)return String(q).replace(/[ .]+$/,'')+(ap.append_separator||' — ')+o.text;var tx=ap.capitalize_if_first!==false&&m.index==0?o.text.charAt(0).toUpperCase()+o.text.slice(1):o.text;return q.slice(0,m.index)+tx+q.slice(m.index+m[0].length)}
- function suggest(q0,d,dt0,M,PO){M=M||MRQ();var R_=function(b,it,w,n,o){return {base:b,item:it?it.id:null,abzac:it?(it.abzac==null?null:it.abzac):null,norm:it?(it.norm==null?null:it.norm):null,warning:w||null,note:n||null,options:o||[]}};if(!M)return R_('present');
+ function suggest(q0,d,dt0,M,PO){M=M||MRQ();var R_=function(b,it,w,n,o){return {base:b,item:it?it.id:null,abzac:it?(it.abzac==null?null:it.abzac):null,norm:it?(it.norm==null?null:it.norm):null,norm_short:it?(it.norm_short==null?null:it.norm_short):null,warning:w||null,note:n||null,options:o||[]}};if(!M)return R_('present');
   var q=nz(q0),L=mlist(M,d),dt=dt0||(M.matching||{}).debtor_type_unknown||'legal';
   var it=((L||{}).items||[]).find(function(it){if(it.debtor_types&&it.debtor_types.indexOf(dt)<0)return false;return (it.patterns||[]).some(function(p){return rs(nz(p),q)})&&!(it.exclude_patterns||[]).some(function(x){return rs(nz(x),q)})});
   if(it)return R_('registry',it);var pn=M.procedure_not_named;
@@ -76,7 +76,18 @@ window.ArbRG=function(D){
  function regQ(t,text){var r=sugT(t,text);return r.base=='registry'?r:null}
  /* гражданин: вопрос о «следующей процедуре» без названия — серая строка (п. 1 ст. 15) */
  function citizenNext(t,text){return !!sugT(t,text).note}
- function regRule(t){return (t.validations||[]).map(function(v){return v.rule}).find(function(r){return r&&r.kind=='registry_question_base_present'})||null}
+ function normFor(t,it){return nInfo(t,it).norm||''}
+/* v1.7l/1.7m: {norm} и {norm_short} — из пункта словаря, совпавшего по тексту вопроса (список по ДАТА_СОБРАНИЯ, тип должника) */
+function nInfo(t,it){var qf=(regRule(t)||{}).question_field;if(!t||!it||!qf||it[qf]==null)return {};var rq=regQ(t,it[qf]);return rq?{norm:rq.norm||null,norm_short:rq.norm_short||null}:{}}
+var PH=['norm','norm_short'];
+function hasN(o){return !!o&&typeof o=='object'&&Object.keys(o).some(function(k){return /_template$/.test(k)&&PH.some(function(p){return String(o[k]).indexOf('{'+p+'}')>=0})})}
+function FB(){return U('fill_fallback',{chip:'chip_label'})}
+/* точный порт _fill_norm(obj,key,norm,norm_short): шаблон, если все его подстановки есть; иначе запасное поле (chip → chip_label, остальное — поле без _template) */
+function fillKey(o,key,v){var tp=o[key+'_template'];if(typeof tp=='string'&&PH.every(function(p){return tp.indexOf('{'+p+'}')<0||v[p]})){PH.forEach(function(p){tp=tp.split('{'+p+'}').join(v[p]||'')});return tp}var fb=FB();return o[(fb&&fb[key])||key]}
+function fillN(o,v){if(!hasN(o))return o;v=typeof v=='string'?{norm:v}:(v||{});var r=Object.assign({},o);Object.keys(o).forEach(function(k){var m=/^(.+)_template$/.exec(k);if(m)r[m[1]]=fillKey(o,m[1],v)});return r}
+function optF(t,it,o){return hasN(o)?fillN(o,nInfo(t,it)):o}
+function msgOf(r,t,it){return (hasN(r)?fillN(r,nInfo(t,it)):r).message||''}
+function regRule(t){return (t.validations||[]).map(function(v){return v.rule}).find(function(r){return r&&r.kind=='registry_question_base_present'})||null}
  function genBase(){return ((MRQ()||{}).general_rule||{}).base||'present'}
  function sugOf(t,g,it,k){var r=regRule(t),f=FX(k),cs=CS(k);var def=f.default||(cs&&cs.default)||'';if(r&&r.base_field==k&&flds(t,g).indexOf(r.question_field)>=0){return regQ(t,it[r.question_field])?'registry':(def||genBase())}return def}
  function defaults(t,g,L){flds(t,g).forEach(function(k){if(!CS(k))return;L.forEach(function(it){var c0=chv(it,k);if(c0&&!v(it[k])&&c0!='custom'){var tx=optText(k,c0);if(tx)it[k]=tx}var sg=sugOf(t,g,it,k);if(!sg)return;var cur=chv(it,k),au=(it._auto||{})[k];if(!cur||(au!=null&&cur===au&&cur!==sg)){it['_ch_'+k]={v:[sg],c:''};it[k]=optText(k,sg);(it._auto=it._auto||{})[k]=sg}else if(au==null&&cur===sg)(it._auto=it._auto||{})[k]=sg})})}
@@ -113,8 +124,8 @@ window.ArbRG=function(D){
  function flag(t,ff,src){if(!ff)return null;if(ff.repeat_group){var n=G(t)[ff.repeat_group]?D.items(t,ff.repeat_group).filter(function(it){return filled(t,ff.repeat_group,it)}).length:0;return ff.empty===false?n>0:n==0}
   if(ff.field&&ff.checked!=null){var x=src&&src[ff.field]!=null?src[ff.field]:D.raw(ff.field,t.id);return truthy(x)==!!ff.checked}return null}
  function rules(t,g,it){var o=[];(t.validations||[]).forEach(function(r){var R=r.rule;if(!R||r.scope&&r.scope!=g)return;
-  if(R.kind=='not_checked'&&!truthy(it[R.field]))o.push({id:r.id,msg:r.message||''});
-  var r2=rules2(t,g,it,R);if(r2!=null){if(r2)o.push({id:r.id,msg:r.message||''});return}
+  if(R.kind=='not_checked'&&!truthy(it[R.field]))o.push({id:r.id,msg:msgOf(r,t,it)});
+  var r2=rules2(t,g,it,R);if(r2!=null){if(r2)o.push({id:r.id,msg:msgOf(r,t,it)});return}
   if(R.kind=='included_without_majority'){var ch=D.chVals(it,R.field,t),p=parseFloat(String(it[R.percent_field]||'').replace(',','.'));if((ch.indexOf(R.equals)>=0||v(it[R.field])==R.equals)&&!isNaN(p)&&p<=+R.max)o.push({id:r.id,msg:r.message||''})}});return o}
  function gRules(t,g){var o=[],s=st(t,g);(t.validations||[]).forEach(function(r){var R=r.rule;if(R&&R.kind=='linked_mismatch'&&(r.scope||g)==g&&s&&s.found&&s.mismatch)o.push(r.message||(s.ls.on_mismatch||{}).message||'')});if(s&&s.found&&s.mismatch&&!o.length&&s.ls.on_mismatch)o.push(s.ls.on_mismatch.message||'');return o}
  function reqItems(t){var o=[],F=D.F();Object.keys(G(t)).forEach(function(g){D.items(t,g).forEach(function(it,i){if(skip(t,g,it,i))return;flds(t,g).forEach(function(k){if(F[k]&&F[k].required&&!locked(t,g,k)&&D.fieldOn(t,g,it,k))o.push(k+'#'+i)})})});return o}
@@ -153,15 +164,15 @@ window.ArbRG=function(D){
      var lab0='',key0='';if(bar){key0=bv.key||bar.base_fixed||'';lab0=bar['label_'+key0]||optLabel(bar.base_field,key0)||''}
      h+='<span class="dvp">'+E((pc!=null?pc:'—')+' %')+'</span>';
      if(vv!=null&&bv.v!=null)h+=' <span class="dvraw">· '+E(nfmt(vv))+' '+E(U('of','из'))+' '+E(nfmt(bv.v))+'</span>';
-     var sm='';if(bar){var lb=lab0.replace(/^%\s*/,''),qf0=(regRule(t)||{}).question_field;if(key0=='registry'&&qf0&&it[qf0]!=null&&!bar.base_fixed){var rq=regQ(t,it[qf0]);if(rq)lb+=' · '+(rq.norm||(rq.abzac!=null?U('abz_fmt','абз. {n} п. 2 ст. 15',{n:rq.abzac}):''))}
-      sm+=bar.base_field&&!bar.base_fixed?'<button type="button" class="dvchip" data-rgbase="'+E(bar.base_field)+'" data-gg="'+E(g)+'" data-gi="'+i+'" title="'+E(U('base_toggle','Сменить базу'))+'">'+E(U('base_prefix','База: ')+lb)+'</button>':'<span class="dvchip fixed">'+E(U('base_prefix','База: ')+lb)+'</span>';
+     var sm='';if(bar){var lb=lab0.replace(/^%\s*/,''),bo=!bar.base_fixed&&bar.base_field?(CS(bar.base_field)&&(CS(bar.base_field).options||[]).find(function(o){return o.value==key0})):null,full='';if(bo&&hasN(bo)){var bf=optF(t,it,bo);if(bf.chip)lb=bf.chip;if(bo.label_template&&bf.label!==bo.label)full=bf.label}
+      sm+=bar.base_field&&!bar.base_fixed?'<button type="button" class="dvchip" data-rgbase="'+E(bar.base_field)+'" data-gg="'+E(g)+'" data-gi="'+i+'" title="'+E(full?U('chip_title','{full}. {toggle}').split('{full}').join(full).split('{toggle}').join(U('base_toggle','Сменить базу')):U('base_toggle','Сменить базу'))+'">'+E(U('base_prefix','База: ')+lb)+'</button>':'<span class="dvchip fixed">'+E(U('base_prefix','База: ')+lb)+'</span>';
       if(bar.base_field&&manual(t,g,it,bar.base_field))sm+='<span class="dvman"><i class="dreqm"></i>'+E(U('manual','Изменено вручную'))+'</span>';
       if(vv!=null&&bv.v){var ok=majOk(vv,bv.v,bar.threshold_pct);sm+='<span class="dvres '+(ok?'ok':'no')+'">'+E(ok?U('majority_yes','Большинство есть'):(bar.base_fixed?U('majority_no_fixed','Нет большинства от реестра · п. 2 ст. 15'):U('majority_no','Нет большинства')))+'</span>';
        if(P().majority_bar){var x=Math.max(0,Math.min(100,vv*100/bv.v));sm+='<div class="dmbar" role="img" aria-label="'+E(pc+' %')+'"><i style="width:'+x.toFixed(1)+'%"></i><b style="left:'+(+bar.threshold_pct||50)+'%"></b><span>'+E(U('bar_tick','> 50 %'))+'</span></div>'}}
-      SUM.push({w:w,h:sm})}
+      SUM.push({w:w,h:sm,f:bar&&full||''})}
      var d=document.createElement('div');d.className='dvcap sm';d.innerHTML=h;w.appendChild(d)});
     Object.keys(byBase).forEach(function(k){var ws=byBase[k];if(ws.length<2||ws[0].parentNode.classList.contains('dvotes'))return;var box=document.createElement('div');box.className='dvotes dwide';ws[0].before(box);ws.forEach(function(w){box.appendChild(w)})});
-    SUM.forEach(function(x){var host=x.w.parentNode&&x.w.parentNode.classList.contains('dvotes')?x.w.parentNode:x.w,d=document.createElement('div');d.className='dvcap dvsum';d.innerHTML=x.h;host.after(d)});
+    SUM.forEach(function(x){var host=x.w.parentNode&&x.w.parentNode.classList.contains('dvotes')?x.w.parentNode:x.w,d=document.createElement('div');d.className='dvcap dvsum';d.innerHTML=x.h;host.after(d);if(x.f&&U('full_line',true)!==false){var fl=document.createElement('div');fl.className='dvcap dvfull';fl.textContent=x.f;d.after(fl)}});
     var bad=TRY[t.id]&&(t.validations||[]).some(function(r){return r.rule&&r.rule.kind=='sum_exceeds'&&r.scope==g&&rules2(t,g,it,r.rule)});
     (t.validations||[]).forEach(function(r){if(!r.rule||r.rule.kind!='sum_exceeds'||r.scope!=g)return;var hit=TRY[t.id]&&rules2(t,g,it,r.rule);(r.rule.fields||[]).forEach(function(k){var w=W(k,i);if(w)w.classList.toggle('dvbad',!!hit)})})})});
   docRules(t).forEach(function(r){var w=W((r.fields||[])[0]);if(!w)return;var d=document.createElement('div');d.className='dvdoc dlw';d.setAttribute('role','status');d.textContent=r.message||'';w.after(d)})}
@@ -178,4 +189,4 @@ window.ArbRG=function(D){
  function v_(x){return String(x==null?'':x).trim()}
  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-rgchip]');if(!b||b.disabled||!D.cur())return;e.preventDefault();var t=D.cur(),g=b.dataset.gg,it=D.items(t,g)[+b.dataset.gi],qf=b.dataset.qf;if(!it)return;var r=sugT(t,it[qf]),o=r.options[+b.dataset.rgchip];if(!o)return;it[qf]=applyOpt(String(it[qf]||''),o);D.items(t,g);D.save();if(D.redraw)D.redraw();else dom(t)});
  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-rglink]');if(b){e.preventDefault();D.open(b.dataset.rglink)}});
- return {suggest:suggest,procOpts:procOpts,applyOpt:applyOpt,calc:calc,conv:conv,migItems:migItems,docRules:docRules,regQ:regQ,isCalc:isCalc,numUI:numUI,num:num,skip:skip,pull:pull,snap:snap,flag:flag,rules:rules,reqItems:reqItems,head:head,addBtn:addBtn,removable:removable,locked:locked,dom:dom,truthy:truthy,state:st}};
+ return {fillN:fillN,optF:optF,normFor:normFor,msgOf:msgOf,suggest:suggest,procOpts:procOpts,applyOpt:applyOpt,calc:calc,conv:conv,migItems:migItems,docRules:docRules,regQ:regQ,isCalc:isCalc,numUI:numUI,num:num,skip:skip,pull:pull,snap:snap,flag:flag,rules:rules,reqItems:reqItems,head:head,addBtn:addBtn,removable:removable,locked:locked,dom:dom,truthy:truthy,state:st}};
