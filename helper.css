@@ -10,14 +10,11 @@ html[data-theme=light] #arbh{--a-bg:#ECFAF5;--a-ink:#0F2E2A;--a-mut:#5F857E;--a-
  --a-bub:rgba(255,255,255,.96);--a-bubline:#CDEBE2;--a-shadow-b:0 10px 30px rgba(15,46,42,.16),0 2px 6px rgba(15,46,42,.08);--a-shadow:0 16px 44px rgba(15,46,42,.18),0 3px 10px rgba(15,46,42,.10);--a-glow:.45;--a-ringop:.9}
 #arbh.mob{--a-size:72px;--a-gap:14px;--a-edge:16px;--a-bob:-4px;--a-ring:3px}
 #arbh[hidden],#arbh [hidden]{display:none!important}
-/* ПК (ui.desktop): 176 px, при заполнении формы 120 px (.rest), переход --a-szt; хвостик по центру лица */
-#arbh.desk{transition:bottom .25s ease,width var(--a-szt) ease,height var(--a-szt) ease,right 320ms cubic-bezier(.2,.8,.2,1)}
-#arbh.desk .arbh-bub{transform-origin:100% 18%}
 /* аватар: зазор цвета фона → градиентное кольцо (маска) → размытое свечение; градиент вращается */
 #arbh .arbh-av{all:unset;box-sizing:border-box;position:absolute;inset:0;border-radius:50%;background:var(--a-bg);cursor:pointer;isolation:isolate;box-shadow:var(--a-shadow);transform-origin:50% 100%;pointer-events:auto;animation:arbhBob var(--a-bobt) ease-in-out infinite}
 #arbh .arbh-av:focus-visible{outline:3px solid var(--a-acc2);outline-offset:6px}
 #arbh .arbh-av::before,#arbh .arbh-av::after{content:"";position:absolute;inset:calc(-1 * (var(--a-ring) + var(--a-ringgap)));border-radius:50%;pointer-events:none;background:conic-gradient(from 0deg,var(--a-c1),var(--a-c2) 50%,var(--a-c1));animation:arbhRing var(--a-ringt) linear infinite}
-#arbh .arbh-av::before{z-index:-2;filter:blur(var(--a-glowb,8px));opacity:var(--a-glow)}
+#arbh .arbh-av::before{z-index:-2;filter:blur(8px);opacity:var(--a-glow)}
 #arbh .arbh-av::after{z-index:-1;opacity:var(--a-ringop);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - var(--a-ring) - .5px),#000 calc(100% - var(--a-ring)));mask:radial-gradient(farthest-side,transparent calc(100% - var(--a-ring) - .5px),#000 calc(100% - var(--a-ring)))}
 #arbh .a-gap{position:absolute;inset:calc(-1 * var(--a-ringgap));border-radius:50%;background:var(--a-bg)}
 #arbh.mood-razdrazhenie{--a-c1:#E0A020;--a-c2:#F5C451}
@@ -26,7 +23,7 @@ html[data-theme=light] #arbh.mood-razdrazhenie{--a-c1:#A86A00;--a-c2:#E0A020}
 #arbh .arbh-i.on{opacity:1}
 #arbh .arbh-sq{position:absolute;inset:0;z-index:1;width:100%;height:100%;border-radius:50%;object-fit:cover;opacity:1;pointer-events:none;user-select:none;-webkit-user-drag:none}
 #arbh .arbh-f{position:absolute;inset:0;z-index:2;width:100%;height:100%;border-radius:50%;object-fit:cover;transition:none;pointer-events:none;user-select:none}
-#arbh .a-dot{position:absolute;z-index:2;top:calc(var(--a-size) * .04);right:calc(var(--a-size) * .04);width:var(--a-dot,14px);height:var(--a-dot,14px);border-radius:50%;background:var(--a-acc2);box-shadow:0 0 0 2px var(--a-bg);display:none}
+#arbh .a-dot{position:absolute;z-index:2;top:calc(var(--a-size) * .04);right:calc(var(--a-size) * .04);width:14px;height:14px;border-radius:50%;background:var(--a-acc2);box-shadow:0 0 0 2px var(--a-bg);display:none}
 #arbh.has-dot .a-dot{display:block}
 #arbh .a-spin{position:absolute;z-index:3;inset:calc(-1 * (var(--a-ring) + var(--a-ringgap)));border-radius:50%;border:var(--a-ring) solid transparent;border-top-color:#fff;opacity:.8;display:none;animation:arbhRing .9s linear infinite;pointer-events:none}
 #arbh.loading .a-spin{display:block}
@@ -101,163 +98,9 @@ html[data-theme=light] .arbh-ftip{background:rgba(255,255,255,.96);color:#0F2E2A
 @keyframes arbhRing{to{transform:rotate(360deg)}}
 @keyframes arbhFIn{from{opacity:0;transform:translateY(-4px)}}
 @keyframes arbhTm{to{transform:scaleX(0)}}
-/* стартовая страница (ui.start): ПК — аватар-герой слева, пузырь справа; телефон — по центру сверху, пузырь под ним */
-#arbh.hero{right:auto!important;bottom:auto!important}
-#arbh.hero .arbh-bub{right:auto;bottom:auto;max-width:none;min-width:0}
-#arbh.hero:not(.hc) .arbh-bub{font-size:var(--a-hfont,15px);transform-origin:0 20%;transform:translateX(-8px) scale(.96)}
-#arbh.hero:not(.hc).open .arbh-bub{transform:none}
-#arbh.hero:not(.hc) .arbh-tail{right:auto;bottom:auto;left:calc(var(--a-size) + var(--a-gap) - 5px);top:calc(var(--a-size) / 2 - 6px);transform:rotate(225deg)}
-#arbh.hero.hc .arbh-bub{transform-origin:50% 0;transform:translateY(-8px) scale(.96)}
-#arbh.hero.hc.open .arbh-bub{transform:none}
-#arbh.hero.hc .arbh-tail{right:auto;bottom:auto;left:calc(var(--a-size) / 2 - 6px);top:calc(var(--a-size) + var(--a-gap) - 5px);transform:rotate(-45deg)}
-body.arbh-hero-d #pin{padding-left:var(--arbh-hpad)!important;box-sizing:border-box}
-/* ряд кнопок окошка (ui.window.bar) — в стиле кнопок приложения */
-#arbh .b-bar{display:flex;flex-wrap:wrap;gap:8px;margin:10px -2px 0;padding-top:9px;border-top:1px solid var(--a-line)}
-#arbh .b-bar button{box-sizing:border-box;min-height:30px;padding:0 12px;border-radius:9px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--a-line);background:transparent;color:var(--a-ink)}
-#arbh .b-bar button:hover{border-color:var(--a-acc);color:var(--a-acc2)}
-#arbh .b-bar button:focus-visible,#arbh .o-seg button:focus-visible,#arbh .o-act:focus-visible{outline:2px solid var(--a-acc2);outline-offset:2px}
-/* настройки */
-#arbh .arbh-opts{display:flex;flex-direction:column;gap:2px;margin-top:2px}
-#arbh .o-row{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
-#arbh .o-lbl{font-size:12px;color:var(--a-mut)}
-#arbh .o-seg{display:flex;border:1px solid var(--a-line);border-radius:10px;overflow:hidden}
-#arbh .o-seg button{flex:1 1 0;min-height:32px;padding:0 8px;border:0;border-right:1px solid var(--a-line);background:transparent;color:var(--a-ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
-#arbh .o-seg button:last-child{border-right:0}
-#arbh .o-seg button.on{background:var(--a-acc);color:var(--a-ondark)}
-#arbh .o-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-#arbh .o-act{box-sizing:border-box;min-height:32px;padding:0 12px;border-radius:9px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;border:1px solid var(--a-line);background:transparent;color:var(--a-ink)}
-#arbh .o-note{font-size:12px;color:var(--a-mut);margin-top:6px}
-/* скрытый помощник: значок ui.window.settings.hide.icon_px, по нажатию возвращается */
-/* положение слева (ui.window.settings.side, за флагом) */
-#arbh.left{right:auto;left:calc(var(--a-edge) + env(safe-area-inset-left,0px))}
-#arbh.left .arbh-bub{right:auto;left:calc(var(--a-size) + var(--a-gap));transform-origin:0 85%;transform:translateX(-8px) scale(.96)}
-#arbh.left.open .arbh-bub{transform:none}
-#arbh.left .arbh-tail{right:auto;left:calc(var(--a-size) + var(--a-gap) - 5px);transform:rotate(225deg)}
-#arbh.left.mob .arbh-bub{left:0}
-#arbh.left.mob .arbh-tail{left:calc(var(--a-size) / 2 - 6px);transform:rotate(135deg)}
-#arbh.left.mini{left:0}#arbh.left.mini .arbh-av{border-radius:0 999px 999px 0}
-/* анимации выключены в настройках — как reduced-motion */
-#arbh.noanim .arbh-av,#arbh.noanim.pop .arbh-av,#arbh.noanim .arbh-av::before,#arbh.noanim .arbh-av::after{animation:none!important}
-#arbh.noanim .arbh-bub,#arbh.noanim.open .arbh-bub{transform:none!important;transition:opacity 120ms linear!important}
-#arbh.noanim,#arbh.noanim.desk{transition:none}
 @media (prefers-reduced-motion:reduce){
  #arbh .arbh-av,#arbh.pop .arbh-av,#arbh .arbh-av::before,#arbh .arbh-av::after{animation:none!important}
  #arbh .arbh-bub,#arbh.open .arbh-bub{transform:none!important;transition:opacity 120ms linear!important}
- #arbh .b-spin,#arbh .a-spin{animation-duration:3s}.arbh-ftip{animation:none}#arbh,#arbh.desk{transition:none}
+ #arbh .b-spin,#arbh .a-spin{animation-duration:3s}.arbh-ftip{animation:none}#arbh{transition:none}
 }
 #arbh.compact .b-ref{display:none}#arbh.compact .arbh-bub{padding:8px 10px 10px 12px;font-size:13px;line-height:1.35}#arbh.compact .b-head{min-height:18px;margin-bottom:2px}#arbh.compact .b-act{margin-top:8px;gap:6px}#arbh.compact .b-act button{min-height:30px;padding:0 10px;font-size:13px}
-
-/* ===== окно v2: низ «⚙ Настройки · Скрыть на сегодня · Закрыть» (spec §3) ===== */
-#arbh.desk .arbh-bub,#arbh.left.desk .arbh-bub{width:var(--a-bw);max-width:calc(100vw - var(--a-size) - var(--a-gap) - 2 * var(--a-edge))}
-#arbh .arbh-bub{transition:opacity 180ms var(--a-in),transform 180ms var(--a-in)}
-#arbh.open .arbh-bub{transition:opacity 260ms var(--a-out),transform 260ms var(--a-out)}
-#arbh .b-bar{display:flex;flex-wrap:nowrap;gap:0;margin:12px -12px -12px -14px;padding:0;border-top:1px solid rgba(94,234,212,.22)}
-#arbh .b-bar button.b-bb{flex:1 1 auto;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:46px;padding:0 10px;border:0;border-radius:0;background:transparent;color:var(--a-ink);font:inherit;font-size:13.5px;font-weight:600;white-space:nowrap;cursor:pointer}
-#arbh .b-bar button.b-bb+button.b-bb{border-left:1px solid rgba(94,234,212,.22)}
-#arbh .b-bar button.b-bb:hover{background:rgba(94,234,212,.08);color:var(--a-ink)}
-#arbh .b-bar button.b-bb.set{color:#5EEAD4}
-#arbh .b-bar button.b-bb svg{width:16px;height:16px;flex:0 0 16px;fill:none;stroke:#5EEAD4;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#arbh .b-bar button.b-bb:first-child{border-bottom-left-radius:15px}#arbh .b-bar button.b-bb:last-child{border-bottom-right-radius:15px}
-#arbh .b-bar button.b-bb:focus-visible{outline:2px solid #5EEAD4;outline-offset:-3px}
-#arbh.mob .b-bar button.b-bb{padding:0 6px;font-size:13px}
-#arbh .b-foot .b-dis{border:0;background:transparent;color:var(--a-mut);font:inherit;font-size:12.5px;padding:6px 0 0;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
-/* ===== значок 32 px: выключен / скрыт на сегодня (spec §2) ===== */
-#arbh.off .arbh-av,#arbh.snooze .arbh-av{animation:none}
-#arbh.off .arbh-av::after{display:none}
-#arbh.off .arbh-av::before,#arbh.snooze .arbh-av::before{content:"";position:absolute;inset:-6px;border-radius:50%;background:transparent;box-shadow:none;filter:none;opacity:1;z-index:5;pointer-events:auto;animation:none;-webkit-mask:none;mask:none}
-#arbh.off .arbh-i,#arbh.off .arbh-f,#arbh.off .arbh-sq{filter:grayscale(1);opacity:.72}
-#arbh.off .a-gap{inset:-2px;background:transparent;border:2px dashed rgba(230,244,241,.55)}
-#arbh.off .arbh-min,#arbh.snooze .arbh-min,#arbh.off .arbh-bub,#arbh.off .arbh-tail,#arbh.off .a-dot,#arbh.snooze .a-dot{display:none!important}
-#arbh .a-badge,#arbh .a-tip{display:none}
-#arbh.off .a-badge,#arbh.snooze .a-badge{display:flex;position:absolute;right:-4px;bottom:-4px;width:14px;height:14px;border-radius:50%;background:#0F2E2A;border:1px solid rgba(94,234,212,.45);align-items:center;justify-content:center;color:#5EEAD4;font-size:9px;line-height:1;z-index:6;pointer-events:none}
-#arbh.off .a-badge::before{content:"⏻"}#arbh.snooze .a-badge::before{content:"☾"}
-#arbh.off .a-tip,#arbh.snooze .a-tip{display:block;position:absolute;bottom:calc(100% + 8px);right:0;white-space:nowrap;background:#0F2E2A;color:#E6F4F1;border:1px solid rgba(94,234,212,.22);border-radius:8px;padding:4px 8px;font:12.5px/1.3 system-ui,sans-serif;opacity:0;pointer-events:none;transition:opacity 150ms}
-#arbh.left.off .a-tip,#arbh.left.snooze .a-tip{right:auto;left:0}
-#arbh.off:hover .a-tip,#arbh.snooze:not(.open):hover .a-tip,#arbh.off .arbh-av:focus-visible~.a-tip,#arbh.snooze:not(.open) .arbh-av:focus-visible~.a-tip{opacity:1}
-#arbh .arbh-av:focus-visible{outline:3px solid #5EEAD4;outline-offset:3px}
-/* ===== предупреждение о сроке у поля с датой — всегда (spec §5) ===== */
-.arbh-dlf.dlw{display:flex;gap:8px;align-items:flex-start;margin-top:6px;padding:7px 10px;border-radius:10px;font-size:13px;line-height:1.35;color:#E6F4F1}
-.arbh-dlf.dlw.near{background:rgba(224,160,32,.10);border:1px solid rgba(224,160,32,.42)}
-.arbh-dlf.dlw.missed{background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.42)}
-.arbh-dlf.dlw.near b{color:#F5C451}.arbh-dlf.dlw.missed b{color:#FCA5A5}
-.arbh-dlf.dlw .r{opacity:.8;font-size:12.5px}
-.arbh-dlf.dlw .dlw-i{flex:0 0 auto;display:flex}
-.arbh-dlf.dlw .dlw-i img{width:24px;height:24px;border-radius:50%}
-.arbh-dlf.dlw.near .dlw-i img{box-shadow:0 0 0 1.5px #E0A020}.arbh-dlf.dlw.missed .dlw-i img{box-shadow:0 0 0 1.5px #EF4444}
-.arbh-dlf.dlw .dlw-i svg{width:16px;height:16px;margin-top:1px;fill:none;stroke-width:2;stroke-linecap:round}
-.arbh-dlf.dlw.near .dlw-i svg{stroke:#F5C451}.arbh-dlf.dlw.missed .dlw-i svg{stroke:#FCA5A5}
-.arbh-dlw-f{border-color:rgba(224,160,32,.7)!important;box-shadow:0 0 0 1px rgba(224,160,32,.35)}
-.arbh-dlw-f.arbh-dlw-miss{border-color:rgba(239,68,68,.7)!important;box-shadow:0 0 0 1px rgba(239,68,68,.35)}
-html[data-theme=light] .arbh-dlf.dlw{color:#0F2E2A}html[data-theme=light] .arbh-dlf.dlw.near b{color:#8A5A00}html[data-theme=light] .arbh-dlf.dlw.missed b{color:#B91C1C}
-/* ===== Настройки помощника v2 (макет Дизайнера assistant_settings, утверждён 16.10 15:48) ===== */
-#arbhs{--bg:#0B2A24;--pan:#13403A;--pan2:#185048;--ink:#E6F4F1;--mut:#7FA39C;--line:rgba(230,244,241,.13);--acc:#14B8A6;--acc2:#5EEAD4;--ondark:#06201C;--inp:#0F3630;--bubline:rgba(94,234,212,.22);--shadow:0 10px 30px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.25);--a-out:cubic-bezier(.2,.8,.2,1);--sheet-w:400px;--sheet-inset:12px;font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-#arbhs h2,#arbhs h3,#arbhs p{font-family:inherit}
-#arbhs button{font-family:inherit}
-#arbhs .scrim{position:fixed;inset:0;z-index:150;background:rgba(3,16,14,.32);opacity:0;visibility:hidden;transition:opacity 220ms,visibility 0s linear 220ms}
-#arbhs .sheet{position:fixed;z-index:160;top:var(--sheet-inset);bottom:var(--sheet-inset);right:var(--sheet-inset);width:min(var(--sheet-w),calc(100vw - 2 * var(--sheet-inset)));
-  box-sizing:border-box;display:flex;flex-direction:column;background:var(--pan);color:var(--ink);border:1px solid var(--line);border-radius:20px;box-shadow:0 24px 60px rgba(0,0,0,.45);
-  transform:translateX(calc(100% + 24px));visibility:hidden;transition:transform 320ms var(--a-out),visibility 0s linear 320ms}
-body.arbh-sheet-open #arbhs .scrim{opacity:1;visibility:visible;transition:opacity 220ms}
-body.arbh-sheet-open #arbhs .sheet{transform:none;visibility:visible;transition:transform 320ms var(--a-out)}
-/* живой предпросмотр: на ПК аватар выезжает из-под панели и остаётся виден над затемнением */
-body.arbh-sheet-open #arbh{z-index:155!important;pointer-events:none}
-body.arbh-sheet-open #arbh *{pointer-events:none!important}
-@media (min-width:481px){body.arbh-sheet-open #arbh:not(.left):not(.hero){right:calc(412px + var(--a-edge))}
-}
-#arbhs .sh-grab{display:none}
-#arbhs .sh-head{display:flex;align-items:center;gap:10px;padding:18px 18px 10px 22px}
-#arbhs .sh-head h2{margin:0;font-size:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;font-weight:700;letter-spacing:-.015em;flex:1}
-#arbhs .sh-saved{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;color:var(--acc2);opacity:0;transition:opacity 200ms}
-#arbhs .sh-saved.on{opacity:1}
-#arbhs .sh-saved svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-#arbhs .sh-x{width:32px;height:32px;border-radius:50%;border:0;background:rgba(230,244,241,.08);color:var(--ink);font-size:20px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
-#arbhs .sh-x:hover{background:rgba(230,244,241,.14)}
-#arbhs .sh-body{flex:1;overflow:auto;overscroll-behavior:contain;padding:0 16px 20px}
-#arbhs .sh-sub{display:flex;align-items:center;gap:10px;margin:0 6px 10px;font-size:13px;color:var(--mut)}
-#arbhs .sh-sub{position:relative}
-#arbhs .sh-sub>span:first-child{flex:1}
-#arbhs .sh-sub .sh-saved{position:absolute;right:0;top:50%;transform:translateY(-50%);background:var(--pan);padding-left:8px}
-#arbhs .sh-cap{margin:18px 6px 6px;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
-#arbhs .grp{background:var(--inp);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-#arbhs .grp+.grp{margin-top:12px}
-#arbhs .row{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:56px}
-#arbhs .row+.row{border-top:1px solid var(--line)}
-#arbhs .row .t{flex:1;min-width:0;font-size:15px}
-#arbhs .row .t small{display:block;margin-top:1px;color:var(--mut);font-size:12.5px;line-height:1.35}
-#arbhs .row .t small.always{display:flex;align-items:center;gap:5px;margin-top:4px}
-#arbhs .row .t small.always svg{flex:0 0 13px;width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
-#arbhs .grp.dis .row .t small.always{opacity:1}
-#arbhs .row .ic{flex:0 0 30px;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(20,184,166,.16);color:var(--acc2)}
-#arbhs .row .ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-#arbhs .row .ic img{width:30px;height:30px;border-radius:50%}
-#arbhs .row.stack{flex-direction:column;align-items:stretch;gap:8px}
-#arbhs .grp.dis .row:not(.master){opacity:.42}
-#arbhs .sw{position:relative;flex:0 0 51px;width:51px;height:31px;border-radius:999px;border:0;padding:0;background:rgba(230,244,241,.18);cursor:pointer;transition:background 200ms}
-#arbhs .sw:after{content:"";position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,.25);transition:transform 200ms var(--a-out)}
-#arbhs .sw[aria-checked=true]{background:var(--acc)}
-#arbhs .sw[aria-checked=true]:after{transform:translateX(20px)}
-#arbhs .sw:disabled{cursor:default}
-#arbhs .sw:focus-visible,#arbhs .seg button:focus-visible,#arbhs .sh-x:focus-visible,#arbhs .rst:focus-visible{outline:2px solid var(--acc2);outline-offset:2px}
-#arbhs .seg{display:flex;padding:2px;border-radius:10px;background:rgba(230,244,241,.08)}
-#arbhs .seg button{flex:1 1 0;min-width:0;min-height:34px;border:0;border-radius:8px;background:transparent;color:var(--ink);font:inherit;font-size:14px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#arbhs .seg button[aria-checked=true]{background:var(--acc);color:var(--ondark);font-weight:600;box-shadow:0 2px 6px rgba(0,0,0,.25)}
-#arbhs .seg button:disabled{cursor:default}
-#arbhs .rst{width:100%;min-height:44px;border-radius:12px;border:1px solid var(--acc);background:transparent;color:var(--acc2);font:inherit;font-size:15px;font-weight:600;cursor:pointer}
-#arbhs .rst:disabled{border-color:var(--line);color:var(--mut);cursor:default}
-#arbhs .sh-note{margin:12px 6px 0;font-size:12.5px;color:var(--mut);line-height:1.4}
-@media (max-width:480px){#arbhs .sheet{top:auto;left:0;right:0;bottom:0;width:100%;max-height:calc(100dvh - 48px);border-radius:22px 22px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom);transform:translateY(calc(100% + 24px))}
-#arbhs .scrim{background:rgba(3,16,14,.5)}
-#arbhs .sh-grab{display:block;width:36px;height:5px;border-radius:3px;background:rgba(230,244,241,.25);margin:8px auto 0}
-#arbhs .sh-head{padding:10px 14px 8px 20px}
-}
-/* ---------- Тост ---------- */
-#arbhs .toast{position:fixed;left:50%;z-index:165;bottom:calc(var(--toast-b,24px) + env(safe-area-inset-bottom));transform:translate(-50%,16px);opacity:0;pointer-events:none;display:flex;align-items:center;gap:14px;max-width:calc(100vw - 32px);
-  background:#0F2E2A;color:var(--ink);border:1px solid var(--bubline);border-radius:14px;padding:8px 8px 8px 16px;box-shadow:var(--shadow);font-size:14px;transition:opacity 200ms,transform 260ms var(--a-out)}
-#arbhs .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-#arbhs .toast>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#arbhs .toast button{border:0;background:rgba(94,234,212,.14);color:var(--acc2);font:inherit;font-weight:600;border-radius:9px;min-height:34px;padding:0 12px;cursor:pointer;white-space:nowrap}
-html.arbh-noanim #arbhs .sheet,html.arbh-noanim #arbhs .toast{transition-property:opacity,visibility!important;transition-duration:120ms!important;transition-timing-function:linear!important;transform:none!important}
-html.arbh-noanim #arbhs .toast{transform:translateX(-50%)!important}
-html.arbh-noanim #arbhs .sheet{opacity:0}html.arbh-noanim body.arbh-sheet-open #arbhs .sheet{opacity:1}
-html.arbh-noanim body.arbh-sheet-open #arbh{transition:none}
-@media (prefers-reduced-motion:reduce){#arbhs .sheet,#arbhs .toast{transition-property:opacity,visibility!important;transition-duration:120ms!important;transform:none!important}#arbhs .toast{transform:translateX(-50%)!important}#arbhs .sheet{opacity:0}body.arbh-sheet-open #arbhs .sheet{opacity:1}body.arbh-sheet-open #arbh{transition:none}}

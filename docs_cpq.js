@@ -65,11 +65,22 @@ window.ArbCPQ=(function(){
  function mgrVals(){return {fio:(inp('ФИО_УПРАВЛЯЮЩЕГО')||{}).value||'',inn:(inp('ИНН_УПРАВЛЯЮЩЕГО')||{}).value||''}}
  function mgrMsg(m){var el=document.querySelector('.dauq .dhint');if(el)el.textContent=m}
  function setV(k,v){var i=inp(k);if(!i||!v)return;i.value=i.type=='date'?v:(/^\d{4}-\d\d-\d\d$/.test(v)?dmy(v):v);i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}))}
- function mgrSet(x){var M=K().au_map||{ФИО_УПРАВЛЯЮЩЕГО:'fio',ИНН_УПРАВЛЯЮЩЕГО:'inn',СРО:'sro',ДАТА_РЕГ_АУ:'date_reg'};Object.keys(M).forEach(function(k){setV(k,x[M[k]])});mgrMsg(U('au_filled'))}
+ function mgrSet(x){var M=K().au_map||{ФИО_УПРАВЛЯЮЩЕГО:'fio',ИНН_УПРАВЛЯЮЩЕГО:'inn',СРО:'sro',ДАТА_РЕГ_АУ:'date_reg'};Object.keys(M).forEach(function(k){if(!/_СРО$/.test(k)||!(inp(k)||{}).value)setV(k,x[M[k]])});mgrMsg(U('au_filled'));sroFill(true)}
+ /* справочник СРО (counterparties.inn_lookup.sro_registry: items из config/sro_registry.json, только проверенные публичные данные):
+    по наименованию или ИНН СРО заполняет пустые ИНН/ОГРН/адрес СРО в карточке управляющего */
+ function nmS(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'“”„]/g,'').replace(/\s+/g,' ').trim()}
+ function SR(){return K().sro_registry||{}}
+ function sroFind(name,inn){var L=SR().items||[],i=D(inn),n=nmS(name);if(!n&&!i)return null;
+  return L.find(function(r){return i&&D(r.inn)==i})||L.find(function(r){return n&&[r.name].concat(r.short||[],r.aliases||[]).some(function(a){return nmS(a)==n})})||null}
+ function sroFill(quiet){var s=inp('СРО');if(!s)return 0;var r=sroFind(s.value,(inp('ИНН_СРО')||{}).value),M=SR().map||{ИНН_СРО:'inn',ОГРН_СРО:'ogrn',АДРЕС_СРО:'address'},n=0;
+  if(!r){if(!quiet&&s.value.trim()&&Object.keys(M).some(function(k){var i=inp(k);return i&&!i.value}))mgrMsg(U('sro_none'));return 0}
+  Object.keys(M).forEach(function(k){var i=inp(k);if(i&&!i.value&&r[M[k]]){setV(k,String(r[M[k]]));n++}});if(n)mgrMsg(U('sro_filled'));return n}
+ function sroList(){var s=inp('СРО'),L=SR().items||[];if(!s||!L.length||s.getAttribute('list'))return;var d=document.getElementById('dm_sro_dl');if(!d){d=document.createElement('datalist');d.id='dm_sro_dl';d.innerHTML=L.map(function(r){return '<option value="'+E(r.name)+'">'}).join('');document.body.appendChild(d)}s.setAttribute('list','dm_sro_dl')}
+ document.addEventListener('change',function(e){var t=e.target;if(t&&t.id=='dm_СРО'&&t.closest('.dmged'))sroFill()});
  function mgrUI(){var m=mgrEl();if(!m||K().au_search===false)return;var box=m.querySelector('.dauq');if(!box){box=document.createElement('div');box.className='dauq';var h=m.querySelector('h4');if(h)h.after(box);else m.prepend(box)}
   var p=pend().filter(function(q){return q.type=='au_search'})[0],R=AUR[0],h='<button type="button" class="lbtn sec" data-cpq="au"'+(p?' disabled':'')+'>'+E(U('au_btn'))+'</button><div class="sm dhint" role="status">'+E(p?(p.status=='in_progress'?U('st_progress',{m:p.eta||10}):U('st_new')):U('au_note'))+'</div>';
-  if(R&&!p){h+=R.c.length?'<div class="dauc" role="list">'+R.c.map(function(x,i){return '<button type="button" class="lot dit dauci" role="listitem" data-cpq="aupick" data-i="'+i+'"><div class="d1">'+E(x.fio)+'</div><div class="sm">'+E(['ИНН '+x.inn,x.sro||U('au_no_sro'),x.date_reg?U('au_reg',{d:dmy(x.date_reg)}):'',x.active_cases!=null?U('au_cases',{n:x.active_cases}):''].filter(Boolean).join(' · '))+'</div></button>'}).join('')+'</div><p class="sm dmut">'+E(U('au_regno'))+'</p>':'<p class="sm">'+E(R.err?U('au_error'):U('au_none'))+'</p>'}
+  if(R&&!p){h+=R.c.length?'<div class="dauc" role="list">'+R.c.map(function(x,i){return '<button type="button" class="lot dit dauci" role="listitem" data-cpq="aupick" data-i="'+i+'"><div class="d1">'+E(x.fio)+'</div><div class="sm">'+E(['ИНН '+x.inn,x.sro||(x.in_sro===false?U('au_no_sro'):U('au_sro_unknown')),x.date_reg?U('au_reg',{d:dmy(x.date_reg)}):'',x.active_cases!=null?U('au_cases',{n:x.active_cases}):''].filter(Boolean).join(' · '))+'</div></button>'}).join('')+'</div><p class="sm dmut">'+E(U('au_regno'))+'</p>':'<p class="sm">'+E(R.err?U('au_error'):U('au_none'))+'</p>'}
   if(box.innerHTML!==h)box.innerHTML=h}
- new MutationObserver(function(){var m=mgrEl();if(m&&!m.querySelector('.dauq'))mgrUI()}).observe(document.documentElement,{childList:true,subtree:true});
+ new MutationObserver(function(){var m=mgrEl();if(m&&!m.querySelector('.dauq')){mgrUI();sroList();sroFill(true)}}).observe(document.documentElement,{childList:true,subtree:true});
  setTimeout(function(){arm(3)},4000);
- return {btn:btn,send:send,poll:poll,pending:pend,_apply:apply,_au:function(){return AUR}}})();
+ return {btn:btn,send:send,poll:poll,pending:pend,_apply:apply,_au:function(){return AUR},_sro:sroFind,sroFill:sroFill}})();

@@ -68,7 +68,7 @@ window.ArbAUDEB=(function(){
  function isMask(f){return (CF.mask_reveal||[]).indexOf(f)>=0}
  function maskV(v){return String(v||'').replace(/[0-9A-Za-zА-Яа-яЁё]/g,'•')}
  function fx(mid,a,f,key){var v=fval(mid,a,f),val=v?String(v.value==null?'':v.value):'',w=(UI.wide||[]).indexOf(f)>=0,ed=v&&v.edited,mk=isMask(f)&&!(REV[a+f]>Date.now()),hint=key&&(UI.hints||{})[f];
-  var bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?'<i class="bdg">'+E(v.saved?T('saved_cp'):T('src',{d:dmy(v.updated_at)}))+(v.source&&!v.saved?' · '+E(srcName(v.source)):'')+'</i>':'');
+  var bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?(function(bt){return '<i class="bdg" title="'+E(bt)+'">'+E(bt)+'</i>'})((v.saved?T('saved_cp'):T('src',{d:dmy(v.updated_at)}))+(v.source&&!v.saved?' · '+srcName(v.source):'')):'');
   var alt=v&&!ed&&v.alt&&v.alt.length?'<div class="alt">'+E(T('alt',{v:v.alt[0].value,s:srcName(v.alt[0].source)}))+'</div>':'';
   var nl=(UI.never_local||[]).indexOf(f)>=0?'<div class="hint">'+I.info+E(T('not_local'))+'</div>':'';
   return '<label class="fx'+(ed?' edited':'')+(key?' key':'')+(w?' w':'')+'"><span class="frow"><span class="fl">'+E(label(f))+'</span>'+bd+'</span>'+(mk&&val?'<span style="display:flex;gap:6px;align-items:center"><input class="inp" value="'+E(maskV(val))+'" disabled><button type="button" class="opn" data-apx="rev" data-f="'+E(f)+'">'+I.eye+E(T('show'))+'</button></span>':

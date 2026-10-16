@@ -787,7 +787,7 @@ function rstAsk(){var d=document.createElement('div');d.className='dmodal dfx';d
  document.body.appendChild(d);var b=d.querySelector('[data-rsc="0"]');b&&b.focus();
  d.addEventListener('click',function(e){var x=e.target.closest('[data-rsc]');if(e.target===d||x){d.remove();if(x&&x.dataset.rsc=='1')rstDo()}});
  d.addEventListener('keydown',function(e){if(e.key=='Escape')d.remove()})}
-function rstDo(){S.drafts={};S.mgr=null;S.cur=null;delete S.bregions;CUR=null;OV=null;
+function rstDo(){S.drafts={};S.mgr=null;S.cur=null;delete S.bregions;CUR=null;OV=null;BSEL.clear();bar('');
  FL.pk={};FL.batch=false;FL.need=null;FL.res=null;FL.dq='';FL.dAll=null;FL.tq='';FL.all=false;FL.oth=false;FL.af=false;FL.tab='f';FL.ms='';
  if(window.ArbBatch&&ArbBatch.reset)ArbBatch.reset();
  var ed=$('ded');if(ed){ed.style.display='none';ed.innerHTML=''}$('vdocs').classList.remove('editing');var sh=$('dfsheet');if(sh){sh.hidden=true;sh.innerHTML=''}
