@@ -32,8 +32,14 @@ window.ArbTables=function(D){
   return out.join('\n')}
  function tx(x){return (x.match(/<w:t(?:\s[^>]*)?>[^<]*<\/w:t>/g)||[]).map(function(y){return y.replace(/<[^>]+>/g,'')}).join('')}
  /* docx: строка таблицы с полями раздела */
- function xml(x,t){if(!on(t))return x;optional(t);var B=TS(t),sg={};return x.replace(/<w:tr[ >][\s\S]*?<\/w:tr>/g,function(tr){var full=tx(tr),tc=/<w:tc>[\s\S]*?<\/w:tc>/.exec(tr),c0=tc?tx(tc[0]).trim():'',b=rowTable(B,full);
-   if(!b){sgSeen(B,c0,sg);return tr}
+ /* 1.7g: строка «Не имеется» — по tables_meta.empty_row (одна ячейка на всю ширину, выравнивание, кегль, интервалы); PDF строится из этого же XML */
+ function hdrOf(B,full){return B.find(function(z){var h=String((z.headers||[])[1]||'').replace(/\*?\(\d+\)/g,'').trim().slice(0,24);return h&&full.indexOf(h)>=0})||null}
+ function emptyRow(b,tr){var X=(D.X&&D.X())||{},M=((X.tables_meta||{}).empty_row)||{};if(typeof M!='object')M={};var n=(b.headers||[]).length||(b.row_fields.length+1),w=Math.round((b.column_widths_mm||[]).reduce(function(a,c){return a+(+c||0)},0)*56.6929),
+   sp=M.spacing_twips!=null?+M.spacing_twips:Math.round((+M.spacing_mm||0)*56.6929),sz=Math.round((+M.font_pt||9)*2),al={left:'left',right:'right',center:'center',justify:'both'}[M.align]||'center',
+   ow=(/<w:tcW[^>]*w:w="(\d+)"/.exec(tr)||[])[1],tp=(/<w:trPr>[\s\S]*?<\/w:trPr>/.exec(tr)||[''])[0],bd=(/<w:tcBorders>[\s\S]*?<\/w:tcBorders>/.exec(tr)||[''])[0],rf=(/<w:rFonts[^>]*\/>/.exec(tr)||[''])[0];
+  if(ow&&Math.abs(+ow-w)<=2)w=+ow;return '<w:tr>'+tp+'<w:tc><w:tcPr>'+(w?'<w:tcW w:type="dxa" w:w="'+w+'"/>':'')+(M.span=='full'||M.span==null?'<w:gridSpan w:val="'+n+'"/>':'')+bd+'</w:tcPr><w:p><w:pPr><w:spacing w:before="'+sp+'" w:after="'+sp+'"/><w:ind w:left="0" w:firstLine="'+Math.round((+M.first_line_indent_mm||0)*56.6929)+'"/><w:jc w:val="'+al+'"/></w:pPr><w:r><w:rPr>'+rf+'<w:b w:val="'+(M.bold?1:0)+'"/><w:bCs w:val="'+(M.bold?1:0)+'"/><w:sz w:val="'+sz+'"/><w:szCs w:val="'+sz+'"/></w:rPr><w:t>'+D.xe(b.empty_row_text||'Не имеется')+'</w:t></w:r></w:p></w:tc></w:tr>'}
+ function xml(x,t){if(!on(t))return x;optional(t);var B=TS(t),sg={},cur=null;return x.replace(/<w:tr[ >][\s\S]*?<\/w:tr>/g,function(tr){var full=tx(tr),tc=/<w:tc>[\s\S]*?<\/w:tc>/.exec(tr),c0=tc?tx(tc[0]).trim():'',b=rowTable(B,full);
+   if(!b){sgSeen(B,c0,sg);var h=hdrOf(B,full);if(h)cur=h;if(cur&&full.trim()==(cur.empty_row_text||'Не имеется'))return emptyRow(cur,tr);return tr}
    return rowsFor(t,b,b.numbering=='subgroup'?sg[b.id]:null).map(function(r,i){var c=tr.replace(/(<w:tc>[\s\S]*?<w:t(?:\s[^>]*)?>)[^<]*(<\/w:t>)/,'$1'+D.xe(num(b,i+1))+'$2');
     return c.replace(/\{\{([^{}]+)\}\}/g,function(mm,k){return b.row_fields.indexOf(k)>=0?D.xe(String(D.fmt(k,r[k]||'')).replace(/\s*\n\s*/g,' ')):mm})}).join('')})}
  /* миграция старой описи (одна таблица с графой РАЗДЕЛ или строки 1.7e с полями ОПИСЬ_*) — field_meta.deprecated_aliases_map.РАЗДЕЛ + deprecated_alias полей */
@@ -69,6 +75,7 @@ window.ArbTables=function(D){
  function add(t,id){list(t,id).push({})}
  function del(t,id,i){list(t,id).splice(+i,1)}
  /* предпросмотр: подряд идущие строки «| … |» → таблица (первая строка — заголовок, строка «|---|» пропускается) */
+ var ETXc=null;function ETX(){if(!ETXc){ETXc=[];((D.X()||{}).templates||[]).forEach(function(t){(t.tables||[]).forEach(function(b){var x=b.empty_row_text;if(x&&ETXc.indexOf(D.E(x))<0)ETXc.push(D.E(x))})})}return ETXc}
  function htmlTables(h){return String(h).replace(/(?:<div(?: class="[^"]*")?>\|[^\n]*?\|\s*<\/div>)+/g,function(run){var R=run.match(/<div(?: class="[^"]*")?>\|[^\n]*?\|\s*<\/div>/g)||[],rows=R.map(function(d){return d.replace(/^<div[^>]*>\|/,'').replace(/\|\s*<\/div>$/,'').split('|')});
-   if(rows.length<2)return run;var hd=rows[1]&&rows[1].every(function(c){return /^\s*:?-{3,}:?\s*$/.test(c)}),out='<div class="dtbw"><table class="dtbl">';rows.forEach(function(r,i){if(hd&&i==1)return;var tg=hd&&i==0?'th':'td';out+='<tr>'+r.map(function(c){return '<'+tg+'>'+c.trim()+'</'+tg+'>'}).join('')+'</tr>'});return out+'</table></div>'})}
+   if(rows.length<2)return run;var hd=rows[1]&&rows[1].every(function(c){return /^\s*:?-{3,}:?\s*$/.test(c)}),out='<div class="dtbw"><table class="dtbl">';rows.forEach(function(r,i){if(hd&&i==1)return;var tg=hd&&i==0?'th':'td';var ne=r.filter(function(c){return c.trim()});if(tg=='td'&&ne.length==1&&ETX().indexOf(ne[0].trim())>=0){out+='<tr><td class="dtbe" colspan="'+r.length+'">'+ne[0].trim()+'</td></tr>';return}out+='<tr>'+r.map(function(c){return '<'+tg+'>'+c.trim()+'</'+tg+'>'}).join('')+'</tr>'});return out+'</table></div>'})}
  return {htmlTables:htmlTables,on:on,own:own,count:count,md:md,xml:xml,html:html,set:set,add:add,del:del,needsCheck:needsCheck,store:store}};

@@ -227,6 +227,8 @@ function sgXml(x){if(SLC().enabled===false)return x;var dk=SDF()[0]||'ДАТА',
  var sig=tx(P).trim().replace('{{ФИО_УПРАВЛЯЮЩЕГО}}',SLC().initials===false?'{{ФИО_УПРАВЛЯЮЩЕГО}}':'{{ФИО_УПРАВЛЯЮЩЕГО_ИОФ}}').replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g,'&amp;');
  var NP='<w:p>'+ppr+'<w:r>'+rpr+'<w:t>{{'+dk+'}}</w:t></w:r><w:r>'+rpr+'<w:tab/></w:r><w:r>'+rpr+'<w:t xml:space="preserve">'+sig+'</w:t></w:r></w:p>';
  var re=/<w:p[ >][\s\S]*?<\/w:p>/g,m,n=0,st=-1,en=-1;while((m=re.exec(x))){if(n==si)st=m.index;if(n==di){en=m.index+m[0].length;break}n++}if(st<0||en<0)return x;return x.slice(0,st)+NP+x.slice(en)}
+var RGT=null;function RGX(){if(!RGT&&window.ArbRG)RGT=ArbRG({C:function(){return C},X:function(){return X},F:function(){return F},E:E,items:function(t,g){return rgItems(t,g)},raw:function(k,i){var p0=raw.pr;raw.pr=0;try{return raw(k,i)}finally{raw.pr=p0}},curCase:curCase,metas:function(){return window.ArbArch&&ArbArch.metas?ArbArch.metas():[]},tpl:tByIdQ,draftOf:function(i){return S.drafts[i]},save:save,chVals:chValsOf,fieldOn:rgFieldOn,cur:function(){return CUR},redraw:v7Redraw,open:function(i){openT(i)}});return RGT}
+var RQT=null;function RQ_(){if(!RQT&&window.ArbReq)RQT=ArbReq({C:function(){return C},F:function(){return F},raw:function(k,i){var p0=raw.pr;raw.pr=0;try{return raw(k,i)}finally{raw.pr=p0}},off:function(t){return cbOffFields(t).concat(rgAll(t),TBown(t),ilFields(t).filter(function(k){return !(F[k]||{}).required}))},draft:function(i){return S.drafts[i]=S.drafts[i]||{}},rgReq:function(t){return RGX()?RGX().reqItems(t):[]},save:save,cur:function(){return CUR},fld:function(k,t){return fld(k,t)},toast:toast});return RQT}
 var TBT=null;function TB_(){if(!TBT&&window.ArbTables)TBT=ArbTables({C:function(){return C},X:function(){return X},F:function(){return F},DRA:DRA,raw:function(k,i){var p0=raw.pr;raw.pr=0;try{return raw(k,i)}finally{raw.pr=p0}},fmt:fmt,xe:xe,E:E,inp:inp});return TBT}
 function TBon(t){return !!(TB_()&&TB_().on(t))}function TBown(t){return TBon(t)?TB_().own(t):[]}
 var LYT=null;function LY_(){if(!LYT&&window.ArbLayout)LYT=ArbLayout({C:function(){return C},pList:pList,sigPick:sigPick,SIGLINE:SIGLINE,raw:function(k,t){return t?raw(k,t.id):''}});return LYT}
@@ -323,14 +325,14 @@ function isDateF(k,label){var P=C.date_patterns||{},ex=(P.exclude||[]).some(func
 function dISO(v){v=String(v||'').trim();if(!v)return '';if(/^\d{4}-\d\d-\d\d$/.test(v))return v;var m=/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(v);return m?m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2):null}
 function initFields(){var src=Object.assign({},X.fields||{},C.extra_fields||{});
  Object.keys(src).forEach(function(k){var f=Object.assign({},src[k]);f.k=k;if((C.labels||{})[k])f.label=C.labels[k];if((C.scope_override||{})[k])f.scope=C.scope_override[k];
-  f.type=(src[k].type=='date'||re(C.date_fields,k)||isDateF(k,f.label))?'date':re(C.time_fields,k)?'time':re(C.textarea_fields,k)?'textarea':re(C.inn_fields,k)?'inn':'text';f.opt=(C.options||{})[k];f.optional=(C.optional||[]).indexOf(k)>=0;f.hint=src[k].hint||'';F[k]=f});
+  f.type=src[k].type=='boolean'?'boolean':(src[k].type=='date'||re(C.date_fields,k)||isDateF(k,f.label))?'date':re(C.time_fields,k)?'time':re(C.textarea_fields,k)?'textarea':re(C.inn_fields,k)?'inn':'text';f.opt=(C.options||{})[k];f.optional=(C.optional||[]).indexOf(k)>=0;f.hint=src[k].hint||'';f.required=!!src[k].required;f.fill_order=src[k].fill_order||'';F[k]=Object.assign(f,(C.field_overrides||{})[k])});
  X.templates.forEach(function(t){t.fields.forEach(function(k){if(!F[k])F[k]={k:k,label:k.replace(/_/g,' ').toLowerCase().replace(/^./,function(c){return c.toUpperCase()}),scope:'document',type:'text'}})})}
 function ofScope(sc,order){var a=(order||[]).filter(function(k){return F[k]&&F[k].scope==sc});Object.keys(F).forEach(function(k){if(F[k].scope==sc&&a.indexOf(k)<0)a.push(k)});return a}
 function curCase(){return S.cases.find(function(c){return c.id==S.cur})||null}
 function caseName(c){var d=c.data||{};return [d.ДОЛЖНИК_НАИМЕНОВАНИЕ,d.НОМЕР_ДЕЛА].filter(Boolean).join(' · ')||U('case_unnamed')}
 /* d6: дата документа (ДАТА и sign_date.fields) — всегда сегодня, если поле пустое или не тронуто: в форме, превью, docx, в пакетах (OV) тоже */
 function SDF(){var L=((C&&C.sign_date)||{}).fields||['ДАТА'];return L}
-function raw(k,tid){if(String(k).indexOf('#')>0)return rgRaw(k,tid);var AFm=(C.addressees||{}).addr_field||{};for(var nmA in AFm)if(AFm[nmA]==k){var vA=raw0(k,tid);if(vA!=null&&String(vA).trim())return vA;var tAf=X.templates.find(function(x){return x.id==tid});if(tAf&&adrField(tAf)==nmA)return raw('АДРЕСАТ_АДРЕС',tid)||''}
+function raw(k,tid){var cv=RGX()&&RGX().calc(k,tid);if(cv!=null)return cv;if(String(k).indexOf('#')>0)return rgRaw(k,tid);if(F[k]&&F[k].fill_order&&RQ_()&&RQ_().blocked(k,tid))return '';var AFm=(C.addressees||{}).addr_field||{};for(var nmA in AFm)if(AFm[nmA]==k){var vA=raw0(k,tid);if(vA!=null&&String(vA).trim())return vA;var tAf=X.templates.find(function(x){return x.id==tid});if(tAf&&adrField(tAf)==nmA)return raw('АДРЕСАТ_АДРЕС',tid)||''}
  var CFm=(C.addressees||{}).code_field||{};if(!raw.cc){for(var nmF in CFm)if(CFm[nmF]==k){var v0c=raw0(k,tid);if(v0c!=null&&String(v0c).trim())return v0c;var tC=X.templates.find(function(x){return x.id==tid});if(tC&&adrField(tC)==nmF){var dC=(OV?OV.v:(S.drafts[tid]||{}))||{};if(String(dC[nmF]||'').trim())return dC[k]||'';raw.cc=1;try{var aC=adrAuto(tC);return aC?(aC.code||''):''}finally{raw.cc=0}}}}if(raw.pr){var tP=X.templates.find(function(x){return x.id==tid});if(tP&&(noPrintF(tP,k)||cbOffFields(tP).indexOf(k)>=0))return ''}if(k=='ФИО_УПРАВЛЯЮЩЕГО_ИОФ')return iof(raw('ФИО_УПРАВЛЯЮЩЕГО',tid));
  if(k=='АДРЕСАТ_НАИМ'||k=='АДРЕСАТ_АДРЕС'||(OV==null&&X.templates)){var tA=X.templates.find(function(x){return x.id==tid}),cfA=tA&&adrField(tA);
   if(tA&&cfA&&(k==cfA||k=='АДРЕСАТ_НАИМ'||k=='АДРЕСАТ_АДРЕС')){var dA=(OV?OV.v:(S.drafts[tid]||{}))||{},own=String(dA[cfA]||'').trim();
@@ -354,6 +356,7 @@ function inp(f,v,pre){var id=pre+'_'+f.k,a=' data-k="'+E(f.k)+'" id="'+E(id)+'"'
  if(f.k=='ИСХ_НОМЕР'&&pre=='df'){var o=outCfg();a+=' placeholder="'+E(U('out_auto',{no:outFmt(o.next,o,'')}))+'"'}
  if(co&&!f.opt){dl='<datalist id="'+E(id)+'_l">'+co.map(function(o){return '<option value="'+E(o)+'">'}).join('')+'</datalist>';a+=' list="'+E(id)+'_l"'}
  if(f.opt){dl='<datalist id="'+E(id)+'_l">'+f.opt.map(function(o){return '<option value="'+E(o)+'">'}).join('')+'</datalist>';a+=' list="'+E(id)+'_l"'}
+ if(f.type=='boolean')return '<input type="checkbox"'+a+(RGX()&&RGX().truthy(v)?' checked':'')+'>';
  if(f.type=='textarea')return '<textarea'+a+' rows="3">'+E(v)+'</textarea>';
  if(f.type=='date')return dateInp(a,v,dl);
  return '<input'+a+(f.type=='date'?' type="date"':f.type=='time'?' type="time"':'')+(f.type=='inn'?' inputmode="numeric"':'')+(f.type=='text'&&/EMAIL/.test(f.k)?' type="email"':'')+(/ТЕЛ_/.test(f.k)?' type="tel"':'')+' value="'+E(v)+'" autocomplete="off">'+dl}
@@ -473,7 +476,7 @@ function RGS(t){return (t&&t.repeat_groups)||{}}
 function rgOf(k,t){var G=RGS(t);for(var g in G)if((G[g].fields||[]).indexOf(k)>=0)return g;return null}
 function rgAll(t){var o=[],G=RGS(t);for(var g in G)o=o.concat(G[g].fields||[]);return o}
 function DRA(tid){if(OV){OV.v=OV.v||{};return OV.v}return S.drafts[tid]||(S.drafts[tid]={})}
-function rgItems(t,g){var d=DRA(t.id);if(!d._rg||typeof d._rg!='object')d._rg={};var L=d._rg[g];if(!Array.isArray(L))L=d._rg[g]=[];var mn=+((RGS(t)[g]||{}).min_items)||0;while(L.length<mn)L.push({});return L}
+function rgItems(t,g){var d=DRA(t.id);if(!d._rg||typeof d._rg!='object')d._rg={};var L=d._rg[g];if(!Array.isArray(L))L=d._rg[g]=[];var mn=+((RGS(t)[g]||{}).min_items)||0;while(L.length<mn)L.push({});if(RGX()&&!rgItems.b){rgItems.b=1;try{RGX().pull(t,g,L)}finally{rgItems.b=0}}return L}
 function tByIdQ(id){return (X.templates||[]).find(function(x){return x.id==id})||null}
 function isoOf(v){v=String(v||'').trim();if(/^\d{2}\.\d{2}\.\d{4}$/.test(v))v=v.split('.').reverse().join('-');return /^\d{4}-\d\d-\d\d$/.test(v)?v:''}
 function dmyOf(iso){return iso?iso.split('-').reverse().join('.'):''}
@@ -483,7 +486,7 @@ function debtorType(c){c=c===undefined?curCase():c;var d=(c&&c.data)||{};if(d._d
 function cbBlock(t,fl){return CBL(t).find(function(x){return x.flag==fl||x.id==fl})||null}
 function cbScopeG(t,b){return b&&b.scope&&b.scope!='document'&&RGS(t)[b.scope]?b.scope:null}
 function chValsOf(src,k,t){var s=src&&src['_ch_'+k];if(s&&Array.isArray(s.v))return s.v;return []}
-function cbAuto(t,b,src){var ff=b&&b.flag_from;if(!ff)return null;if(ff.debtor_type)return debtorType()==ff.debtor_type;if(ff.table!=null){var tn=TBon(t)?TB_().count(t,ff.table):0;return ff.empty===false?tn>0:tn==0}if(ff.field&&ff.filled!=null){var p0=raw.pr,fv;raw.pr=0;try{fv=raw(ff.field,t.id)}finally{raw.pr=p0}return (fv!=null&&String(fv).trim()!=='')==!!ff.filled}
+function cbAuto(t,b,src){var ff=b&&b.flag_from;if(!ff)return null;var rx=RGX()?RGX().flag(t,ff,src):null;if(rx!=null)return rx;if(ff.debtor_type)return debtorType()==ff.debtor_type;if(ff.table!=null){var tn=TBon(t)?TB_().count(t,ff.table):0;return ff.empty===false?tn>0:tn==0}if(ff.field&&ff.filled!=null){var p0=raw.pr,fv;raw.pr=0;try{fv=raw(ff.field,t.id)}finally{raw.pr=p0}return (fv!=null&&String(fv).trim()!=='')==!!ff.filled}
  if(ff.field){var vs=chValsOf(src,ff.field,t);if(ff.equals!=null)return vs.length==1&&vs[0]==ff.equals;if(ff.includes!=null)return vs.indexOf(ff.includes)>=0;if(ff.only_values)return vs.length>0&&vs.every(function(v){return ff.only_values.indexOf(v)>=0})}return null}
 function cbVal(t,fl,src){var b=cbBlock(t,fl),k='_if_'+fl;src=src||{};var a=b?cbAuto(t,b,src):null;if(a!=null){if(a)return true;return !!(b.user_can_enable&&src[k])}if(src[k]!=null)return !!src[k];return !!(b&&b.default_flag)}
 /* --- наборы формулировок --- */
@@ -507,7 +510,7 @@ function chHtml(k,src,at){var f=F[k]||{},cs=CSET(f.choices)||{},s=chGet(src,k),O
  return h+'</div>'}
 /* --- ключи элементов групп: ПОЛЕ#i --- */
 function rgK(k){var m=/^(.+)#(\d+)$/.exec(k);return m?{b:m[1],i:+m[2]}:null}
-function rgOpt(t,g,it,k){var o=((V7().groups||{})[g]||{}).optional||{},L=o[cbVal(t,((V7().groups||{})[g]||{}).type_flag||'',it)?'person':'legal']||o.all||[];return L.indexOf(k)>=0||(o.all||[]).indexOf(k)>=0}
+function rgOpt(t,g,it,k){if((F[k]||{}).calculated)return true;var o=((V7().groups||{})[g]||{}).optional||{},L=o[cbVal(t,((V7().groups||{})[g]||{}).type_flag||'',it)?'person':'legal']||o.all||[];return L.indexOf(k)>=0||(o.all||[]).indexOf(k)>=0}
 function rgReg(t,g,i,it){(RGS(t)[g].fields||[]).forEach(function(k){var nk=k+'#'+i,b=F[k]||{k:k,label:k,type:'text'};F[nk]=Object.assign({},b,{k:nk,label:(b.label||k)+' · '+(i+1),optional:rgOpt(t,g,it,k)||!!b.optional})})}
 function rgFieldOn(t,g,it,k){var on=true;CBL(t).forEach(function(b){if(cbScopeG(t,b)==g&&(b.fields||[]).indexOf(k)>=0&&!cbVal(t,b.flag,it))on=false});return on}
 function rgCompB(t,k){var b=dlBlock(t,k);return b&&b.scope&&RGS(t)[b.scope]?b:null}
@@ -528,29 +531,29 @@ function rgRaw(k,tid){var p=rgK(k),t=tByIdQ(tid);if(!p||!t)return '';var g=rgOf(
 function tbBaseKey(t){var k=null;(rgAll(t)).forEach(function(f){if(!k&&rgCompB(t,f))k=f});return k}
 /* --- {{#each}} в md и docx; {{#if}} внутри — по флагам элемента (scope группы) или документа --- */
 function ifOn(t,fl,it){var b=cbBlock(t,fl);if(b&&cbScopeG(t,b))return cbVal(t,fl,it);if(!b&&it&&((V7().item_flags||[]).indexOf(fl)>=0))return !!it['_if_'+fl];return cbOn(t,fl)}
-function rgSub(s,t,g,i){(RGS(t)[g].fields||[]).forEach(function(k){s=s.split('{{'+k+'}}').join('{{'+k+'#'+i+'}}');s=s.replace(new RegExp('\\{\\{#if\\s+'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*\\}\\}','g'),'{{#if '+k+'#'+i+'}}')});return s}
+function rgSub(s,t,g,i){s=s.split('{{@number}}').join(RGX()?RGX().num(t,g,i):i+1);(RGS(t)[g].fields||[]).forEach(function(k){s=s.split('{{'+k+'}}').join('{{'+k+'#'+i+'}}');s=s.replace(new RegExp('\\{\\{#if\\s+'+k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*\\}\\}','g'),'{{#if '+k+'#'+i+'}}')});return s}
 function rgMd(s,t){s=String(s);if(s.indexOf('{{#each')<0)return s;var L=s.split('\n'),out=[],i=0;
  while(i<L.length){var m=/^\s*\{\{#each\s+([^}\s]+)\s*\}\}\s*$/.exec(L[i]);if(!m){out.push(L[i++]);continue}var g=m[1],body=[];i++;while(i<L.length&&!/^\s*\{\{\/each\}\}\s*$/.test(L[i]))body.push(L[i++]);i++;
-  if(!RGS(t)[g])continue;rgItems(t,g).forEach(function(it,n){rgReg(t,g,n,it);var skip=0;body.forEach(function(l){var mi=/^\s*\{\{#if\s+([^}\s]+)\s*\}\}\s*$/.exec(l);if(mi){skip=ifOn(t,mi[1],it)?0:1;return}if(/^\s*\{\{\/if\}\}\s*$/.test(l)){skip=0;return}if(!skip)out.push(rgSub(l,t,g,n))})})}
+  if(!RGS(t)[g])continue;rgItems(t,g).forEach(function(it,n){rgReg(t,g,n,it);if(RGX()&&RGX().skip(t,g,it,n))return;var skip=0;body.forEach(function(l){var mi=/^\s*\{\{#if\s+([^}\s]+)\s*\}\}\s*$/.exec(l);if(mi){skip=ifOn(t,mi[1],it)?0:1;return}if(/^\s*\{\{\/if\}\}\s*$/.test(l)){skip=0;return}if(!skip)out.push(rgSub(l,t,g,n))})})}
  return out.join('\n')}
 function rgXml(x,t){if(x.indexOf('{{#each')<0)return x;var tx=function(p){return (p.match(/<w:t(?:\s[^>]*)?>[^<]*<\/w:t>/g)||[]).map(function(y){return y.replace(/<[^>]+>/g,'')}).join('').trim()};
  var body=[],g=null;
  var re=/<w:p[ >][\s\S]*?<\/w:p>/g,mm,out='',last=0;
  while((mm=re.exec(x))){var p=mm[0],q=tx(p),me=/^\{\{#each\s+([^}\s]+)\s*\}\}$/.exec(q);
   if(me&&g==null){out+=x.slice(last,mm.index);g=me[1];body=[];last=re.lastIndex;continue}
-  if(g!=null){if(q=='{{/each}}'){var gg=g;g=null;last=re.lastIndex;if(RGS(t)[gg])rgItems(t,gg).forEach(function(it,n){rgReg(t,gg,n,it);var skip=0;body.forEach(function(bp){var qq=tx(bp),mi=/^\{\{#if\s+([^}\s]+)\s*\}\}$/.exec(qq);if(mi){skip=ifOn(t,mi[1],it)?0:1;return}if(qq=='{{/if}}'){skip=0;return}if(!skip)out+=rgSub(bp,t,gg,n)})});continue}
+  if(g!=null){if(q=='{{/each}}'){var gg=g;g=null;last=re.lastIndex;if(RGS(t)[gg])rgItems(t,gg).forEach(function(it,n){rgReg(t,gg,n,it);if(RGX()&&RGX().skip(t,gg,it,n))return;var skip=0;body.forEach(function(bp){var qq=tx(bp),mi=/^\{\{#if\s+([^}\s]+)\s*\}\}$/.exec(qq);if(mi){skip=ifOn(t,mi[1],it)?0:1;return}if(qq=='{{/if}}'){skip=0;return}if(!skip)out+=rgSub(bp,t,gg,n)})});continue}
    body.push(p);last=re.lastIndex;continue}}
  return out+x.slice(last)}
 /* --- мягкая проверка периода (validations): «A < B − N лет/мес/дн»; годы — п. 3 ст. 192 ГК (то же число, иначе последний день месяца) --- */
 function vParse(c){var m=/^\s*([А-ЯЁA-Z0-9_]+)\s*<\s*([А-ЯЁA-Z0-9_]+)\s*[−\-–]\s*(\d+)\s*(год|года|лет|месяц|месяца|месяцев|дн|дня|дней|день)/i.exec(String(c||''));if(!m)return null;var u=/^(год|лет)/i.test(m[4])?'years':/^мес/i.test(m[4])?'months':'calendar_days';return {a:m[1],b:m[2],n:+m[3],u:u}}
-function vCheck(t,g,it){var o=[];(t.validations||[]).forEach(function(v){if(v.scope&&v.scope!=g)return;var p=vParse(v.condition);if(!p)return;var get=function(k){return isoOf(rgOf(k,t)==g?it[k]:raw(k,t.id))};var a=get(p.a),b=get(p.b);if(!a||!b)return;var lim=p.u=='calendar_days'?dlAddDays(b,-p.n):dlAddMonths(b,-(p.u=='years'?12:1)*p.n);if(a<lim)o.push({id:v.id,msg:v.message||'',lim:lim,norm:v.norm||''})});return o}
+function vCheck(t,g,it){var o=[];(t.validations||[]).forEach(function(v){if(v.scope&&v.scope!=g)return;var p=vParse(v.condition);if(!p)return;var get=function(k){return isoOf(rgOf(k,t)==g?it[k]:raw(k,t.id))};var a=get(p.a),b=get(p.b);if(!a||!b)return;var lim=p.u=='calendar_days'?dlAddDays(b,-p.n):dlAddMonths(b,-(p.u=='years'?12:1)*p.n);if(a<lim)o.push({id:v.id,msg:v.message||'',lim:lim,norm:v.norm||''})});return RGX()?o.concat(RGX().rules(t,g,it)):o}
 /* --- форма: карточки элементов групп --- */
 function flagLabel(t,fl){var b=cbBlock(t,fl);if(b&&b.label)return b.label;var L=(V7().flag_labels||{})[fl];if(L)return L;var lab=fl;Object.keys(t.computed||{}).forEach(function(k){var c=t.computed[k];(c&&c.variants||[]).forEach(function(v){if(v.flag==fl&&v.condition)lab=v.condition.charAt(0).toUpperCase()+v.condition.slice(1)})});return lab}
-function gInp(t,g,i,k,v){var f=F[k]||{k:k,label:k,type:'text'};return inp(f,v,'dg'+i).replace(/ data-k="[^"]*"/,' data-gk="'+E(k)+'" data-gg="'+E(g)+'" data-gi="'+i+'"').replace(/<(input|textarea|select)/,'<$1 class="inp"')}
+function gInp(t,g,i,k,v){var f=F[k]||{k:k,label:k,type:'text'};return inp(f,v,'dg'+i).replace(/ data-k="[^"]*"/,' data-gk="'+E(k)+'" data-gg="'+E(g)+'" data-gi="'+i+'"').replace(/<(input|textarea|select)/,'<$1 class="inp"'+(RGX()&&RGX().locked(t,g,k)?' readonly':''))}
 function gLab(t,g,k){var o=((V7().groups||{})[g]||{}).labels||{};return o[k]||(F[k]||{}).label||k}
 function gHint(t,g,k){var o=((V7().groups||{})[g]||{}).hints||{};return o[k]||''}
 function rgItemHtml(t,g,it,i){var gm=RGS(t)[g],gc=(V7().groups||{})[g]||{},L=rgItems(t,g),tf=gc.type_flag,at=' data-gg="'+E(g)+'" data-gi="'+i+'"',isP=tf?cbVal(t,tf,it):false;
- var h='<div class="drgi" data-gi="'+i+'"><div class="drgh"><b>'+E((gc.item||'№')+' '+(i+1))+'</b>'+(it.ОТВЕТЧИК||it[(gm.fields||[])[0]]?'<span class="sm drgnm">'+E(clip7(it[(gm.fields||[])[0]],48))+'</span>':'')+'<span class="sp"></span>'+(L.length>(+gm.min_items||0)?'<button type="button" class="link drgdel" data-rgdel="'+i+'"'+at+'>'+E(V7U('remove','Удалить'))+'</button>':'')+'</div>';
+ var h='<div class="drgi" data-gi="'+i+'"><div class="drgh"><b>'+E((gc.item||'№')+' '+RGX().numUI(t,g,i))+'</b>'+(it.ОТВЕТЧИК||it[(gm.fields||[])[0]]?'<span class="sm drgnm">'+E(clip7(it[(gm.fields||[])[0]],48))+'</span>':'')+'<span class="sp"></span>'+(L.length>(+gm.min_items||0)&&RGX().removable(t,g,i)?'<button type="button" class="link drgdel" data-rgdel="'+i+'"'+at+'>'+E(V7U('remove','Удалить'))+'</button>':'')+'</div>';
  if(tf&&(gm.flags||[]).indexOf(tf)>=0){var lb=gc.type_labels||['Организация','Гражданин'];h+='<div class="dfmt drgt" role="group">'+[0,1].map(function(n){var on=n?isP:!isP;return '<button type="button" data-rgflag="'+E(tf)+'" data-rgfv="'+n+'"'+at+' class="'+(on?'on':'')+'" aria-pressed="'+on+'">'+E(lb[n])+'</button>'}).join('')+'</div>'}
  if(window.ArbCP&&gc.pick_cp!==false){var c=curCase(),cps=(ArbCP.pick?ArbCP.pick(null,c&&c.id):[]).filter(function(x){return x&&x.name});if(cps.length)h+='<label class="f drgcp"><span>'+E(V7U('pick_cp','Из контрагентов'))+'</span><select class="inp" data-rgcp="1"'+at+'><option value="">—</option>'+cps.slice(0,400).map(function(x){return '<option value="'+E(x.id)+'">'+E(x.name+(x.inn?' · ИНН '+x.inn:''))+'</option>'}).join('')+'</select></label>'}
  (gm.flags||[]).forEach(function(fl){if(fl==tf)return;var b=cbBlock(t,fl);if(b&&b.flag_from&&!b.user_can_enable)return;var on=cbVal(t,fl,it),auto=b&&b.flag_from?cbAuto(t,b,it):null;
@@ -570,7 +573,7 @@ function rgItemHtml(t,g,it,i){var gm=RGS(t)[g],gc=(V7().groups||{})[g]||{},L=rgI
  return h+'</div>'}
 function calcTxt(t,r){var b=r.b;return V7U('calc','{from} + {n} {u} ({norm}) = {raw}{sh}',{from:dmyOf(r.from),n:b.offset,u:dlUnitTxt(+b.offset,b.unit),norm:b.norm||'',raw:dmyOf(r.raw),sh:r.shift?' → '+dmyOf(r.iso)+' ('+V7U('shift','перенос на рабочий день, ст. 193 ГК')+')':''})}
 function rgHtml(t){var G=RGS(t),h='';for(var g in G){var gm=G[g],L=rgItems(t,g),gc=(V7().groups||{})[g]||{};
-  h+='<div class="card drg" id="drg_'+E(g)+'" data-rgg="'+E(g)+'"><h3>'+E(gm.label||g)+' <span class="cnt">'+L.length+'</span></h3>'+L.map(function(it,i){return rgItemHtml(t,g,it,i)}).join('')+'<button type="button" class="btn ghost drgadd" data-rgadd="'+E(g)+'">'+E(gc.add||'+ Добавить')+'</button></div>'}
+  h+='<div class="card drg" id="drg_'+E(g)+'" data-rgg="'+E(g)+'"><h3>'+E(gm.label||g)+' <span class="cnt">'+L.length+'</span></h3>'+RGX().head(t,g)+L.map(function(it,i){return rgItemHtml(t,g,it,i)}).join('')+RGX().addBtn(t,g,gc.add)+'</div>'}
  if(TR(t)&&tbNeed(t))h+=tbHtml(t);return h}
 function tbNeed(t){var tr=TR(t),g=tr&&tr.scope;if(!g||!RGS(t)[g])return false;var bk=tbBaseKey(t);return rgItems(t,g).some(function(it){return rgFieldOn(t,g,it,t.table_target)||(bk&&rgFieldOn(t,g,it,bk))})}
 /* --- таблица ст. 61.12 --- */
@@ -608,7 +611,7 @@ function v7Bind(root){if(!root||root._v7)return;root._v7=1;
   if(b.dataset.dtype){var c=curCase();if(c){c.data=c.data||{};c.data._dtype=b.dataset.dtype;save()}v7Redraw();return}
   if(b.dataset.ppay){ppAttach(t);return}});
  root.addEventListener('input',function(e){var i=e.target;if(!CUR)return;
-  if(i.dataset.gk&&!i.closest('[data-chk]')){var it=v7Src(i);if(!it)return;var v=i.value;if(i.dataset.date){var iso=isoOf(v);if(v&&!iso)return;v=iso}it[i.dataset.gk]=v;if(it._needs_check)it._needs_check=it._needs_check.filter(function(x){return x!=i.dataset.gk});var lb=i.closest('label.f');if(lb)lb.classList.toggle('empty',!String(v).trim()&&!rgOpt(CUR,i.dataset.gg,it,i.dataset.gk));v7Soft();return}
+  if(i.dataset.gk&&!i.closest('[data-chk]')){var it=v7Src(i);if(!it)return;var v=i.type=='checkbox'?i.checked:i.value;if(i.dataset.date){var iso=isoOf(v);if(v&&!iso)return;v=iso}it[i.dataset.gk]=v;if(it._needs_check)it._needs_check=it._needs_check.filter(function(x){return x!=i.dataset.gk});var lb=i.closest('label.f');if(lb)lb.classList.toggle('empty',!String(v).trim()&&!rgOpt(CUR,i.dataset.gg,it,i.dataset.gk));v7Soft();return}
   if(i.dataset.chc){var w=i.closest('[data-chk]'),src=w.dataset.gg!=null?v7Src(w):DRA(CUR.id);if(src){chSet(src,w.dataset.chk,null,i.value);v7Soft()}return}
   if(i.dataset.tbk){var r=tbRows(CUR)[+i.dataset.tbi];if(!r)return;var v2=i.value;if(i.dataset.date){var iso2=isoOf(v2);if(v2&&!iso2)return;v2=iso2}r[i.dataset.tbk]=v2;v7Soft();return}
   if(i.dataset.tbwhy!=null){var r2=tbRows(CUR)[+i.dataset.tbwhy];if(r2){r2._why=i.value;save()}return}
@@ -617,7 +620,7 @@ function v7Bind(root){if(!root||root._v7)return;root._v7=1;
   if(i.dataset.rgflag&&i.type=='checkbox'){var it=v7Src(i);if(it){it['_if_'+i.dataset.rgflag]=i.checked;v7Redraw()}return}
   if(i.dataset.rgcp){var it2=v7Src(i),cp=ArbCP.get&&ArbCP.get(i.value);if(it2&&cp){cpToItem(CUR,i.dataset.gg,it2,cp);v7Redraw()}return}
   if(i.dataset.tbex!=null){var r=tbRows(CUR)[+i.dataset.tbex];if(r){r[tbCols(CUR).ex]=i.checked?'да':'нет';v7Redraw()}return}
-  if((i.dataset.gk&&i.dataset.date)||(i.dataset.tbk&&i.dataset.date)){v7Redraw();return}
+  if((i.dataset.gk&&(i.dataset.date||i.type=='checkbox'))||(i.dataset.tbk&&i.dataset.date)){v7Redraw();return}
   if(i.dataset.gk&&/ОСНОВАНИЕ|ДАТА/.test(i.dataset.gk))v7Redraw()},true)}
 function cpToItem(t,g,it,cp){var M=((V7().groups||{})[g]||{}).cp_map||{};Object.keys(M).forEach(function(k){var v=cp[M[k]];if(v!=null&&String(v).trim())it[k]=String(v)});if(!it[Object.keys(M).find(function(k){return M[k]=='addr_legal'})||'']&&cp.addr_post){var ka=Object.keys(M).find(function(k){return M[k]=='addr_legal'});if(ka)it[ka]=cp.addr_post}
  var tf=((V7().groups||{})[g]||{}).type_flag;if(tf)it['_if_'+tf]=['fl','ip','person'].indexOf(cp.kind)>=0;it._cp=cp.id}
@@ -639,8 +642,8 @@ function v7Migrate(s){var FX=X.fields||{},rep=[];var digits=function(v){return S
  (s.cases||[]).forEach(function(c){var d=c.data||{};if(d.ДОЛЖНИК_ОГРН_СНИЛС==null)return;var v=String(d.ДОЛЖНИК_ОГРН_СНИЛС).trim(),n=digits(v).length;if(v){if((n==13||n==15)&&!d.ДОЛЖНИК_ОГРН)d.ДОЛЖНИК_ОГРН=digits(v);else if(n==11&&!d.ДОЛЖНИК_СНИЛС)d.ДОЛЖНИК_СНИЛС=v;else{if(!d.ДОЛЖНИК_ОГРН)d.ДОЛЖНИК_ОГРН=v;(d._needs_check=d._needs_check||[]).push('ДОЛЖНИК_ОГРН')}}d._legacy=Object.assign(d._legacy||{},{ДОЛЖНИК_ОГРН_СНИЛС:v});delete d.ДОЛЖНИК_ОГРН_СНИЛС;rep.push(c.id)});
  Object.keys(s.drafts||{}).forEach(function(tid){var d=s.drafts[tid],t=tByIdQ(tid);if(!d||!t||tid.charAt(0)=='_')return;
   if(d.ДОЛЖНИК_ОГРН_СНИЛС!=null){var v=String(d.ДОЛЖНИК_ОГРН_СНИЛС).trim(),n=digits(v).length;if(v){if(n==11)d.ДОЛЖНИК_СНИЛС=d.ДОЛЖНИК_СНИЛС||v;else{d.ДОЛЖНИК_ОГРН=d.ДОЛЖНИК_ОГРН||v;if(n!=13&&n!=15)(d._needs_check=d._needs_check||[]).push('ДОЛЖНИК_ОГРН')}}delete d.ДОЛЖНИК_ОГРН_СНИЛС}
-  var G=RGS(t);
-  var AM=((X.field_meta||{}).deprecated_aliases_map)||{};Object.keys(AM).forEach(function(old){var m=AM[old];if(d[old]==null||(m.templates&&m.templates.indexOf(tid)<0))return;var g=String(m.replaced_by||'').replace(/^repeat_groups\./,'');if(G[g]){d._rg=d._rg||{};var L=d._rg[g]=d._rg[g]||[];if(!L.length)L.push({});var f0=(G[g].fields||[])[0];if(!L[0][f0]&&String(d[old]).trim()){L[0][f0]=String(d[old]);(L[0]._needs_check=L[0]._needs_check||[]).push(f0)}delete d[old]}});
+  var G=RGS(t);if(RGX())RGX().migItems(tid,d);
+  var AM=((X.field_meta||{}).deprecated_aliases_map)||{};Object.keys(AM).forEach(function(old){var m=AM[old];if(d[old]==null||(m.templates&&m.templates.indexOf(tid)<0))return;var g=String(m.replaced_by||'').replace(/^repeat_groups\./,'');if(G[g]){d._rg=d._rg||{};var L=d._rg[g]=d._rg[g]||[],ov=String(d[old]).trim(),ix=m.item_index!=null?+m.item_index:0,f0=m.item_field||(G[g].fields||[])[0];if(!L.length)L.push({});if(ov){while(L.length<=ix)L.push({});if(!String(L[ix][f0]||'').trim()){if(m.convert&&RGX())RGX().conv(Object.assign({from:old},m),d,L[ix],f0,d[old]);else{L[ix][f0]=String(d[old]);if(m.item_index==null||m.needs_check)(L[ix]._needs_check=L[ix]._needs_check||[]).push(f0)}}else if(String(L[ix][f0])!=String(d[old]))(d._legacy=d._legacy||{})[old]=d[old]}delete d[old]}});
   Object.keys(FX).forEach(function(nk){(FX[nk].deprecated_alias||[]).forEach(function(a){var old=a.field;if(!old||d[old]==null||String(old)==='ДОЛЖНИК_ОГРН_СНИЛС')return;if(!aliasFor(a.when,tid))return;
    var g=rgOf(nk,t),v=d[old];if(g){d._rg=d._rg||{};var L=d._rg[g]=d._rg[g]||[];if(!L.length)L.push({});var into=(V7().alias_into||{})[nk];L.forEach(function(it){if(it[nk])return;if(into&&!(chValsOf(it,into.field,t).indexOf(into.includes)>=0)&&L.length>1)return;it[nk]=v;if(a.needs_check)(it._needs_check=it._needs_check||[]).push(nk)})}else if(d[nk]==null||d[nk]===''){d[nk]=v;if(a.needs_check)(d._needs_check=d._needs_check||[]).push(nk)}delete d[old]})})});return rep}
 /* encrypted:pin — значения не пишутся в localStorage; хранятся в IndexedDB под ключом PIN (_sec) */
@@ -672,7 +675,7 @@ function adrXml(x,t){var a=String(raw('АДРЕСАТ_АДРЕС',t.id)||'').tri
  for(var i=0;i<ps.length;i++){var p=ps[i];if(/^\s*Кому:/.test(p.replace(/<[^>]+>/g,''))){var pp=(p.match(/<w:pPr>[\s\S]*?<\/w:pPr>/)||[''])[0],rp=(p.match(/<w:rPr>[\s\S]*?<\/w:rPr>/)||[''])[0];return x.replace(p,p+'<w:p>'+pp+'<w:r>'+rp+'<w:t xml:space="preserve">'+xe(a)+'</w:t></w:r></w:p>')}}return x}
 function prev(){if(!CUR||!$('dprev'))return;var pl0=lhFor(CUR),bd=htmlPrev(expandRowsText(TXT[CUR.id],CUR),CUR);$('dprev').innerHTML=pl0?pvWrap(pl0,CUR,bd):bd;if(pl0&&!pl0._pv){var c0=CUR;lhPv(pl0).then(function(){if(CUR===c0)prev()}).catch(function(){})}$('dprev').classList.toggle('dlhf',!!lhFor(CUR));var m=missing(CUR),el=$('dmiss');if(el&&!el.dataset.warn){el.textContent=m.length?'':U('all_filled');el.className='sm'}
  if(el&&el.dataset.warn&&!m.length){el.dataset.warn='';el.textContent=U('all_filled');el.className='sm'}
- document.querySelectorAll('#dform [data-k]').forEach(function(i){var w=i.closest('[data-w]');if(w)w.classList.toggle('dempty',!i.value&&!(F[i.dataset.k]&&F[i.dataset.k].optional))})}
+ document.querySelectorAll('#dform [data-k]').forEach(function(i){var w=i.closest('[data-w]');if(w)w.classList.toggle('dempty',!i.value&&!(F[i.dataset.k]&&F[i.dataset.k].optional))});if(RQ_())RQ_().sync(CUR);if(RGX())RGX().dom(CUR)}
 function sig(t){return t.id+'|'+missing(t).join(',')}
 function gate(btn){var m=missing(CUR).map(mlabel),el=$('dmiss');if(!m.length)return true;if(btn.dataset.ok==sig(CUR))return true;btn.dataset.ok=sig(CUR);el.dataset.warn=1;el.className='sm ewarn';el.textContent=U('missing',{n:m.length,list:m.map(function(k){return (F[k]||{}).label||k}).join(', ')});return false}
 function fname(t,ext){var d=raw('ДОЛЖНИК_НАИМЕНОВАНИЕ',t.id);return ((t.title+(d?' — '+d:'')).replace(/[\\/:*?"<>|«»\n\r]+/g,' ').replace(/\s+/g,' ').trim().slice(0,120))+'.'+ext}
@@ -703,7 +706,7 @@ async function docx0(t){if(!DXC[t.id]){var r=await fetch('docs/'+t.docx+'?v='+(w
 if(OV?OV.sign:(S.sign||{})[t.id]){var g=sigFor(t);if(g){await sigApply(z,g,t);sigNext()}}
  return z.generateAsync({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'})}
 /* каждый сформированный документ сразу попадает в Архив (зашифровано PIN); без дела — группа «Без дела» */
-function archMeta(t,extra){var c=curCase(),m=curMgr();return Object.assign({doc_date:(function(v){return /^\d{4}-\d\d-\d\d$/.test(v)?v.split('-').reverse().join('.'):v})(String(raw('ДАТА',t.id)||'')),case:c?c.id:'',kind:'out',title:t.title,tid:t.id,mgr:m?(m.f.ФИО_УПРАВЛЯЮЩЕГО||''):'',debtor:c?'':(raw('ДОЛЖНИК_НАИМЕНОВАНИЕ',t.id)||''),debtor_inn:c?'':(raw('ДОЛЖНИК_ИНН',t.id)||'')},extra||{})}
+function archMeta(t,extra){var c=curCase(),m=curMgr();return Object.assign({doc_date:(function(v){return /^\d{4}-\d\d-\d\d$/.test(v)?v.split('-').reverse().join('.'):v})(String(raw('ДАТА',t.id)||'')),case:c?c.id:'',kind:'out',title:t.title,tid:t.id,mgr:m?(m.f.ФИО_УПРАВЛЯЮЩЕГО||''):'',debtor:c?'':(raw('ДОЛЖНИК_НАИМЕНОВАНИЕ',t.id)||''),debtor_inn:c?'':(raw('ДОЛЖНИК_ИНН',t.id)||'')},RGX()&&RGX().snap(t)||{},extra||{})}
 async function archSave(m,blob){if(!window.ArbArch)return;try{var id=await ArbArch.add(m,blob);if(ArbArch.notify)ArbArch.notify(1,'',id)}catch(x){if(ArbArch.notify)ArbArch.notify(0,x.message)}}
 async function archCopy(t,via){var lh=lhFor(t),sg=(S.sign||{})[t.id]&&!!sigFor(t),b;try{b=await docx(t)}catch(x){if(window.ArbArch&&ArbArch.notify)ArbArch.notify(0,x.message);return}await archSave(archMeta(t,{no:raw('ИСХ_НОМЕР',t.id)||'',addressee:addrOf(t,null),blank:!!lh,signed:sg,fname:fname(t,'docx'),via:via}),b)}
 async function single(t){var auto=t.fields.indexOf('ИСХ_НОМЕР')>=0&&!raw('ИСХ_НОМЕР',t.id),c=curCase(),o=outCfg(),no=raw('ИСХ_НОМЕР',t.id),d=S.drafts[t.id]=S.drafts[t.id]||{};
@@ -918,7 +921,7 @@ async function mkFiles(t,blob,f){f=f||FMT();var o={docx:f!='pdf'?blob:null,pdf:n
  return o}
 function pdfName(fn){return String(fn).replace(/\.docx$/i,'')+'.pdf'}
 function dlFiles(o,fn){if(o.docx)saveBlob(o.docx,fn);if(o.pdf)setTimeout(function(){saveBlob(o.pdf,pdfName(fn))},o.docx?400:0)}
-async function flowMake(sign){var t=CUR;if(!t)return;var m=missing(t).filter(function(k){return k!='ИСХ_НОМЕР'});
+async function flowMake(sign){var t=CUR;if(!t)return;if(RQ_()&&!RQ_().gate(t))return;var m=missing(t).filter(function(k){return k!='ИСХ_НОМЕР'});
  if(sign&&m.length&&!confirm(FU('confirm_miss',{n:m.length+' '+pl(m.length,'поле','поля','полей')}))){FL.tab='f';var fl=document.querySelector('.fl');if(fl)fl.classList.remove('ph-pv');var e=document.querySelector('#dfneed .empty input,#dfneed .empty textarea,#dform .empty input');if(e){e.scrollIntoView({block:'center'});e.focus()}return}
  var useSig=sigPref()&&SIG.length>0;S.sign=S.sign||{};var was=S.sign[t.id];S.sign[t.id]=useSig;
  var auto=t.fields.indexOf('ИСХ_НОМЕР')>=0&&!raw('ИСХ_НОМЕР',t.id),o=outCfg(),no=raw('ИСХ_НОМЕР',t.id),d=S.drafts[t.id]=S.drafts[t.id]||{};if(auto){no=outFmt(o.next,o,fmt('ДАТА',raw('ДАТА',t.id)));d.ИСХ_НОМЕР=no}

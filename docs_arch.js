@@ -105,6 +105,7 @@ function notify(n,err,id){var t=document.getElementById('dartoast');if(!t){t=doc
 window.ArbArch={
  recent:function(cids,name,inn,n){var k=keyFor(cids||[],name,inn),g=k&&grp(k);return g?g.items.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date))}).slice(0,n||3):[]},
  lastFor:function(cids,name,inn){var r=this.recent(cids,name,inn,1);return r.length?r[0].date:''},
+ metas:function(){return Object.keys(META).map(function(k){return META[k]})},
  lastByMgr:function(fio){var d='';Object.keys(META).forEach(function(id){var m=META[id];if(m&&m.mgr&&fio&&m.mgr==fio&&String(m.date)>d)d=String(m.date)});return d},notify:notify,
  mount:function(el,api){A=api;ROOT=el;bind();draw()},
  unlock:unlock,add:add,filePdf:function(id){return filePdf(id)},draw:draw,enc:function(b){if(!KEY)throw new Error(T('locked'));return enc(b)},dec:function(o){if(!KEY)throw new Error(T('locked'));return dec(o)},

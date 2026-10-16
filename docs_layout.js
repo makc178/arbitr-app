@@ -31,7 +31,7 @@ var ROLEMAP={salutation:'salut',heading_to_text:'subj',executor_mark:'exec'},CUR
 function RL(G,k){var r=(G.roles||{})[k]||{},o={salutation:G.salutation,heading_to_text:G.subject,executor_mark:G.executor}[k]||{};return Object.assign({},o,r)}
 function roleOf(text,G,px){var t=String(text||'').trim();if(!t)return null;var bm=px&&/_arb_role_(\w+)/.exec(px);if(bm&&ROLEMAP[bm[1]])return CUR_COURT&&RL(G,bm[1]).letters_only!==false?null:bm[1];var T=CUR_T||{},L=T.paragraph_roles||T.layout_roles||[],hit=null;
  L.forEach(function(x){if(hit||!x||!ROLEMAP[x.role])return;if(x.field&&t.indexOf('{{'+x.field+'}}')>=0)hit=x.role;else if(x.match!=null&&t==String(x.match).trim())hit=x.role;else if(x.text!=null&&t==String(x.text).trim())hit=x.role});
- if(!hit&&!L.length)Object.keys(ROLEMAP).forEach(function(k){if(hit)return;var c=RL(G,k),d=c.detect||c.match;if(d&&c.auto!==false&&RX(d)&&RX(d).test(t))hit=k});
+ if(!hit&&!L.length&&(LYG()||{}).roles_detect_fallback!==false&&!((LYG()||{}).roles_detect_fallback==null&&((window.ARB_DOCS||{}).templates||[]).some(function(x){return (x.layout_roles||[]).length})))Object.keys(ROLEMAP).forEach(function(k){if(hit)return;var c=RL(G,k),d=c.detect||c.match;if(d&&c.auto!==false&&RX(d)&&RX(d).test(t))hit=k});
  if(hit&&CUR_COURT&&RL(G,hit).letters_only!==false)return null;return hit}
 /* до подстановки значений: абзацы, где стоит поле роли ({{ЗАГОЛОВОК_К_ТЕКСТУ}} и т.п.), получают невидимую закладку _arb_role_<роль> */
 function roleSpecs(t,G){var T=t||{},L=(T.paragraph_roles||T.layout_roles||[]).slice();Object.keys(ROLEMAP).forEach(function(k){(RL(G,k).fields||[]).forEach(function(f){L.push({role:k,field:f})})});return L}

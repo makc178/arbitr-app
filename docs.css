@@ -370,3 +370,40 @@ html[data-theme=light] .ddpop{background:#fff;color:#0F2E2A;border-color:#CDEBE2
 /* предпросмотр: таблицы из md (опись по разделам и др.) */
 .dprev .dtbw{overflow-x:auto;margin:4px 0 8px}.dprev .dtbl{border-collapse:collapse;width:100%;font-size:.8em;line-height:1.25}.dprev .dtbl td,.dprev .dtbl th{border:1px solid currentColor;padding:2px 4px;vertical-align:top;text-align:left;text-indent:0}.dprev .dtbl th{font-weight:bold;text-align:center}
 .dtb{display:block}.dtb .dtbr{display:block;grid-column:1/-1;border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:10px;margin:8px 0}.dtb .dtbr.dnc{border-color:#f5c542;background:rgba(245,197,66,.10)}.dtb .dtbrh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}.dtb .dtbrh .sp{flex:1}.dtb .dncb{background:#f5c542;color:#222;border-radius:6px;padding:1px 6px;font-size:.8em}.dtb .g2 select{width:100%}
+/* 1.7g required / fill_order */
+:is(#vdocs,#vcp,#varch) .dreqm{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--acc,#2f6fed);margin-left:6px;vertical-align:middle}
+:is(#vdocs,#vcp,#varch) .dreqbad :is(.inp,input,textarea,select),:is(#vdocs,#vcp,#varch) .dreqbad :is(.inp,input,textarea,select):focus{border-color:#e06060!important;box-shadow:0 0 0 1px #e06060!important}
+:is(#vdocs,#vcp,#varch) .dreqbad .dreqe{display:block;color:#e07070!important;font-size:12px;margin-top:3px}
+.dfo{position:relative}.dfo .inp,.dfo input,.dfo textarea{padding-right:34px}
+.dfodel{position:absolute;right:6px;bottom:6px;width:26px;height:26px;border:0;background:transparent;color:var(--muted,#888);font-size:15px;cursor:pointer;border-radius:6px}
+.dfodel:hover{background:var(--hover,rgba(0,0,0,.06));color:inherit}
+.dfoadd{display:block;margin:2px 0 10px;grid-column:1/-1;justify-self:start}
+.dprev .dtbl td.dtbe{text-align:center;font-size:.9em;padding:1mm 4px}
+.drgadd[hidden]{display:none!important}
+:is(#vdocs,#vcp,#varch) .drglock{margin:4px 0 8px;padding:6px 10px;border-radius:8px;background:var(--soft,rgba(127,127,127,.08))}
+.drgfs input[type=checkbox].inp{width:auto;min-height:0}
+/* 1.7i voting captions */
+:is(#vdocs) .dvotes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;grid-column:1/-1}
+@media(max-width:600px){:is(#vdocs) .dvotes{grid-template-columns:1fr}}
+:is(#vdocs) .dvpair{grid-column:1/-1;margin:4px 0 10px}
+:is(#vdocs) .dvcap{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;margin-top:4px}
+:is(#vdocs) .dvp{font-weight:600}
+:is(#vdocs) .dvraw{color:var(--mut,#8a9a96)}
+:is(#vdocs) .dvchip{border:1px solid var(--line,rgba(127,127,127,.35));background:transparent;color:inherit;border-radius:999px;padding:1px 8px;font-size:12px;cursor:pointer}
+:is(#vdocs) .dvchip.fixed{cursor:default}
+:is(#vdocs) .dvman{color:var(--mut,#8a9a96);font-size:12px}
+:is(#vdocs) .dvres{margin-left:auto;font-weight:600;font-size:12px;padding:1px 8px;border-radius:6px}
+:is(#vdocs) .dvres.ok{color:#2e9d6a;background:rgba(46,157,106,.12)}
+:is(#vdocs) .dvres.no{color:#b58a00;background:rgba(224,160,32,.15)}
+:is(#vdocs) .dvbad :is(input,.inp){border-color:#e06060!important;box-shadow:0 0 0 1px #e06060!important}
+:is(#vdocs) .dvdoc{margin:4px 0 8px}
+:is(#vdocs) .dmbar{position:relative;flex-basis:100%;height:6px;border-radius:3px;background:var(--line,rgba(127,127,127,.25));margin-top:4px}
+:is(#vdocs) .dmbar i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:var(--acc,#2f6fed)}
+:is(#vdocs) .dmbar b{position:absolute;top:-3px;bottom:-3px;width:2px;background:currentColor}
+:is(#vdocs) .dmbar span{position:absolute;right:0;top:8px;font-size:11px;color:var(--mut,#8a9a96)}
+:is(#vdocs) label.f:has(> input[type=checkbox]){display:flex;flex-direction:row-reverse;justify-content:flex-end;align-items:center;gap:10px}
+:is(#vdocs) label.f > input[type=checkbox]{width:20px;height:20px;min-height:0;accent-color:var(--acc,#2f6fed)}
+:is(#vdocs) .drgfs [readonly]{opacity:.75;cursor:not-allowed}
+:is(#vdocs) .dvsum{grid-column:1/-1;margin:-2px 0 8px;gap:6px 8px}
+:is(#vdocs) .dvotes .dvcap{font-size:12px}
+:is(#vdocs) .dvpair .dvdoc{grid-column:1/-1}
