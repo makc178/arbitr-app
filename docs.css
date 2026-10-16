@@ -351,3 +351,6 @@ html[data-theme=light] .ddpop{background:#fff;color:#0F2E2A;border-color:#CDEBE2
 .dsigm summary::-webkit-details-marker{display:none}
 .dsigm .dsigmm{position:absolute;right:0;top:100%;z-index:5;display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:10px;background:var(--pan,#13403A);border:1px solid rgba(127,163,156,.3);box-shadow:0 6px 18px rgba(0,0,0,.3);white-space:nowrap}
 :is(#vdocs,#vcp,#varch) .dprev .dlb{text-indent:2.6em;text-align:justify;hyphens:auto}
+:is(#vdocs,#vcp,#varch) .dprev .dlr{margin-left:47%;text-align:left;hyphens:manual}
+:is(#vdocs,#vcp,#varch) .dprev .dls{font-style:italic;font-size:.92em;margin-top:.8em}
+:is(#vdocs,#vcp,#varch) .dprev .dlc{text-align:center}
