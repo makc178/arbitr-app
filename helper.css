@@ -202,7 +202,7 @@ body.arbh-sheet-open #arbhs .sheet{transform:none;visibility:visible;transition:
 /* живой предпросмотр: на ПК аватар выезжает из-под панели и остаётся виден над затемнением */
 body.arbh-sheet-open #arbh{z-index:9005!important;pointer-events:none}
 body.arbh-sheet-open #arbh *{pointer-events:none!important}
-@media (min-width:481px){body.arbh-sheet-open #arbh:not(.left):not(.hero){right:calc(var(--arbh-shoff,372px) + var(--a-edge))}
+@media (min-width:481px){body.arbh-sheet-open #arbh:not(.left):not(.hero){right:calc(var(--arbh-shoff,412px) + var(--a-edge))}
 }
 #arbhs .sh-grab{display:none}
 #arbhs .sh-head{display:flex;align-items:center;gap:10px;padding:18px 18px 10px 22px}
@@ -281,3 +281,25 @@ html.arbh-noanim body.arbh-sheet-open #arbh{transition:none}
 
 #arbh.kbhide{visibility:hidden;pointer-events:none;opacity:0;transition:opacity 120ms}
 #arbh[hidden]{display:none!important}
+/* телефон: полоска приветствия (ui.mobile.greeting_strip) — слева от аватара, по центру его высоты, не выше --gs-h */
+#arbh .arbh-gs{position:absolute;right:calc(var(--a-size) + var(--gs-gap,8px));bottom:calc((var(--a-size) - var(--gs-h,56px)) / 2);box-sizing:border-box;height:var(--gs-h,56px);max-width:calc(100vw - var(--a-size) - var(--gs-gap,8px) - 2 * var(--a-edge,12px));
+ display:flex;align-items:center;padding:0 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;background:var(--a-bub);color:var(--a-ink);border:1px solid var(--a-bubline);border-radius:16px;box-shadow:var(--a-shadow-b);cursor:pointer;pointer-events:auto;animation:arbh-gs-in 220ms ease-out}
+#arbh.left .arbh-gs{right:auto;left:calc(var(--a-size) + var(--gs-gap,8px))}
+@keyframes arbh-gs-in{from{opacity:0;transform:translateX(8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){#arbh .arbh-gs{animation:none}}
+/* ПК: окно над аватаром, когда сбоку лежат поля (ui.desktop.bubble_avoid) */
+#arbh.desk.stk:not(.hero) .arbh-bub,#arbh.left.desk.stk:not(.hero) .arbh-bub{right:0;left:auto;bottom:calc(var(--a-size) + var(--a-gap));width:var(--arbh-stkw,220px);max-width:var(--arbh-stkw,220px);min-width:0;transform-origin:92% 100%;transform:translateY(8px) scale(.96)}
+#arbh.left.desk.stk:not(.hero) .arbh-bub{left:0;right:auto;transform-origin:8% 100%}
+#arbh.desk.stk.open:not(.hero) .arbh-bub{transform:none}
+#arbh.desk.stk:not(.hero) .arbh-tail{right:calc(var(--a-size) / 2 - 6px);left:auto;bottom:calc(var(--a-size) + var(--a-gap) - 6px);transform:rotate(135deg)}
+#arbh.left.desk.stk:not(.hero) .arbh-tail{left:calc(var(--a-size) / 2 - 6px);right:auto}
+/* узкое окно над аватаром: кнопки низа столбиком, ничего не обрезается */
+#arbh.desk.stk .b-bar{flex-direction:column}
+#arbh.desk.stk .b-bar button.b-bb{width:100%;border-radius:0}
+#arbh.desk.stk .b-bar button.b-bb+button.b-bb{border-left:0;border-top:1px solid rgba(94,234,212,.22)}
+#arbh.desk.stk .b-bar button.b-bb:last-child{border-bottom-left-radius:15px;border-bottom-right-radius:15px}
+/* экран PIN (ui.pin_page): окно над аватаром, ширина ≤ --arbh-pbw, не на клавишах (max-height из place()); телефон — отступ страницы снизу под аватар */
+#arbh.pinpg:not(.hero) .arbh-bub,#arbh.left.pinpg:not(.hero) .arbh-bub{right:0;left:auto;top:auto;bottom:calc(var(--a-size) + var(--a-gap));width:min(var(--arbh-pbw,280px),calc(100vw - 2 * var(--a-edge)));max-width:min(var(--arbh-pbw,280px),calc(100vw - 2 * var(--a-edge)));min-width:0;transform-origin:92% 100%}
+#arbh.pinpg:not(.hero) .arbh-tail{right:calc(var(--a-size) / 2 - 6px);left:auto;top:auto;bottom:calc(var(--a-size) + var(--a-gap) - 6px);transform:rotate(135deg)}
+#arbh.pinpg.pbtight .b-ref,#arbh.pinpg.pbtight .b-act{display:none}
+body.arbh-pinpg-m #pin{padding-bottom:var(--arbh-pinpad,88px)!important;box-sizing:border-box}
