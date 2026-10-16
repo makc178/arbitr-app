@@ -500,3 +500,7 @@ html,body{overflow-x:clip!important;overflow-y:visible!important}
 #vdocs .dfx .dfmt button.on{background:var(--acc);color:var(--ondark)}
 #vdocs .dtbex .dcond{display:flex;gap:6px;align-items:center}
 #vdocs .dtbex .dcond input{margin:0;width:18px;height:18px}
+/* липкая плашка дела: «Сбросить» не перекрывает «Сменить»; на телефоне не залипает поверх формы; переходы к полям не прячут их под плашкой */
+@media(min-width:700px){#vdocs .dfx .ctx{padding-right:140px}}
+@media(max-width:699px){#vdocs #dfrst{position:static;pointer-events:auto}}
+#vdocs :is([data-w],.drg,.drgi,h3,h4,.dreqbad,input,textarea,select,button){scroll-margin-top:76px}
