@@ -341,5 +341,7 @@ async function fromDocx(src){await deps();var JS=window.jspdf.jsPDF;
  doc.setProperties({title:'',creator:'Arbitr',producer:'Arbitr'});
  var out=doc.output('blob');var warn=cx.warn.filter(function(v,i,a){return a.indexOf(v)==i});
  return {blob:new Blob([out],{type:'application/pdf'}),pages:N,warn:warn,ok:!warn.length,landscape:pw>ph}}
-window.ArbPDF={ready:true,fromDocx:fromDocx,preload:function(){return deps().catch(function(){})}};
+/* пустой A4-документ jsPDF со встроенными шрифтами ArbSans/ArbSerif — для простых отчётов (отчёт Судебной практики, docs_prq.js); формируется на устройстве */
+async function newDoc(o){await deps();var doc=new window.jspdf.jsPDF(o||{unit:'pt',format:'a4'}),F=window.ARB_PDF_FONTS.files;Object.keys(F).forEach(function(fam){Object.keys(F[fam]).forEach(function(st){var fn=F[fam][st];doc.addFileToVFS(fn,FB64[fn]);doc.addFont(fn,fam,st)})});return doc}
+window.ArbPDF={ready:true,fromDocx:fromDocx,newDoc:newDoc,preload:function(){return deps().catch(function(){})}};
 })();
