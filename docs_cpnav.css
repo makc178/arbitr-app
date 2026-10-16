@@ -1,0 +1,50 @@
+/* Arbitr App · «Контрагенты»: колонка разделов (ПК), сегменты (телефон), сортировка — assets/docs_cpnav.js */
+#vcp .dnvw{display:grid;grid-template-columns:240px minmax(0,1fr);gap:20px;align-items:start;margin-top:8px}
+#vcp .dnv{position:sticky;top:8px;display:flex;flex-direction:column;gap:2px;min-width:0}
+#vcp .dnvi{display:flex;align-items:center;gap:10px;min-height:40px;padding:8px 12px;border:0;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#vcp .dnvi:hover{background:rgba(127,127,127,.10)}
+#vcp .dnvi.on{background:rgba(45,212,191,.14);font-weight:600}
+#vcp .dnvi:focus-visible,#vcp .dsegb:focus-visible,#vcp .dsrtb:focus-visible,#vcp .dsrtm button:focus-visible{outline:2px solid var(--acc,#2DD4BF);outline-offset:-2px}
+#vcp .dnvi.sub{padding-left:28px}
+#vcp .dnvic{width:1.3em;text-align:center;flex:none}
+#vcp .dnvt{flex:1;min-width:0;overflow-wrap:anywhere}
+#vcp .dnvn{color:var(--muted,#8a94a6);font-weight:500;font-variant-numeric:tabular-nums;font-size:.9em}
+#vcp .dnvhr{border:0;border-top:1px solid var(--line,rgba(127,127,127,.25));margin:10px 0 8px;width:100%}
+#vcp .dnvh{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#8a94a6);padding:2px 12px 4px}
+#vcp .dnvm{display:none}
+#vcp .dnvc{min-width:0}
+#vcp .dnvct{margin:4px 0 10px;font-size:1.15em}
+#vcp .dnvpre{color:var(--muted,#8a94a6);font-weight:500}
+#vcp .dnvsv{margin:6px 0 12px;border:1px solid var(--line,rgba(127,127,127,.25));border-radius:12px;padding:6px 12px}
+#vcp .dnvsv>summary{cursor:pointer;min-height:36px;display:flex;align-items:center;font-weight:600}
+/* поиск + сортировка в одну строку */
+#vcp .dsrow{display:flex;align-items:center;gap:8px;margin:6px 0;min-width:0}
+#vcp .dsrow.nos{justify-content:flex-end}
+#vcp .dsrq{flex:1;min-width:0}
+#vcp .dsrq .pflt,#vcp .dsrq .dflt{margin:0}
+#vcp .dsrq input{width:100%;box-sizing:border-box}
+#vcp .dsrt{position:relative;flex:none}
+#vcp .dsrtb{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:6px 12px;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:10px;background:transparent;color:inherit;font:inherit;font-size:.9em;white-space:nowrap;cursor:pointer}
+#vcp .dsrti{display:none}
+#vcp .dsrtm{position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:210px;padding:4px;border:1px solid var(--line,rgba(127,127,127,.35));border-radius:12px;background:var(--card,var(--bg,#0f1f1c));box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#vcp .dsrtm[hidden]{display:none}
+#vcp .dsrtm button{display:flex;align-items:center;gap:8px;width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:8px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+#vcp .dsrtm button:hover,#vcp .dsrtm button[aria-checked="true"]{background:rgba(45,212,191,.12)}
+#vcp .dsrtc{width:1em;color:var(--acc,#2DD4BF)}
+#vcp .dadded{font-size:12px;color:var(--muted,#8a94a6);margin-top:4px}
+/* телефон и узкий планшет: сегменты сверху, справочник — отдельным экраном */
+@media (max-width:759px){
+ #vcp .dnvw{display:block}
+ #vcp .dnv{display:none}
+ #vcp .dnvm{display:block;margin:0 0 10px}
+ #vcp .dseg{display:flex;gap:4px;padding:3px;border-radius:12px;background:rgba(127,127,127,.12);overflow-x:auto}
+ #vcp .dsegb{flex:1 0 auto;min-height:40px;padding:6px 10px;border:0;border-radius:9px;background:transparent;color:inherit;font:inherit;font-size:.92em;white-space:nowrap;cursor:pointer}
+ #vcp .dsegb.on{background:var(--card,rgba(45,212,191,.22));font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+ #vcp .dnvdir{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:48px;margin-top:8px;padding:10px 14px;border:1px solid var(--line,rgba(127,127,127,.25));border-radius:12px;background:transparent;color:inherit;font:inherit;font-weight:600;text-align:left;cursor:pointer}
+ #vcp .dnvback{min-height:40px;padding:6px 4px;border:0;background:transparent;color:var(--acc,#2DD4BF);font:inherit;cursor:pointer}
+ #vcp .dnvdh{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted,#8a94a6);margin:4px 0 6px}
+ #vcp .dnvpre{display:none}
+ #vcp .dsrtb{width:44px;height:44px;min-height:44px;padding:0;font-size:1.15em}
+ #vcp .dsrtl{display:none}
+ #vcp .dsrti{display:inline}
+}
