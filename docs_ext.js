@@ -35,7 +35,7 @@ window.ArbExt={cond:function(b,auto,E,U){var p=function(x){return x?'<p class="s
  function sync(D,t,P,d){/* ручная правка: значение поля отличается от принятого значения источника */var k=P.field,pf=d&&d._pf&&d._pf[k];if(!pf)return false;var m=!same(d[k],pf.v);if(m!==!!pf.manual){pf.manual=m;return true}return false}
  function draft(D,t){return D.dra?D.dra(t.id):D.draftOf(t.id)}
  window.ArbExt=window.ArbExt||{};
- ArbExt.prefill=function(t,D){if(!t||!D)return;LAST={t:t,D:D};var L=cfg(D);if(!L.length)return;var d=D.draftOf(t.id),c=D.curCase&&D.curCase();if(!c)return;
+ ArbExt.prefill=function(t,D){if(!t||!D)return;LAST={t:t,D:D};setTimeout(function(){try{if(window.ArbImp)ArbImp.mount(t,D)}catch(e){}try{if(window.ArbAppr)ArbAppr.mount(t,D)}catch(e){}try{ArbExt.chDecor&&ArbExt.chDecor(D)}catch(e){}},0);var L=cfg(D);if(!L.length)return;var d=D.draftOf(t.id),c=D.curCase&&D.curCase();if(!c)return;
   L.forEach(function(P){var k=P.field;if((t.fields||[]).indexOf(k)<0)return;var pf=d&&d._pf&&d._pf[k];
    if(pf&&sync(D,t,P,d))D.save();
    setTimeout(function(){deco(D,P,D.draftOf(t.id))},0);
@@ -50,4 +50,18 @@ window.ArbExt={cond:function(b,auto,E,U){var p=function(x){return x?'<p class="s
  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-pfr],[data-pfs]');if(!b)return;e.preventDefault();e.stopPropagation();act(b.dataset.pfr||b.dataset.pfs,b.dataset.pfr?'restore':'apply')},true);
  function onEdit(e){if(!LAST||!e.target.closest)return;var w=e.target.closest('#dform [data-w]');if(!w)return;var k=w.getAttribute('data-w'),D=LAST.D,t=LAST.t,P=cfg(D).find(function(x){return x.field==k});if(!P)return;setTimeout(function(){var d=D.draftOf(t.id);if(sync(D,t,P,d))D.save();deco(D,P,d)},0)}
  document.addEventListener('input',onEdit);document.addEventListener('change',onEdit);
+})();
+
+/* Наборы формулировок (choice_sets): полный текст, дословная цитата нормы и ссылка на источник (options[].quote / source_url), отметка о сверке редакции (edition_checked).
+   docs.js показывает подпись и сокращённый текст; здесь — раскрывающийся блок под вариантом. Строки — docs_config.json → choice_ui. */
+(function(){var LD=null,T=0;
+ function UI(k,o){var C=LD&&LD.C()||{},s=((C.choice_ui||{})[k]);if(s==null)s=k;if(o)Object.keys(o).forEach(function(n){s=String(s).split('{'+n+'}').join(o[n])});return s}
+ function E(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+ function run(){if(!LD)return;var X=LD.X()||{},F=LD.F()||{},CS=X.choice_sets||{};if(((LD.C()||{}).choice_ui||{}).enabled===false)return;
+  [].forEach.call(document.querySelectorAll('#dform .dch[data-chk]'),function(box){var k=String(box.dataset.chk).replace(/#\d+$/,''),f=F[k]||(X.fields||{})[k]||{},cs=CS[f.choices];if(!cs)return;
+   [].forEach.call(box.querySelectorAll('button.dcho[data-chv]'),function(b){var nx=b.nextElementSibling;if(nx&&nx.classList.contains('dchq'))return;var o=(cs.options||[]).find(function(x){return String(x.value)===b.dataset.chv});if(!o||!(o.quote||o.source_url||(o.text&&o.text.length>120)))return;
+    var d=document.createElement('details');d.className='dchq';d.innerHTML='<summary>'+E(UI(o.quote?'quote_toggle':'text_toggle'))+'</summary>'+(o.text&&o.text.length>120?'<p class="sm">'+E(o.text)+'</p>':'')+(o.quote?'<blockquote>'+E(o.quote)+'</blockquote>':'')+(o.source_url&&/^https:\/\//.test(o.source_url)?'<a href="'+E(o.source_url)+'" target="_blank" rel="noopener">'+E(UI('open_source'))+'</a>':'');b.after(d)});
+   if(cs.edition_checked&&!box.querySelector('.dched')){var e=document.createElement('p');e.className='sm dched';e.textContent=UI('edition',{e:cs.edition_checked});box.appendChild(e)}})}
+ window.ArbExt=window.ArbExt||{};ArbExt.chDecor=function(D){LD=D;run()};
+ new MutationObserver(function(){if(!LD)return;clearTimeout(T);T=setTimeout(run,30)}).observe(document.documentElement,{childList:true,subtree:true});
 })();

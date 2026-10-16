@@ -431,3 +431,7 @@ html[data-theme=light] .ddpop{background:#fff;color:#0F2E2A;border-color:#CDEBE2
 #vdocs .dpfr,#vdocs .dpfs{background:none;border:0;padding:0 2px;color:var(--acc,#14B8A6);cursor:pointer;font:inherit;min-height:0;box-shadow:none}
 #vdocs .dpfr{font-size:15px;line-height:1}
 #vdocs .dpfs{text-decoration:underline}
+#vdocs .dimp{margin:10px 0}#vdocs .dimpt{margin:8px 0}#vdocs .dimpw{color:#e0a84b}#vdocs .dimp input[type=file]{position:absolute;width:1px;height:1px;opacity:0}#vdocs .dimp .dlhdrop{position:relative}
+#vdocs .dimp{display:block;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px}#vdocs .dimp .d1{font-weight:600;margin-bottom:4px}#vdocs .dimp .dact{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}#vdocs .dimp .dact .lbtn{width:auto}
+#vdocs .dapprl{margin:8px 0}#vdocs .dappri{padding:6px 0;border-top:1px solid rgba(255,255,255,.08)}#vdocs #dappr{margin-top:10px}
+#vdocs .dchq{margin:-2px 0 6px 34px;font-size:12px;color:var(--mut,#8a9a96)}#vdocs .dchq summary{cursor:pointer;color:var(--acc,#14B8A6);font-size:12px}#vdocs .dchq blockquote{margin:6px 0;padding:4px 10px;border-left:3px solid var(--acc,#14B8A6);font-style:italic}#vdocs .dched{margin-top:6px;color:var(--mut,#8a9a96);font-size:12px}

@@ -488,7 +488,7 @@ function resolveAdr(tid,field,cd){if(!AD)return null;cd=cd||{};var M=sugMode(tid
  if(os.length==1&&(typeMeta(ty)||{}).scope=='federal')return mk(os[0],'','federal');return null}
 function regionOrgs(tid,cd){if(!AD)return [];var M=sugMode(tid);if(M.m!='dir')return [];var rg=(cd||{}).РЕГИОН||(cd||{}).ДОЛЖНИК_АДРЕС||'',st=caseRegion(rg),ko=okOf(rg);return AD.orgs.filter(function(o){return o.type==M.ty&&((st.length&&rmatch(o,st))||orgOk(o).some(function(k){return ko.indexOf(k)>=0}))})}
 
-window.ArbCP={
+window.ArbCP={parse:{csv:csv,xlsx:xlsx,dec:dec},
  mount:function(el,api){A=api;ROOT=el;bind(el);load();setTimeout(function(){try{if((A.S().cases||[]).some(function(c){return c.req&&/^(new|in_progress|partial)$/.test(c.req.status)}))pollStart()}catch(e){}},2000)},
  qapi:function(){return {ed:function(){return ED},all:function(){return CP},save:save1,draw:function(){if(V=='edit'||V=='list')rerenderKeepFocus()},A:A,innOK:innOK}},
  reset:function(){CP=[];FM={};ED=null;MAP=null;V='list';MSG='';draw()},
