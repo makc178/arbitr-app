@@ -45,10 +45,12 @@ window.ArbAUAP=(function(){
  /* ---------- блок в карточке АУ ---------- */
  function caseFor(no){var a=A(),S=a.S?a.S():{},k=cno(no);return k?(S.cases||[]).find(function(c){return cno((c.data||{}).НОМЕР_ДЕЛА)==k})||null:null}
  function row(r,o){var c=caseFor(r.case_no),dp=r.disputed,pq=dp&&(o.prq||{})[cno(r.case_no)];
-  return '<div class="dapr'+(dp?' disp':'')+'" role="listitem"><div class="dap1"><span class="dapn">'+E(r.debtor||'—')+'</span>'+(r.proc_name?'<span class="dapc">'+E(r.proc_name)+'</span>':'')+(r.role?'<span class="sm dapro">'+E(U('role_'+r.role)!='role_'+r.role?U('role_'+r.role):r.role)+'</span>':'')+'</div>'+
+  var pm=r.debtor_type=='person'&&window.ArbAUDEB&&!ArbAUDEB.pOpen(),ak=AK[cno(r.case_no)];
+  return '<div class="dapr'+(dp?' disp':'')+'" role="listitem"><div class="dap1"><span class="dapn">'+(pm?'<span class="mask">'+E(ArbAUDEB.mask(r.debtor))+'</span>':E(r.debtor||'—'))+'</span>'+(r.proc_name?'<span class="dapc">'+E(r.proc_name)+'</span>':'')+(r.role?'<span class="sm dapro">'+E(U('role_'+r.role)!='role_'+r.role?U('role_'+r.role):r.role)+'</span>':'')+'</div>'+
    '<div class="dap2 sm">'+(r.inn?'<span>'+E(U('inn',{v:r.inn}))+'</span>':'')+(r.case_no?(c?'<a href="#" class="dapk" data-apcase="'+E(c.id)+'">'+E(r.case_no)+'</a>':'<span class="dapk">'+E(r.case_no)+'</span>'):'')+
-   (dp?'<span class="dapdp" title="'+E((r.why||[]).map(function(w){return U('why_'+w)}).join('; '))+'">'+E(pq?U('disputed_sent'):U('disputed'))+'</span>':'')+(r.since?'<span class="dapd">'+E(U('since',{d:dmy(r.since)}))+'</span>':'')+'</div></div>'}
- function html(mid){var o=DATA[mid],p=pend(mid)||(SENT[mid]&&!o),h='';
+   (dp?'<span class="dapdp" title="'+E((r.why||[]).map(function(w){return U('why_'+w)}).join('; '))+'">'+E(pq?U('disputed_sent'):U('disputed'))+'</span>':'')+(r.since?'<span class="dapd">'+E(U('since',{d:dmy(r.since)}))+'</span>':'')+(ak&&window.ArbAUDEB?'<a href="#" class="dapk" data-apcard="'+E(ak)+'" data-apmid="'+E(MID||'')+'">'+E(((window.ARB_AUDEB_CFG||{}).ui||{t:{}}).t.open_card||'Карточка')+'</a>':'')+'</div></div>'}
+ var AK={};function akeys(mid){AK={};if(!window.ArbAUDEB)return;ArbAUDEB.ensure(mid);(ArbAUDEB.cards(mid)||[]).forEach(function(c){AK[cno(c.case_no)]=c.id})}
+ function html(mid){akeys(mid);var o=DATA[mid],p=pend(mid)||(SENT[mid]&&!o),h='';
   if(!o||!o.rows){var msg=p?U('loading'):(!encOK()?U('locked'):U('no_data'));return '<h4 class="dsh">'+E(U('title'))+'</h4><p class="sm dapem">'+E(msg)+'</p>'}
   var R=o.rows,N=o.found!=null&&o.found>R.length&&o.truncated?o.found:R.length,lim=+K().first||5,all=ALL[mid];
   h='<h4 class="dsh">'+E(U('title_n',{n:N}))+'</h4>';
@@ -71,3 +73,7 @@ window.ArbAUAP=(function(){
  wrap();setTimeout(wrap,1500);
  setTimeout(tick,(+K().first_tick_s||8)*1000);
  return {apply:apply,draw:draw,tick:tick,_data:function(){return DATA},_mid:function(){return MID},_load:load}})();
+/* должники из назначений в мастере документа и карточка назначения — отдельный модуль (docs_audeb.js), подгружается отсюда с той же версией сборки */
+(function(){var cs=document.currentScript,src=cs&&cs.src||'',v=(/[?&]v=([^&#]+)/.exec(src)||[])[1]||'',base=src.replace(/[^\/?#]*([?#].*)?$/,''),q=v?'?v='+v:'';if(!base||window.ArbAUDEB)return;
+ var l=document.createElement('link');l.rel='stylesheet';l.href=base+'docs_audeb.css'+q;document.head.appendChild(l);
+ var a=document.createElement('script');a.src=base+'docs_audeb_cfg.js'+q;a.onload=function(){var b=document.createElement('script');b.src=base+'docs_audeb.js'+q;b.onload=function(){try{ArbAUAP.draw()}catch(e){}};document.head.appendChild(b)};document.head.appendChild(a)})();
