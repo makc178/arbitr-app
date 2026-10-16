@@ -15,14 +15,14 @@ window.ArbDFX=(function(){
  function norm(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'.,]/g,' ').replace(/\s+/g,' ').trim()}
  function canon(no){return String(no||'').trim().toUpperCase().replace(/A/g,'А').replace(/\s+/g,'')}
  /* ключ дела для сверки: «№ А56–97144/21 (з-1)», «A56-97144/2021», неразрывные/длинные тире → «А56-97144/2021» */
- function ckey(no){var t=String(no||'').toUpperCase().replace(/[\u2010-\u2015\u2212\u00AD]/g,'-').replace(/\u00A0/g,' '),m=/[АA][А-ЯA-Z]?\s*(\d{2}П?)\s*-\s*(\d+)\s*\/\s*(\d{2,4})/.exec(t);if(!m)return '';var y=m[3].length==2?'20'+m[3]:m[3];return 'А'+m[1]+'-'+(+m[2])+'/'+y}
+ function ckey(no){var t=String(no||'').toUpperCase().replace(/[\u2010-\u2015\u2212\u00AD]/g,'-').replace(/\u00A0/g,' '),m=/[А-ЯЁA-Z][А-ЯA-Z]?\s*(\d{2}П?)\s*-\s*(\d+)\s*\/\s*(\d{2,4})/.exec(t);if(!m)return '';var y=m[3].length==2?'20'+m[3]:m[3];return 'А'+m[1]+'-'+(+m[2])+'/'+y}
  function fvv(o){return o&&typeof o=='object'?o.value:o}
  /* ---------- 1. «Сегодня» ---------- */
  var NRE=(DC.no_re||[]).map(function(r){try{return new RegExp(r)}catch(e){return null}}).filter(Boolean);
- function keyOf(i){var d=i&&i.dataset||{};return d.k||d.dk||d.clk||d.apf||''}
+ function keyOf(i){var d=i&&i.dataset||{};return d.bk||d.brk||d.k||d.dk||d.clk||d.apf||''}   /* bk/brk — пакетный режим (docs_batch.js) */
  function today(k){if(!k)return DC['default']!==false;if((DC.yes||[]).indexOf(k)>=0)return true;if((DC.no||[]).indexOf(k)>=0)return false;if(NRE.some(function(r){return r.test(k)}))return false;return DC['default']!==false}
- function cssToday(){var ks=(DC.no||[]),sel=[];['k','dk','clk','apf'].forEach(function(a){ks.forEach(function(k){sel.push('.ddate:has([data-'+a+'="'+k.replace(/"/g,'')+'"]) .ddtoday')})});
-  if(!sel.length)return;var st=document.createElement('style');st.id='dfx_css';st.textContent=sel.join(',')+'{display:none!important}.dfxsrc{display:block;font-size:12px;color:var(--mut,#7a8a86);margin-top:3px}.dfxalt{display:flex;gap:8px;align-items:center;font-size:12px;margin-top:4px;flex-wrap:wrap}.dfxalt button{font-size:12px;padding:2px 10px}.dfxcr{margin:12px 0;padding:10px 12px;border:1px solid var(--line,#2c4a43);border-radius:10px}.dfxcr h4{margin:0 0 6px}.dfxcr .st{font-size:13px}.dfxcr ul{list-style:none;margin:8px 0 0;padding:0}.dfxcr li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--line,#2c4a43);font-size:13px}.dfxcr li span.sm{color:var(--mut,#7a8a86)}';document.head.appendChild(st)}
+ function cssToday(){var ks=(DC.no||[]),sel=[];['k','dk','clk','apf','bk','brk'].forEach(function(a){ks.forEach(function(k){sel.push('.ddate:has([data-'+a+'="'+k.replace(/"/g,'')+'"]) .ddtoday')})});
+  if(!sel.length)return;var st=document.createElement('style');st.id='dfx_css';st.textContent=sel.join(',')+'{display:none!important}.dfxsrc.warn{color:var(--warn,#d9822b)}.dfxsrc{display:block;font-size:12px;color:var(--mut,#7a8a86);margin-top:3px}.dfxalt{display:flex;gap:8px;align-items:center;font-size:12px;margin-top:4px;flex-wrap:wrap}.dfxalt button{font-size:12px;padding:2px 10px}.dfxcr{margin:12px 0;padding:10px 12px;border:1px solid var(--line,#2c4a43);border-radius:10px}.dfxcr h4{margin:0 0 6px}.dfxcr .st{font-size:13px}.dfxcr ul{list-style:none;margin:8px 0 0;padding:0}.dfxcr li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--line,#2c4a43);font-size:13px}.dfxcr li span.sm{color:var(--mut,#7a8a86)}';document.head.appendChild(st)}
  function stripToday(root){(root||document).querySelectorAll('.ddate .ddtoday').forEach(function(b){var w=b.closest('.ddate'),i=w&&w.querySelector('[data-date]');if(i&&!today(keyOf(i)))b.remove()})}
  /* ---------- 2. суд по номеру дела ---------- */
  function codes(){if(CC.codes)return CC.codes;var B=(window.ArbAUDEB&&ArbAUDEB._bun&&ArbAUDEB._bun())||{};for(var k in B){var c=B[k]&&B[k].b&&B[k].b.court_codes;if(c&&c.codes){CC.codes=c.codes;if(c.src)CC.src=c.src;return c.codes}}return null}   /* справочник судов приходит в пакете назначений (под PIN) */
@@ -103,7 +103,7 @@ window.ArbDFX=(function(){
  function apFill(){var no=document.querySelector('[data-dk="НОМЕР_ДЕЛА"]');if(!no||!unlocked())return;var cs=caseOfView();if(!cs)return;var ap=apptOf(cs);if(!ap)return;var F=ap.card.fields||{};
   (CR.fill_from_appointment||[]).forEach(function(k){var i=document.querySelector('[data-dk="'+k+'"]'),v=F[k];if(!i||!v||v.value==null||v.value==='')return;var val=String(v.value);if(i.dataset.date||/^ДАТА_/.test(k))val=dmy(val);
    if(i.dataset.dfxAp&&i.value!==i.dataset.dfxAp)return;if(!i.value.trim()){setV(i,val);i.dataset.dfxAp=val}
-   if(i.dataset.dfxAp&&i.value===i.dataset.dfxAp){var sb=srcBox(i,'dfxsrc');sb.textContent=T(CU.src_from,{s:(CU.src_names||{})[v.source]||v.source,d:dmy(v.updated_at)})}})}
+   if(i.dataset.dfxAp&&i.value===i.dataset.dfxAp){var sb=srcBox(i,'dfxsrc');sb.textContent=T(CU.src_from,{s:(CU.src_names||{})[v.source]||v.source,d:dmy(v.updated_at)})+(v.unreliable?' · ⚠ '+(CU.unreliable||'')+(v.note?' ('+v.note+')':''):'');sb.classList.toggle('warn',!!v.unreliable)}})}
  /* ---------- общее ---------- */
  var MT=null;function onMut(){clearTimeout(MT);MT=setTimeout(function(){stripToday();apFill();courtScan();paint()},60)}
  function init(){if(window.__dfx)return;window.__dfx=1;cssToday();stripToday();courtScan();

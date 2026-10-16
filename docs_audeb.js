@@ -44,9 +44,9 @@ window.ArbAUDEB=(function(){
   var k=await auKey(mid);if(!k)return;
   try{var r=await ghApi((CF.repo_dir||'arbitr/appt_cards/')+k+'.enc',{headers:{Accept:'application/vnd.github.raw'}});
    if(r.status==404){FD[mid]=Date.now();if(!BUN[mid]){BUN[mid]={at:Date.now(),missing:1}}return}
-   if(!r.ok)return;var txt=await r.text();if(/^\s*\{\s*"(name|sha|content)"/.test(txt)){var j=JSON.parse(txt);txt=atob(String(j.content||'').replace(/\s/g,''))}
+   if(!r.ok){FT[mid]=0;try{console.warn('appt bundle fetch',r.status)}catch(x){}return}var txt=await r.text();if(/^\s*\{\s*"(name|sha|content)"/.test(txt)){var j=JSON.parse(txt);txt=atob(String(j.content||'').replace(/\s/g,''))}
    var b=JSON.parse(new TextDecoder().decode(await A().vdec(txt)));FD[mid]=Date.now();if(BUN[mid]&&BUN[mid].b&&BUN[mid].b.updated_at==b.updated_at)return;
-   BUN[mid]={at:Date.now(),b:b};await dput('_apc_'+mid,BUN[mid]);draw();redrawOV();try{ArbAUAP.draw()}catch(x){}}catch(e){}}
+   BUN[mid]={at:Date.now(),b:b};await dput('_apc_'+mid,BUN[mid]);draw();redrawOV();try{ArbAUAP.draw()}catch(x){}}catch(e){FT[mid]=0;try{console.warn('appt bundle',e&&e.message)}catch(x){}}}   /* ошибка — повтор при следующем обращении, а не через card_poll_s */
  function bun(mid){var o=BUN[mid];return o&&o.b?o.b:null}
  function cards(mid){var b=bun(mid);if(!b)return [];return Object.keys(b.cards||{}).map(function(a){return b.cards[a]})}
  function active(mid){return cards(mid).filter(function(c){return c.status!='archived'}).sort(function(x,y){return String((y.summary||{}).since||'').localeCompare(String((x.summary||{}).since||''))})}
@@ -69,7 +69,7 @@ window.ArbAUDEB=(function(){
  function isMask(f){return (CF.mask_reveal||[]).indexOf(f)>=0}
  function maskV(v){return String(v||'').replace(/[0-9A-Za-zА-Яа-яЁё]/g,'•')}
  function fx(mid,a,f,key){var v=fval(mid,a,f),val=v?String(v.value==null?'':v.value):'',w=(UI.wide||[]).indexOf(f)>=0,ed=v&&v.edited,mk=isMask(f)&&!(REV[a+f]>Date.now()),hint=key&&(UI.hints||{})[f];
-  var ak=!v&&asked(mid,a,f),bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?(function(bt){return '<i class="bdg" title="'+E(bt)+'">'+E(bt)+'</i>'})(v.saved?T('saved_cp'):v.source?T('src_from',{s:srcName(v.source),d:dmy(v.updated_at)}):T('src',{d:dmy(v.updated_at)})):ak?(function(bt){return '<i class="bdg wait" title="'+E(bt)+'">'+I.clock+E(bt)+'</i>'})(T('asked',{s:ak.s,d:dmy(ak.d)})):'');
+  var ak=!v&&asked(mid,a,f),bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?(function(bt){return '<i class="bdg" title="'+E(bt)+'">'+E(bt)+'</i>'})(v.saved?T('saved_cp'):v.source?T('src_from',{s:srcName(v.source),d:dmy(v.updated_at)}):T('src',{d:dmy(v.updated_at)}))+(v.unreliable?'<i class="bdg warn" title="'+E(v.note||T('unreliable'))+'">⚠ '+E(T('unreliable'))+'</i>':''):ak?(function(bt){return '<i class="bdg wait" title="'+E(bt)+'">'+I.clock+E(bt)+'</i>'})(T('asked',{s:ak.s,d:dmy(ak.d)})):'');
   var alt=v&&!ed&&v.alt&&v.alt.length?'<div class="alt">'+E(T('alt',{v:v.alt[0].value,s:srcName(v.alt[0].source)}))+'</div>':'';
   var nl=(UI.never_local||[]).indexOf(f)>=0?'<div class="hint">'+I.info+E(T('not_local'))+'</div>':'';
   return '<label class="fx'+(ed?' edited':'')+(key?' key':'')+(w?' w':'')+'"><span class="frow"><span class="fl">'+E(label(f))+'</span>'+bd+'</span>'+(mk&&val?'<span style="display:flex;gap:6px;align-items:center"><input class="inp" value="'+E(maskV(val))+'" disabled><button type="button" class="opn" data-apx="rev" data-f="'+E(f)+'">'+I.eye+E(T('show'))+'</button></span>':
@@ -228,7 +228,7 @@ window.ArbAUDEB=(function(){
    return bk(T('claims_to',{n:dc?nm(dc):d.case_no}),'',cl.length,'<div class="rqsum"><span>'+E([d.case_no,dc&&(dc.summary||{}).procedure_label].filter(Boolean).join(' · '))+'</span></div><div class="rqc" style="display:block">'+cl.map(function(c){return '<div class="rq"><div class="t"><b>'+E(c.basis||((CF.claim_statuses||{})[c.status]||{}).label||'')+'</b><span class="s">'+rub((+c.amount_principal_kop||0)+(+c.amount_sanctions_kop||0))+' ₽</span></div><div class="m">'+(c.queue?'<span>'+E(T('queue',{q:c.queue}))+'</span>':'')+(c.secured?'<span class="pc w">'+E(T('secured'))+'</span>':'')+'<span>'+E(((CF.claim_statuses||{})[c.status]||{}).label||c.status||'')+'</span>'+(c.act_url?'<a href="'+E(c.act_url)+'" target="_blank" rel="noopener noreferrer">'+E(T('act_from',{d:dmy(c.act_date)}))+I.ext+'</a>':'')+'</div></div>'}).join('')+'</div>'+(dc?'<button type="button" class="more" data-apx="card" data-a="'+E(d.appointment_id)+'">'+E(T('open_appt'))+I.chev+'</button>':''))}).join('')+'</div>';return h}
  function openOV(mid,view,id){if(!OV){var el=document.createElement('div');el.className='apx apxc';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');document.body.appendChild(el);OV={el:el,more:{}};el.addEventListener('click',onClick)}
   if(view=='card'&&OV.view=='cred')OV.from=id;OV.mid=mid;OV.view=view;OV.id=id;OV.appr=null;OV.pin=pOpen();redrawOV();OV.el.scrollTop=0;
-  clearInterval(PO);PO=setInterval(function(){if(!OV){clearInterval(PO);return}if(OV.pin!==pOpen()){OV.pin=pOpen();redrawOV()}},1000);load(mid).then(function(){fetchB(mid);redrawOV()})}
+  clearInterval(PO);PO=setInterval(function(){if(!OV){clearInterval(PO);return}if(OV.pin!==pOpen()){OV.pin=pOpen();redrawOV()}},1000);load(mid).then(function(){fetchB(mid,true);redrawOV()})}   /* открытие карточки — всегда свежий пакет из репозитория (локальная копия могла устареть) */
  function redrawOV(){if(!OV)return;var h='<div class="apxin"><button type="button" class="btn sec apxx" data-apx="close" aria-label="'+E(T('close'))+'">'+I.x+E(T('close'))+'</button>'+(OV.view=='cred'?credHTML(OV.mid,OV.id):cardHTML(OV.mid,OV.id))+'</div>';if(OV.el._h!==h){OV.el._h=h;OV.el.innerHTML=h}}
  function closeOV(){if(OV){OV.el.remove();OV=null;clearInterval(PO)}}
  /* «Оценить справочно»: перечень из блока «Имущество», тот же механизм arbitr/appraisal_requests (заглушка без ПДн + .enc) */

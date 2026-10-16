@@ -65,7 +65,7 @@ window.ArbCPQ=(function(){
  function mgrVals(){return {fio:(inp('ФИО_УПРАВЛЯЮЩЕГО')||{}).value||'',inn:(inp('ИНН_УПРАВЛЯЮЩЕГО')||{}).value||''}}
  function mgrMsg(m){var el=document.querySelector('.dauq .dhint');if(el)el.textContent=m}
  function setV(k,v){var i=inp(k);if(!i||!v)return;i.value=i.type=='date'?v:(/^\d{4}-\d\d-\d\d$/.test(v)?dmy(v):v);i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}))}
- function mgrSet(x){var M=K().au_map||{ФИО_УПРАВЛЯЮЩЕГО:'fio',ИНН_УПРАВЛЯЮЩЕГО:'inn',СРО:'sro',ДАТА_РЕГ_АУ:'date_reg'};Object.keys(M).forEach(function(k){if(!/_СРО$/.test(k)||!(inp(k)||{}).value)setV(k,x[M[k]])});mgrMsg(U('au_filled'));sroFill(true)}
+ function mgrSet(x){var M=K().au_map||{ФИО_УПРАВЛЯЮЩЕГО:'fio',ИНН_УПРАВЛЯЮЩЕГО:'inn',СРО:'sro',ДАТА_РЕГ_АУ:'date_reg'};Object.keys(M).forEach(function(k){if(!/_СРО$/.test(k)||!(inp(k)||{}).value)setV(k,x[M[k]])});mgrMsg(U('au_filled'));if(!sroFill(true)&&x.sro_note)sroNote({note:x.sro_note,_raw:1})}
  /* справочник СРО (counterparties.inn_lookup.sro_registry: items из config/sro_registry.json, только проверенные публичные данные):
     по наименованию или ИНН СРО заполняет пустые ИНН/ОГРН/адрес СРО в карточке управляющего */
  function nmS(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'“”„]/g,'').replace(/\s+/g,' ').trim()}
@@ -73,8 +73,13 @@ window.ArbCPQ=(function(){
  function sroFind(name,inn){var L=SR().items||[],i=D(inn),n=nmS(name);if(!n&&!i)return null;
   return L.find(function(r){return i&&D(r.inn)==i})||L.find(function(r){return n&&[r.name].concat(r.short||[],r.aliases||[]).some(function(a){return nmS(a)==n})})||null}
  function sroFill(quiet){var s=inp('СРО');if(!s)return 0;var r=sroFind(s.value,(inp('ИНН_СРО')||{}).value),M=SR().map||{ИНН_СРО:'inn',ОГРН_СРО:'ogrn',АДРЕС_СРО:'address'},n=0;
-  if(!r){if(!quiet&&s.value.trim()&&Object.keys(M).some(function(k){var i=inp(k);return i&&!i.value}))mgrMsg(U('sro_none'));return 0}
-  Object.keys(M).forEach(function(k){var i=inp(k);if(i&&!i.value&&r[M[k]]){setV(k,String(r[M[k]]));n++}});if(n)mgrMsg(U('sro_filled'));return n}
+  if(!r){sroNote(null);if(!quiet&&s.value.trim()&&Object.keys(M).some(function(k){var i=inp(k);return i&&!i.value}))mgrMsg(U('sro_none'));return 0}
+  Object.keys(M).forEach(function(k){var i=inp(k);if(i&&!i.value&&r[M[k]]){setV(k,String(r[M[k]]));n++}});if(n)mgrMsg(U('sro_filled'));sroNote(r);return n}
+ /* примечание справочника у СРО: источник и дата проверки, «не сверено с госреестром», переименования/расхождения (config/sro_registry.json → note) */
+ function sroNote(r){var s=inp('СРО');if(!s)return;var w=s.parentNode,p=w.querySelector('.dsronote');if(!r){if(p)p.remove();return}if(!p){p=document.createElement('p');p.className='sm dsronote';w.appendChild(p)}
+  if(r._raw){p.textContent='ⓘ '+r.note;p.title=r.note;return}
+  var T=SR().ui||{},t=[(T.src||'Справочник СРО')+': '+(r.source?String(r.source).split(/[;(]/)[0].trim():'')+(r.checked?' · '+r.checked:'')];if(r.verified===false)t.push(T.unverified||'из агрегатора, не сверено с госреестром');if(r.status=='disputed')t.push(T.disputed||'источники расходятся в статусе СРО');if(r.address_unverified)t.push(T.addr_unverified||'адрес не сверен с официальным реестром');if(r.note)t.push(r.note);
+  p.textContent='ⓘ '+t.join(' · ');p.title=r.note||''}
  function sroList(){var s=inp('СРО'),L=SR().items||[];if(!s||!L.length||s.getAttribute('list'))return;var d=document.getElementById('dm_sro_dl');if(!d){d=document.createElement('datalist');d.id='dm_sro_dl';d.innerHTML=L.map(function(r){return '<option value="'+E(r.name)+'">'}).join('');document.body.appendChild(d)}s.setAttribute('list','dm_sro_dl')}
  document.addEventListener('change',function(e){var t=e.target;if(t&&t.id=='dm_СРО'&&t.closest('.dmged'))sroFill()});
  function mgrUI(){var m=mgrEl();if(!m||K().au_search===false)return;var box=m.querySelector('.dauq');if(!box){box=document.createElement('div');box.className='dauq';var h=m.querySelector('h4');if(h)h.after(box);else m.prepend(box)}
