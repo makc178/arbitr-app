@@ -35,9 +35,37 @@ function roleOf(text,G,px){var t=String(text||'').trim();if(!t)return null;var b
  if(hit&&CUR_COURT&&RL(G,hit).letters_only!==false)return null;return hit}
 /* до подстановки значений: абзацы, где стоит поле роли ({{ЗАГОЛОВОК_К_ТЕКСТУ}} и т.п.), получают невидимую закладку _arb_role_<роль> */
 function roleSpecs(t,G){var T=t||{},L=(T.paragraph_roles||T.layout_roles||[]).slice();Object.keys(ROLEMAP).forEach(function(k){(RL(G,k).fields||[]).forEach(function(f){L.push({role:k,field:f})})});return L}
-function pretag(dx,t){var G=LYG();if(!G)return dx;var L=roleSpecs(t,G).filter(function(x){return x&&x.field&&ROLEMAP[x.role]});if(!L.length)return dx;var n=0;
+function pretag0(dx,t){var G=LYG();if(!G)return dx;var L=roleSpecs(t,G).filter(function(x){return x&&x.field&&ROLEMAP[x.role]});if(!L.length)return dx;var n=0;
  return dx.replace(/<w:p[ >][\s\S]*?<\/w:p>/g,function(p){var tx=pTx(p),hit=null;L.forEach(function(x){if(!hit&&tx.indexOf('{{'+x.field+'}}')>=0)hit=x.role});if(!hit)return p;var id=99100+(n++),bm='<w:bookmarkStart w:id="'+id+'" w:name="_arb_role_'+hit+'"/><w:bookmarkEnd w:id="'+id+'"/>';
   return p.replace(/^(<w:p(?:\s[^>]*)?>(?:\s*<w:pPr>[\s\S]*?<\/w:pPr>)?)/,'$1'+bm)})}
+/* ---------- 1.7r: роли строк из index.json → templates[i].layout_roles (sender_ref, sign_position, sign_line, sign_date, attach_heading, section_heading, requisites_left).
+   До подстановки значений абзац получает закладку _arb_r_<буквы ролей>; зона роли (head / sign) проверяется при раскладке. ---------- */
+var R17={sender_ref:'S',sign_position:'P',sign_line:'L',sign_date:'D',attach_heading:'A',section_heading:'H',requisites_left:'Q'},CUR_LH=false;
+function escRe(x){return String(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+function matchRe(m){var x=String(m==null?'':m).trim(),o='',re=/\{\{#if [^}]*\}\}([\s\S]*?)\{\{\/if\}\}/g,last=0,q;while((q=re.exec(x))){o+=escRe(x.slice(last,q.index))+'(?:'+escRe(q[1])+')?';last=re.lastIndex}o+=escRe(x.slice(last));try{return new RegExp('^'+o.replace(/ /g,'\\s*')+'$')}catch(e){return null}}
+function r17Specs(t){var L=((t||{}).layout_roles||[]).filter(function(x){return x&&R17[x.role]&&x.match!=null});return L.map(function(x){return {c:R17[x.role],re:matchRe(x.match),zone:x.zone||''}}).filter(function(x){return x.re})}
+function r17Zone(t){var Z={};((t||{}).layout_roles||[]).forEach(function(x){if(x&&R17[x.role]&&x.zone)Z[R17[x.role]]=x.zone});return Z}
+function pretag(dx,t){dx=pretag0(dx,t);var G=LYG();if(!G||G.roles_17r===false)return dx;var L=r17Specs(t),n=0;
+ return dx.replace(/<w:p[ >][\s\S]*?<\/w:p>/g,function(p){var tx=pTx(p).trim();if(!tx)return p;var cs='';L.forEach(function(x){if(cs.indexOf(x.c)<0&&x.re.test(tx))cs+=x.c});if(cs.indexOf('L')<0&&SIGLINE&&SIGLINE.test(tx))cs+='L';if(!cs)return p;
+  var id=99300+(n++),bm='<w:bookmarkStart w:id="'+id+'" w:name="_arb_r_'+cs+'"/><w:bookmarkEnd w:id="'+id+'"/>';return p.replace(/^(<w:p(?:\s[^>]*)?>(?:\s*<w:pPr>[\s\S]*?<\/w:pPr>)?)/,'$1'+bm)})}
+function r17Of(s){var m=/_arb_r_([A-Z]+)/.exec(s||'');return m?m[1]:''}
+/* ширина текста секции (твипы) с учётом альбомной ориентации шаблона и полей layout.margins_mm */
+function textW(dx,t,G){var sp=dx.slice(Math.max(0,dx.lastIndexOf('<w:sectPr'))),W=+((/<w:pgSz [^>]*w:w="(\d+)"/.exec(sp)||[])[1]||11906),H=+((/<w:pgSz [^>]*w:h="(\d+)"/.exec(sp)||[])[1]||16838),M=G.margins_mm,
+  L=M?mmT(M.left):+((/<w:pgMar [^>]*w:left="(\d+)"/.exec(sp)||[])[1]||1701),R=M?mmT(M.right):+((/<w:pgMar [^>]*w:right="(\d+)"/.exec(sp)||[])[1]||850),pw=(t&&t.orientation=='landscape')?Math.max(W,H):Math.min(W,H);return pw-L-R}
+/* строка подписи: правая табуляция по правому краю текста; без табуляции в тексте — подпись и расшифровка прижимаются к правому краю */
+function sigTab(p,TW){p=ppSet(p,{tabs:'<w:tabs><w:tab w:val="right" w:pos="'+TW+'"/></w:tabs>',ind:null,jc:null});if(/<w:tab\/>/.test(p.replace(/<w:pPr>[\s\S]*?<\/w:pPr>/,'')))return p;
+ var hd=/^<w:p(?:\s[^>]*)?>(?:\s*<w:pPr>[\s\S]*?<\/w:pPr>)?/.exec(p)[0],rp=(/<w:r(?:\s[^>]*)?>(<w:rPr>[\s\S]*?<\/w:rPr>)/.exec(p)||[])[1]||'';return hd+'<w:r>'+rp+'<w:tab/></w:r>'+p.slice(hd.length)}
+/* таблицы: ширины граф в % от ширины текста (layout.tables[]: header, col_pct, width_pct, font_pt, header_font_pt) */
+function nz(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/[\s\u00a0]+/g,' ').trim()}
+function tblPct(out,t,TW){var TS=(((t||{}).layout||{}).tables||[]).filter(function(x){return x&&x.col_pct&&x.col_pct.length});if(!TS.length)return out;
+ return out.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g,function(tb){if(tb.indexOf('arb-top')>=0||/<w:tbl>[\s\S]*<w:tbl>/.test(tb))return tb;var r1=(/<w:tr[ >][\s\S]*?<\/w:tr>/.exec(tb)||[''])[0],cells=(r1.match(/<w:tc>[\s\S]*?<\/w:tc>/g)||[]).map(function(c){return nz(pTx(c))});
+  var sp=TS.find(function(x){var h=(x.header||[]).map(nz);if(h.length!=cells.length)return false;var ok=0;h.forEach(function(v,i){if(v==cells[i])ok++});return ok>=Math.ceil(h.length*0.6)});if(!sp)return tb;
+  var gc=(tb.match(/<w:gridCol\b[^>]*\/>/g)||[]).length,N=sp.col_pct.length;if(gc!=N)return tb;var sum=sp.col_pct.reduce(function(a,b){return a+b},0)||100,tot=Math.round(TW*(sp.width_pct||100)/100),w=sp.col_pct.map(function(v){return Math.round(tot*v/sum)});w[N-1]+=tot-w.reduce(function(a,b){return a+b},0);
+  var k=0;tb=tb.replace(/<w:tblGrid>[\s\S]*?<\/w:tblGrid>/,'<w:tblGrid>'+w.map(function(v){return '<w:gridCol w:w="'+v+'"/>'}).join('')+'</w:tblGrid>');
+  tb=tb.replace(/<w:tblW\b[^>]*\/>/,'<w:tblW w:w="'+tot+'" w:type="dxa"/>');if(!/<w:tblLayout\b/.test(tb))tb=tb.replace(/(<w:tblPr>[\s\S]*?)(<w:tblCellMar\b|<w:tblLook\b|<w:tblCaption\b|<w:tblDescription\b|<\/w:tblPr>)/,'$1<w:tblLayout w:type="fixed"/>$2');else tb=tb.replace(/<w:tblLayout\b[^>]*\/>/,'<w:tblLayout w:type="fixed"/>');
+  var ri=0;return tb.replace(/<w:tr[ >][\s\S]*?<\/w:tr>/g,function(tr){var col=0,hdr=ri++==0;tr=tr.replace(/<w:tc>([\s\S]*?)<\/w:tc>/g,function(all,inner){var span=+((/<w:gridSpan w:val="(\d+)"/.exec(inner)||[])[1]||1),cw=0;for(var j=0;j<span&&col+j<N;j++)cw+=w[col+j];col+=span;
+    inner=/<w:tcW\b[^>]*\/>/.test(inner)?inner.replace(/<w:tcW\b[^>]*\/>/,'<w:tcW w:w="'+cw+'" w:type="dxa"/>'):(/<w:tcPr>/.test(inner)?inner.replace('<w:tcPr>','<w:tcPr><w:tcW w:w="'+cw+'" w:type="dxa"/>'):'<w:tcPr><w:tcW w:w="'+cw+'" w:type="dxa"/></w:tcPr>'+inner);
+    var fp=hdr?(sp.header_font_pt||sp.font_pt):sp.font_pt;if(fp)inner=inner.replace(/<w:p[ >][\s\S]*?<\/w:p>/g,function(q){return runProps(q,{hp:Math.round(fp*2)})});return '<w:tc>'+inner+'</w:tc>'});return tr})})}
 /* заголовок документа: первый центрированный абзац без роли или (письма 1.7f) заголовок к тексту */
 function titleIdx(P){var G=LYG()||{};for(var i=0;i<P.length;i++){if(P[i].tb||!P[i].t.trim())continue;var rl=roleOf(P[i].t,G,P[i].s);if(rl=='heading_to_text')return i;if(!rl&&pAttr(P[i].s,'jc','val')=='center')return i}return -1}
 function courtDoc(P,G){var CT=G.court||{},cr=RX(CT.detect||'^(В\\s.*[Сс]уд|Судь[ея])');for(var i=0;i<P.length&&i<14;i++){if(P[i].tb)continue;if(cr&&cr.test(P[i].t.trim()))return true;if(pAttr(P[i].s,'jc','val')=='center'&&P[i].t.trim())break}return false}
@@ -51,15 +79,18 @@ function headXml(dx,G){var P=pList(dx),ti=titleIdx(P);if(ti<=0)return dx;var H=[
   nonEmpty.forEach(function(i){var t=P[i].t.trim(),k=null;ord.forEach(function(o){if(!k&&RX(o.re).test(t))k=o.k});if(!k)k=cur||'_';if(!G2[k]){G2[k]=[];seq.push(k)}G2[k].push(i);cur=k});
   var keys=ord.map(function(o){return o.k}).filter(function(k){return G2[k]}).concat(seq.filter(function(k){return ord.every(function(o){return o.k!=k})}));
   out=keys.map(function(k){return G2[k].map(function(i,n){var p=right(P[i].s,n==G2[k].length-1);return lab&&CT.bold_labels!==false?boldLabel(p,lab):p}).join('')}).join('')}
- else{var stop=RX(TB.stop||'^(От:|Исх\\.)'),refRe=RX(TB.ref_match||'^Исх\\.'),A=[],R=[],O=[],inA=true;
-  H.forEach(function(i){var p=P[i],t=p.t.trim();if(inA){if(p.s=='<w:p/>'||!t){if(A.length){inA=false;O.push(i)}return}if(stop.test(t)){inA=false}else{A.push(i);return}}if(refRe&&refRe.test(t))R.push(i);else O.push(i)});
+ else{var stop=RX(TB.stop||'^(От:|Исх\\.)'),refRe=RX(TB.ref_match||'^Исх\\.'),A=[],R=[],O=[],SR=[],inA=true;
+  H.forEach(function(i){var p=P[i],t=p.t.trim();if(A.length&&t&&r17Of(p.s).indexOf('S')>=0){SR.push(i);inA=false;return}if(inA){if(p.s=='<w:p/>'||!t){if(A.length){inA=false;O.push(i)}return}if(stop.test(t)){inA=false}else{A.push(i);return}}if(refRe&&refRe.test(t))R.push(i);else O.push(i)});
   if(!A.length)return dx;
-  if(R.length&&TB.table!==false){var c1=mmT(TB.ref_width_mm||75),c3=mmT(TB.addr_width_mm||90),c2=Math.max(0,mmT(txw)-c1-c3),nb='<w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/>';
+  /* 1.7r sender_ref: справочные данные АУ — в ячейке слева над «Исх. №», одиночный интервал; при бланке АУ не печатаются; пустой абзац после них убирается */
+  O=O.filter(function(i){return !(SR.length&&(P[i].s=='<w:p/>'||!P[i].t.trim())&&SR.indexOf(i-1)>=0)});var SRo=CUR_LH?[]:SR,spt=TB.sender_pt||TB.addr_pt;
+  var srP=function(i,n){var q=ppSet(P[i].s,{ind:null,jc:null,suppressAutoHyphens:'<w:suppressAutoHyphens/>',spacing:function(v){return spAttr(v,{before:0,after:n==SRo.length-1?gap*2:0,line:240,lineRule:'auto'})}});return spt?runProps(q,{hp:Math.round(spt*2)}):q};
+  if((R.length||SRo.length)&&TB.table!==false){var c1=mmT(TB.ref_width_mm||75),c3=mmT(TB.addr_width_mm||90),c2=Math.max(0,mmT(txw)-c1-c3),nb='<w:top w:val="nil"/><w:left w:val="nil"/><w:bottom w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/>';
    var cell=function(w,ps){return '<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/></w:tcPr>'+(ps||'<w:p/>')+'</w:tc>'};
    var inner=function(i,last){var p=ppSet(P[i].s,{ind:null,jc:null,suppressAutoHyphens:TB.hyphenation===false?'<w:suppressAutoHyphens/>':undefined,spacing:function(v){return spAttr(v,{before:0,after:0})}});return TB.addr_pt?runProps(p,{hp:Math.round(TB.addr_pt*2)}):p};
-   var tbl='<w:tbl><w:tblPr><w:tblW w:w="'+(c1+c2+c3)+'" w:type="dxa"/><w:tblInd w:w="0" w:type="dxa"/><w:tblBorders>'+nb+'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar><w:tblDescription w:val="arb-top"/></w:tblPr><w:tblGrid><w:gridCol w:w="'+c1+'"/><w:gridCol w:w="'+c2+'"/><w:gridCol w:w="'+c3+'"/></w:tblGrid><w:tr>'+cell(c1,R.map(function(i){return inner(i)}).join(''))+cell(c2)+cell(c3,A.map(function(i){return inner(i)}).join(''))+'</w:tr></w:tbl>';
+   var tbl='<w:tbl><w:tblPr><w:tblW w:w="'+(c1+c2+c3)+'" w:type="dxa"/><w:tblInd w:w="0" w:type="dxa"/><w:tblBorders>'+nb+'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:left w:w="0" w:type="dxa"/><w:right w:w="0" w:type="dxa"/></w:tblCellMar><w:tblDescription w:val="arb-top"/></w:tblPr><w:tblGrid><w:gridCol w:w="'+c1+'"/><w:gridCol w:w="'+c2+'"/><w:gridCol w:w="'+c3+'"/></w:tblGrid><w:tr>'+cell(c1,SRo.map(srP).join('')+R.map(function(i){return inner(i)}).join(''))+cell(c2)+cell(c3,A.map(function(i){return inner(i)}).join(''))+'</w:tr></w:tbl>';
    out=tbl+'<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="120" w:lineRule="exact"/></w:pPr></w:p>'+O.filter(function(i){return !(P[i].s=='<w:p/>'||!P[i].t.trim())||O.indexOf(i)>0}).map(function(i){return P[i].s}).join('')}
-  else out=A.map(function(i,n){return right(P[i].s,n==A.length-1)}).join('')+H.filter(function(i){return A.indexOf(i)<0}).map(function(i){return P[i].s}).join('')}
+  else out=A.map(function(i,n){return right(P[i].s,n==A.length-1)}).join('')+H.filter(function(i){return A.indexOf(i)<0&&!(CUR_LH&&SR.indexOf(i)>=0)&&!(CUR_LH&&SR.indexOf(i-1)>=0&&(P[i].s=='<w:p/>'||!P[i].t.trim()))}).map(function(i){return P[i].s}).join('')}
  return dx.slice(0,st)+out+dx.slice(en)}
 /* ---------- роли ---------- */
 function gostRoles(P,dx,t,G){var ti=titleIdx(P),R=[];
@@ -71,16 +102,20 @@ function attachSplit(p,G){var A=G.attach||{};if(A.numbered===false)return p;var 
  var parts=m[2].split(RX(A.split||';\\s*|,\\s+(?=(?:копи|выписк|документ|справк|отч[её]т|акт[а-я]*\\s|протокол|договор|квитанц|уведомлен|доверенн|платёжн|платежн))','')).map(function(s){return s.trim()}).filter(Boolean);
  if(parts.length<2||(p.match(/<w:r[ >]/g)||[]).length>1)return p;var rp=(/<w:r(?:\s[^>]*)?>(<w:rPr>[\s\S]*?<\/w:rPr>)?/.exec(p)||[])[1]||'',pp=(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(p)||[''])[0];
  var mk=function(s){return '<w:p>'+pp+'<w:r>'+rp+'<w:t xml:space="preserve">'+s+'</w:t></w:r></w:p>'};
- return mk(m[1].replace(/\s+:/,':'))+parts.map(function(s,i){s=s.replace(/[.;,]\s*$/,'');return mk((i+1)+'. '+s+(i==parts.length-1?'.':';'))}).join('')}
+ return mk(m[1].replace(/\s+:/,':'))+parts.map(function(s,i){return mk((i+1)+'. '+aEnd(aTrim(s),i==parts.length-1))}).join('')}
 /* несколько абзацев «Приложение: …» (напр. бюллетени при заочном голосовании) → один перечень на месте последнего; один пункт — без номера */
 var ATRE=/^(Приложени[еяй])\s*:\s*(.+)$/;
+/* 1.7r: точка сокращения («экз.», «л.», «стр.») не срезается при склейке перечня */
+var ABBR=/(?:^|[\s(])(?:экз|л|лл|стр|шт|г|гг|д|ст|п|пп|ч|руб|коп|т|тыс|млн|кв|ул|обл|др|пр)\.$/i;
+function aTrim(s){s=String(s).trim().replace(/[;,]+\s*$/,'').trim();if(/\.$/.test(s)&&!ABBR.test(s))s=s.replace(/\.+$/,'');return s}
+function aEnd(s,last){return last?(/\.$/.test(s)?s:s+'.'):s+';'}
 function attachMerge(dx,G){if((G.attach||{}).merge===false)return dx;var P=pList(dx).filter(function(q){return !q.tb&&ATRE.test(q.t.trim())});if(P.length<2)return dx;
- var items=P.map(function(q){return ATRE.exec(q.t.trim())[2].replace(/[.;]\s*$/,'')}),last=P[P.length-1],rp=(/<w:r(?:\s[^>]*)?>(<w:rPr>[\s\S]*?<\/w:rPr>)?/.exec(last.s)||[])[1]||'',pp=(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(last.s)||[''])[0];
- P.slice(0,-1).forEach(function(q){dx=dx.replace(q.s,'')});return dx.replace(last.s,'<w:p>'+pp+'<w:r>'+rp+'<w:t xml:space="preserve">Приложение: '+items.join('; ')+'.</w:t></w:r></w:p>')}
+ var items=P.map(function(q){return aTrim(ATRE.exec(q.t.trim())[2])}),last=P[P.length-1],rp=(/<w:r(?:\s[^>]*)?>(<w:rPr>[\s\S]*?<\/w:rPr>)?/.exec(last.s)||[])[1]||'',pp=(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(last.s)||[''])[0];
+ P.slice(0,-1).forEach(function(q){dx=dx.replace(q.s,'')});return dx.replace(last.s,'<w:p>'+pp+'<w:r>'+rp+'<w:t xml:space="preserve">Приложение: '+items.map(function(x,j){return aEnd(x,j==items.length-1)}).join(' ')+'</w:t></w:r></w:p>')}
 function attachMd(L,G){var A=G.attach||{},I=[];L.forEach(function(l,i){if(!/^\|/.test(l)&&ATRE.test(l.trim()))I.push(i)});if(!I.length)return L;
- var items=[];I.forEach(function(i){var m=ATRE.exec(L[i].trim());items=items.concat(A.numbered===false?[m[2]]:m[2].split(RX(A.split||';\\s*|,\\s+(?=(?:копи|выписк|документ|справк|отч[её]т|акт[а-я]*\\s|протокол|договор|квитанц|уведомлен|доверенн|платёжн|платежн))','')).map(function(x){return x.trim().replace(/[.;,]\s*$/,'')}).filter(Boolean))});
- if(I.length<2&&items.length<2)return L;if(A.merge===false&&I.length>1)return L;var out=[];L.forEach(function(l,i){if(I.indexOf(i)<0){out.push(l);return}if(i!=I[I.length-1])return;out.push('Приложение:');items.forEach(function(x,j){out.push((j+1)+'. '+x+(j==items.length-1?'.':';'))})});return out}
-function gostXml(dx,t){var G=LYG();if(!G)return dx;CUR_T=t||null;CUR_COURT=courtDoc(pList(dx),G);dx=attachMerge(dx,G);
+ var items=[];I.forEach(function(i){var m=ATRE.exec(L[i].trim());items=items.concat(A.numbered===false?[m[2]]:m[2].split(RX(A.split||';\\s*|,\\s+(?=(?:копи|выписк|документ|справк|отч[её]т|акт[а-я]*\\s|протокол|договор|квитанц|уведомлен|доверенн|платёжн|платежн))','')).map(function(x){return aTrim(x)}).filter(Boolean))});
+ if(I.length<2&&items.length<2)return L;if(A.merge===false&&I.length>1)return L;var out=[];L.forEach(function(l,i){if(I.indexOf(i)<0){out.push(l);return}if(i!=I[I.length-1])return;out.push('Приложение:');items.forEach(function(x,j){out.push((j+1)+'. '+aEnd(x,j==items.length-1))})});return out}
+function gostXml(dx,t,hasLh){var G=LYG();if(!G)return dx;CUR_T=t||null;CUR_LH=!!hasLh;CUR_COURT=courtDoc(pList(dx),G);dx=attachMerge(dx,G);
  dx=dx.replace(/<w:p[ >][\s\S]*?<\/w:p>/g,function(p){return /Приложени[еяй]\s*:/.test(pTx(p))?attachSplit(p,G):p});
  try{dx=headXml(dx,G)}catch(e){console.warn('layout head',e)}
  var P=pList(dx),o=gostRoles(P,dx,t,G),R=o.R,fl=Math.round((G.first_line_cm||1.25)*567),ln=Math.round((G.line||1)*240),pa=tw(G.para_after_pt||0),ha=tw(G.head_after_pt!=null?G.head_after_pt:6),SJ=G.subject||{},AT=G.attach||{},EXC=G.executor||{},jb=G.justify!==false?'<w:jc w:val="both"/>':undefined;
@@ -88,7 +123,15 @@ function gostXml(dx,t){var G=LYG();if(!G)return dx;CUR_T=t||null;CUR_COURT=court
  var TBC=[],tre=/<w:tbl>([\s\S]*?)<w:tblGrid>([\s\S]*?)<\/w:tblGrid>/g,tm;while((tm=tre.exec(dx))){var e0=dx.indexOf('</w:tbl>',tm.index);TBC.push({s:tm.index,e:e0<0?dx.length:e0,n:(tm[2].match(/<w:gridCol\b/g)||[]).length,top:tm[1].indexOf('arb-top')>=0})}
  var tbOf=function(pos){var r=null;TBC.forEach(function(b){if(pos>=b.s&&pos<b.e)r=b});return r};
  SJ=RL(G,'heading_to_text');var SAL=RL(G,'salutation'),EXC=RL(G,'executor_mark'),M0=G.margins_mm||{left:30,right:15},txw=210-M0.left-M0.right,subj=false,EXP=[];if(o.ti>=0&&roleOf(P[o.ti].t,G,P[o.ti].s)=='heading_to_text')subj=true;
- var out='',last=0;P.forEach(function(p,i){var r=R[i],s=p.s,np=s;if(s!='<w:p/>'){var em=!p.t.trim(),il=+(pAttr(s,'ind','left')||0),jc=pAttr(s,'jc','val'),sp=function(a){return function(v){return spAttr(v,Object.assign({line:ln,lineRule:'auto'},a))}};
+ /* 1.7r: зоны и блок подписи */
+ var TW=textW(dx,t,G),Z=r17Zone(t),r7=G.roles_17r!==false,fsa=R.findIndex(function(r,k){return (r=='attach'||r=='sig')&&k>o.ti}),lastBody=-1;if(fsa>0)for(var lb=fsa-1;lb>o.ti;lb--){if(P[lb].tb)break;if(P[lb].t.trim()){if(R[lb]=='body')lastBody=lb;break}}
+ var cOf=function(i){if(!r7||P[i].tb)return '';var c=r17Of(P[i].s),zh=o.ti>=0&&i<o.ti,ok='';for(var j=0;j<c.length;j++){var z=Z[c[j]]||(c[j]=='S'?'head':c[j]=='P'||c[j]=='L'||c[j]=='D'?'sign':'');if(z=='head'?zh:z=='sign'?(fsa>=0&&i>=fsa):!zh)ok+=c[j]}return ok};
+ var CD=P.map(function(q,i){return cOf(i)}),sgI=-1;CD.forEach(function(c,i){if(c.indexOf('L')>=0)sgI=i});
+ var KB=r7&&sgI>=0&&(G.keep_sign_block!==false)&&(!((t||{}).layout)||!((t.layout||{}).keep_blocks)||(t.layout.keep_blocks||[]).some(function(b){return b&&b.id=='sign_block'&&b.keep_together!==false})),DROPE=r7&&G.sign_empty_to_spacing!==false&&fsa>=0,pend=0,lh=tw((G.text_pt||12)*(G.line||1));
+ var nextNE=function(i){for(var k=i+1;k<P.length;k++){if(P[k].tb)return -1;if(P[k].t.trim())return k}return -1};
+ var out='',last=0;P.forEach(function(p,i){var r=R[i],s=p.s,np=s;
+  if(DROPE&&i>=(lastBody>=0?lastBody+1:fsa)&&!p.tb&&(s=='<w:p/>'||!p.t.trim())&&!/<w:drawing|<w:sectPr|<w:pict|<w:object|w:type="page"|<w:pageBreakBefore|<w:bookmarkStart w:id="\d+" w:name="(?!_arb)/.test(s)){pend+=lh;out+=dx.slice(last,p.i);last=p.i+s.length;return}
+  if(s!='<w:p/>'){var em=!p.t.trim(),il=+(pAttr(s,'ind','left')||0),jc=pAttr(s,'jc','val'),sp=function(a){return function(v){return spAttr(v,Object.assign({line:ln,lineRule:'auto'},a))}};
    if(r=='table'){var tb=tbOf(p.i);if(tb&&tb.top)np=s;else{np=ppSet(s,{});var tp=(G.table_wide&&tb&&tb.n>=(G.table_wide.cols||9))?G.table_wide.pt:G.table_pt;if(tp)np=runSzIfNone(np,Math.round(tp*2))}}
    else if(r=='head'){if(il){np=s}else{var nx=P[i+1],grpEnd=!nx||nx.tb||R[i+1]!='head'||spc(i+1);np=ppSet(s,{spacing:sp({after:grpEnd?aft(i,ha):0})})}}
    else if(r=='subj'||r=='title'){var gp=Math.round((SJ.gap_mm||10)*72/25.4*20);if(r=='subj'||subj){var mw=SJ.max_width_mm?mmT(Math.max(0,txw-SJ.max_width_mm)):0;np=ppSet(s,{keepNext:'<w:keepNext/>',jc:SJ.align=='center'?'<w:jc w:val="center"/>':null,ind:mw?'<w:ind w:left="0" w:right="'+mw+'"/>':null,suppressAutoHyphens:'<w:suppressAutoHyphens/>',spacing:sp({before:bef(i,gp),after:aft(i,tw(G.title_space_pt||12))})});np=runProps(np,{hp:Math.round((SJ.pt||11)*2),i:SJ.italic!==false,b:SJ.bold?undefined:false})}
@@ -97,12 +140,21 @@ function gostXml(dx,t){var G=LYG();if(!G)return dx;CUR_T=t||null;CUR_COURT=court
    else if(r=='exec'){var rest=p.t.trim().replace(RX(EXC.label||'^(Исп\\.?|Исполнитель)\\s*:?\\s*'),'');var fio=rest.split(/,\s*тел/)[0].trim();
     if(EXC.require_text!==false&&(!fio||/^\[/.test(fio)||/^тел/i.test(fio)||(EXC.require_field&&D.raw&&!String(D.raw(EXC.require_field,CUR_T)||'').trim())))np='';
     else{var bot=(EXC.position||'last_page_bottom_left')=='last_page_bottom_left';np=ppSet(s,{framePr:bot?'<w:framePr w:wrap="notBeside" w:vAnchor="margin" w:hAnchor="margin" w:xAlign="left" w:yAlign="bottom"/>':undefined,ind:null,jc:null,keepLines:'<w:keepLines/>',spacing:sp({before:bot?0:bef(i,tw(EXC.before_pt||24)),after:0,line:240})});np=runProps(np,{hp:Math.round((EXC.pt||9)*2)});if(bot){EXP.push(np);np=''}}}
-   else if(r=='sig'){var fz=P.findIndex(function(q,k){return R[k]=='sig'});np=ppSet(s,{spacing:sp({before:(i==fz?(/_{5,}\s*\/[^\/]*\/\s*$/.test(p.t.trim())?tw(Math.max(0,(G.sig_line_gap_pt||30)-(spc(i-1)?(G.text_pt||12):0))):bef(i,tw(G.sig_before_pt||18))):0),after:0}),ind:il?undefined:null,jc:jc=='center'||jc=='right'?undefined:null})}
+   else if(r=='sig'){var fz=P.findIndex(function(q,k){return R[k]=='sig'});np=ppSet(s,{spacing:sp({before:(i==fz?((CD[i].indexOf('L')>=0||/_{5,}\s*\/[^\/]*\/\s*$/.test(p.t.trim()))?tw(Math.max(0,(G.sig_line_gap_pt||30)-(spc(i-1)?(G.text_pt||12):0))):bef(i,tw(G.sig_before_pt||18))):0),after:0}),ind:il?undefined:null,jc:jc=='center'||jc=='right'?undefined:null})}
    else if(r=='attach'){var first=i>0&&R[i-1]!='attach',isItem=/^\d+[.)]\s/.test(p.t.trim()),hg=Math.round((AT.hanging_mm||6)*MM);if(first)attHead=i;
     np=ppSet(s,{spacing:sp({before:first?bef(i,tw(G.attach_before_pt||12)):0,after:0}),ind:isItem?'<w:ind w:left="'+hg+'" w:hanging="'+hg+'"/>':(il?undefined:null),jc:jc=='center'||jc=='right'?undefined:(isItem?jb:(first?null:jb))})}
    else if(!em&&!il&&jc!='center'&&jc!='right'&&!/<w:tab\/>/.test(s.replace(/<w:pPr>[\s\S]*?<\/w:pPr>/,'')))np=ppSet(s,{spacing:sp({after:pa}),ind:'<w:ind w:firstLine="'+fl+'"/>',jc:jb});
    else np=ppSet(s,{spacing:sp({after:pa})})}
-  out+=dx.slice(last,p.i)+np;last=p.i+s.length});out+=dx.slice(last);
+  if(np&&r7&&!p.tb){var cd=CD[i],nn=nextNE(i),kn=false,kl=false;
+   if(/[PAH]/.test(cd))kn=true;if(/[PLD]/.test(cd))kl=true;if(cd.indexOf('L')>=0){np=sigTab(np,TW);if(nn>=0&&CD[nn].indexOf('D')>=0)kn=true}
+   if(cd.indexOf('Q')>=0)np=ppSet(np,{jc:'<w:jc w:val="left"/>'});
+   if(r=='attach'&&i>0&&R[i-1]!='attach')kn=true;
+   if(KB&&i>=lastBody&&lastBody>=0&&i<sgI&&p.t.trim()&&r!='exec'){kn=true;if(i>lastBody&&p.t.trim().length<=300)kl=true}
+   if(KB&&i==sgI)kl=true;
+   if(kn&&!/<w:framePr/.test(np))np=ppSet(np,{keepNext:'<w:keepNext/>'});if(kl)np=ppSet(np,{keepLines:'<w:keepLines/>'});
+   if(pend&&np){var pb=pend;np=ppSet(np,{spacing:function(v){var b=+((/w:before="(\d+)"/.exec(v||'')||[])[1]||0);return spAttr(v,{before:b+pb})}});pend=0}}
+  else if(np&&pend&&!p.tb){var pb2=pend;np=ppSet(np,{spacing:function(v){var b=+((/w:before="(\d+)"/.exec(v||'')||[])[1]||0);return spAttr(v,{before:b+pb2})}});pend=0}
+  out+=dx.slice(last,p.i)+np;last=p.i+s.length});out+=dx.slice(last);if(r7)try{out=tblPct(out,t,TW)}catch(e){console.warn('layout tables',e)}
  if(EXP.length){var bs=out.lastIndexOf('<w:sectPr'),be=out.lastIndexOf('</w:body>');var at=bs>=0&&bs<be?bs:be;if(at>=0)out=out.slice(0,at).replace(/(?:<w:p\/>|<w:p>(?:<w:pPr>(?:(?!<\/w:pPr>)[\s\S])*<\/w:pPr>)?<\/w:p>)+$/,'')+EXP.join('')+out.slice(at)}
  /* повтор строки заголовка таблицы на каждой странице */
  if(G.table_header_repeat!==false)out=out.replace(/<w:tbl>([\s\S]*?)<\/w:tblGrid>\s*<w:tr(\s[^>]*)?>(\s*<w:trPr>)?/g,function(m,a,tra,trp){if(a.indexOf('arb-top')>=0||/<w:tblHeader\/>/.test(m))return m;return '<w:tbl>'+a+'</w:tblGrid><w:tr'+(tra||'')+'>'+(trp?trp+'<w:tblHeader/>':'<w:trPr><w:tblHeader/></w:trPr>')});

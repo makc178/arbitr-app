@@ -561,3 +561,4 @@ html[data-theme=light] #dmbar{--bg:#ECFAF5;--pan:#FFFFFF;--pan2:#F4FBF8;--ink:#0
 .dauap .dapft{margin:8px 0 0;color:var(--mut)}
 .dauap .dapmore{margin-top:6px}
 @media (max-width:640px){.dauap .dap1{flex-basis:100%}.dauap .dap2{flex-basis:100%}}
+.dmged input.dpp_bad,.f input.dpp_bad{border-color:#c0392b}
