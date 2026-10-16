@@ -574,3 +574,13 @@ html[data-theme=light] #dmbar{--bg:#ECFAF5;--pan:#FFFFFF;--pan2:#F4FBF8;--ink:#0
 
 .dlr{margin:4px 0 8px;font-size:.85em;line-height:1.45;padding:6px 8px;border-left:3px solid var(--line);border-radius:4px}.dlrd{font-weight:600}.dlrsub{opacity:.75;margin-top:2px}.dlrst.late{color:#c96a5a;font-weight:600}
 .dlpre{display:inline-block;margin-left:4px;padding:0 6px;border:1px dashed #c8962e;border-radius:6px;color:#c8962e;font-size:.85em;line-height:1.5;cursor:help;white-space:nowrap}.dlr.pre .dlrd{color:#c8962e}
+/* 16.10 пинпад по макету: одно окно по центру, 4 точки, клавиши 64px, тряска точек при неверном PIN */
+.dualm{align-items:center;justify-content:center}
+.dualbox{width:min(300px,100%);padding:22px 20px 16px}
+.dualdots{gap:16px;margin:8px 0 12px}
+.dualdots i{width:14px;height:14px;transition:background-color .12s ease}
+.dualkeys{grid-template-columns:repeat(3,64px);justify-content:center;gap:12px}
+.dualkeys button{width:64px;height:64px;padding:0;border-radius:50%;font-size:1.45em;line-height:1;touch-action:manipulation;-webkit-tap-highlight-color:transparent;user-select:none}
+.dualkeys button:active{transform:scale(.96)}
+.dualkeys span{width:64px;height:64px}
+.dualdots.shake{animation:dualsh .35s}

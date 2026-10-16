@@ -56,7 +56,11 @@ window.ArbAUDEB=(function(){
  function nm(c){var s=c.summary||{};return person(c)&&!pOpen()?(s.mask||mask(s.name)):(s.name||'—')}
  /* ---------- поля: источник, правки, подтверждения ---------- */
  function srcName(s){return ({appointment:'карточка АУ',manual:'вручную',au_card:'карточка АУ',efrsb:'ЕФРСБ',kad:'kad.arbitr.ru',egrul:'ЕГРЮЛ',egrip:'ЕГРИП',analyst:'ЕГРЮЛ'})[s]||s||''}
- function fval(mid,a,f){var e=(ED[a]||{})[f];if(e!=null)return {value:e.value,edited:1,source:'manual',updated_at:e.at};var u=((UO[mid]||{})[a]||{})[f];if(u)return {value:u.value,source:'manual',saved:1,updated_at:u.edited_at};
+ function isDF(f){return /^ДАТА_/.test(f)||(UI.date_fields||[]).indexOf(f)>=0}
+ /* даты: хранение может быть ISO, показ и запись в дело — ДД.ММ.ГГГГ */
+ function fval(mid,a,f){var v=fval0(mid,a,f);if(!v||!isDF(f))return v;var o={};for(var k in v)o[k]=v[k];o.value=dmy(v.value);if(v.alt)o.alt=v.alt.map(function(x){var y={};for(var kk in x)y[kk]=x[kk];y.value=dmy(x.value);return y});return o}
+ function dmask(x){var d=String(x||'').replace(/\D/g,'').slice(0,8);return d.length>4?d.slice(0,2)+'.'+d.slice(2,4)+'.'+d.slice(4):d.length>2?d.slice(0,2)+'.'+d.slice(2):d}
+ function fval0(mid,a,f){var e=(ED[a]||{})[f];if(e!=null)return {value:e.value,edited:1,source:'manual',updated_at:e.at};var u=((UO[mid]||{})[a]||{})[f];if(u)return {value:u.value,source:'manual',saved:1,updated_at:u.edited_at};
   var c=card(mid,a),v=c&&(c.fields||{})[f];return v||null}
  function groups(c){var G=UI.groups||{};return [{t:T('g_debtor'),f:(person(c)?G.debtor_fl:G.debtor_ul)||[]},{t:T('g_case'),f:G['case']||[]}]}
  function label(f){return (UI.labels||{})[f]||((CF.field_meta||{})[f]||{}).label||f}
@@ -67,8 +71,8 @@ window.ArbAUDEB=(function(){
   var bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?'<i class="bdg">'+E(v.saved?T('saved_cp'):T('src',{d:dmy(v.updated_at)}))+(v.source&&!v.saved?' · '+E(srcName(v.source)):'')+'</i>':'');
   var alt=v&&!ed&&v.alt&&v.alt.length?'<div class="alt">'+E(T('alt',{v:v.alt[0].value,s:srcName(v.alt[0].source)}))+'</div>':'';
   var nl=(UI.never_local||[]).indexOf(f)>=0?'<div class="hint">'+I.info+E(T('not_local'))+'</div>':'';
-  return '<label class="fx'+(ed?' edited':'')+(key?' key':'')+(w?' w':'')+'"><span>'+E(label(f))+bd+'</span>'+(mk&&val?'<span style="display:flex;gap:6px;align-items:center"><input class="inp" value="'+E(maskV(val))+'" disabled><button type="button" class="opn" data-apx="rev" data-f="'+E(f)+'">'+I.eye+E(T('show'))+'</button></span>':
-   '<input class="inp" data-apf="'+E(f)+'" value="'+E(val)+'">')+(hint?'<div class="hint">'+I.clock+E(T(hint))+'</div>':'')+alt+nl+'</label>'}
+  return '<label class="fx'+(ed?' edited':'')+(key?' key':'')+(w?' w':'')+'"><span class="frow"><span class="fl">'+E(label(f))+'</span>'+bd+'</span>'+(mk&&val?'<span style="display:flex;gap:6px;align-items:center"><input class="inp" value="'+E(maskV(val))+'" disabled><button type="button" class="opn" data-apx="rev" data-f="'+E(f)+'">'+I.eye+E(T('show'))+'</button></span>':
+   '<input class="inp" data-apf="'+E(f)+'" value="'+E(val)+'"'+(isDF(f)?' inputmode="numeric" maxlength="10" placeholder="ДД.ММ.ГГГГ" autocomplete="off"':'')+'>')+(hint?'<div class="hint">'+I.clock+E(T(hint))+'</div>':'')+alt+nl+'</label>'}
  function fieldsHTML(mid,a,key){var c=card(mid,a);return groups(c).map(function(g){var fs=g.f.filter(function(f){return fval(mid,a,f)||needConf().indexOf(f)>=0});if(!fs.length)return '';
   var src=Array.from(new Set(fs.map(function(f){var v=fval(mid,a,f);return v&&!v.edited?srcName(v.source):''}).filter(Boolean))).join(' · ');
   return '<div class="card"><h3>'+E(g.t)+'<span class="sp"></span><span class="sm" style="font-weight:400">'+E(src)+'</span></h3><div class="g2f">'+fs.map(function(f){return fx(mid,a,f,key&&needConf().indexOf(f)>=0)}).join('')+'</div></div>'}).join('')}
@@ -82,8 +86,8 @@ window.ArbAUDEB=(function(){
  /* ---------- шаг «Должник» ---------- */
  function stepD(){var q=document.getElementById('dfdq');return q&&!q.closest('.apx')?q:null}
  function curMid(){return S().mgr||null}
- function apCard(c,sel){var s=c.summary||{},fl=person(c);return '<button type="button" class="ap'+(sel?' sel':'')+'" data-apx="pick" data-a="'+E(c.id)+'"><span class="rad"></span><div class="tx"><div class="nm">'+(fl&&!pOpen()?'<span class="mask">'+E(nm(c))+'</span>':E(nm(c)))+' <span class="pc'+(fl?' n':'')+'">'+E(s.proc_short||'')+'</span></div>'+
-  '<div class="kv"><span>'+E(T('f_case'))+'</span><b>'+E(s.case_no||'—')+'</b><span>'+E(T('f_court'))+'</span><b>'+E(s.court||'—')+'</b><span>'+E(T('f_proc'))+'</span><b class="wr">'+E(s.procedure_label||'—')+'</b><span>'+E(T('f_since'))+'</span><b>'+E(dmy(s.since)||'—')+'</b></div></div></button>'}
+ function apCard(c,sel){var s=c.summary||{},fl=person(c);return '<div class="ap'+(sel?' sel':'')+'" role="radio" aria-checked="'+(sel?'true':'false')+'" tabindex="0" data-apx="pick" data-a="'+E(c.id)+'"><span class="rad" aria-hidden="true"></span><div class="tx"><div class="nm">'+(fl&&!pOpen()?'<span class="mask">'+E(nm(c))+'</span>':E(nm(c)))+' <span class="pc'+(fl?' n':'')+'">'+E(s.proc_short||'')+'</span></div>'+
+  '<div class="kv"><span>'+E(T('f_case'))+'</span><b>'+E(s.case_no||'—')+'</b><span>'+E(T('f_court'))+'</span><b>'+E(s.court||'—')+'</b><span>'+E(T('f_proc'))+'</span><b class="wr">'+E(s.procedure_label||'—')+'</b><span>'+E(T('f_since'))+'</span><b>'+E(dmy(s.since)||'—')+'</b></div><div class="apo"><button type="button" class="opn2" data-apx="card" data-a="'+E(c.id)+'">'+E(T('open_card_l'))+' ›</button></div></div></div>'}
  function bar(info,sub,btn,dis,act){return '<div class="lbar"><div class="info"><b>'+info+'</b><span class="sm">'+E(sub)+'</span></div><button type="button" class="btn pri" data-apx="'+act+'"'+(dis?' disabled':'')+'>'+E(btn)+'</button></div>'}
  function selmini(mid,a){var c=card(mid,a),s=c.summary||{};return '<div class="selmini"><span class="ki" style="width:34px;height:34px;border-radius:10px;background:var(--soft);color:var(--acc2);display:flex;align-items:center;justify-content:center">'+(person(c)?I.user:I.bld)+'</span><div class="tx"><b>'+E(nm(c))+'</b><span class="sm">'+E([s.case_no,s.proc_short,s.court].filter(Boolean).join(' · '))+'</span></div><button type="button" class="link" data-apx="card" data-a="'+E(a)+'">'+E(T('open_card'))+'</button><button type="button" class="link" data-apx="back">'+E(T('change'))+'</button></div>'}
  function lockedPanel(){var lk=ual()=='locked';return '<div class="lkp">'+I.shield+'<div class="tx"><b>'+E(T('card_locked'))+'</b>'+E(lk?T('card_locked_t'):T('card_locked_nopin'))+'</div><button type="button" class="btn pri" '+(lk?'data-ual="open"':'data-apx="popen"')+'>'+I.lock+E(lk?T('pin_open'):T('p_open'))+'</button></div>'}
@@ -114,7 +118,7 @@ window.ArbAUDEB=(function(){
   if(!LD[mid]){load(mid).then(function(){draw();fetchB(mid)});}
   else fetchB(mid);
   var h=htmlD(mid),show=!!h&&!OTH[mid];if(OTH[mid]&&BUN[mid]&&active(mid).length)h='<button type="button" class="link" data-apx="lists">'+E(T('to_list',{n:active(mid).length}))+'</button>';
-  if(host.innerHTML!==h)host.innerHTML=h;cb.style.display=show?'none':''}
+  if(host._h!==h){host._h=h;host.innerHTML=h}cb.style.display=show?'none':''}
  /* ---------- дело из назначения ---------- */
  async function commit(mid,a){var c=card(mid,a);if(!c)return;var Ap=A(),St=S();
   if(!casesEnc()||!encOK()){Ap.toast&&Ap.toast(T('need_enc'));return}
@@ -224,7 +228,7 @@ window.ArbAUDEB=(function(){
  function openOV(mid,view,id){if(!OV){var el=document.createElement('div');el.className='apx apxc';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');document.body.appendChild(el);OV={el:el,more:{}};el.addEventListener('click',onClick)}
   if(view=='card'&&OV.view=='cred')OV.from=id;OV.mid=mid;OV.view=view;OV.id=id;OV.appr=null;OV.pin=pOpen();redrawOV();OV.el.scrollTop=0;
   clearInterval(PO);PO=setInterval(function(){if(!OV){clearInterval(PO);return}if(OV.pin!==pOpen()){OV.pin=pOpen();redrawOV()}},1000);load(mid).then(function(){fetchB(mid);redrawOV()})}
- function redrawOV(){if(!OV)return;var h='<div class="apxin"><button type="button" class="btn sec apxx" data-apx="close" aria-label="'+E(T('close'))+'">'+I.x+E(T('close'))+'</button>'+(OV.view=='cred'?credHTML(OV.mid,OV.id):cardHTML(OV.mid,OV.id))+'</div>';if(OV.el.innerHTML!==h)OV.el.innerHTML=h}
+ function redrawOV(){if(!OV)return;var h='<div class="apxin"><button type="button" class="btn sec apxx" data-apx="close" aria-label="'+E(T('close'))+'">'+I.x+E(T('close'))+'</button>'+(OV.view=='cred'?credHTML(OV.mid,OV.id):cardHTML(OV.mid,OV.id))+'</div>';if(OV.el._h!==h){OV.el._h=h;OV.el.innerHTML=h}}
  function closeOV(){if(OV){OV.el.remove();OV=null;clearInterval(PO)}}
  /* «Оценить справочно»: перечень из блока «Имущество», тот же механизм arbitr/appraisal_requests (заглушка без ПДн + .enc) */
  async function appraise(mid,a){var c=card(mid,a),Ap=A(),P=UI.appraisal||{};if(!c||typeof ghApi!='function'||!Ap.venc||!Ap.vaultSalt){OV.appr=T('appraise_err');return redrawOV()}
@@ -241,7 +245,7 @@ window.ArbAUDEB=(function(){
   catch(x){OV.appr=T('appraise_err')+': '+(x.message||x)}redrawOV()}
  /* ---------- события ---------- */
  function onClick(e){var b=e.target.closest&&e.target.closest('[data-apx]');if(!b)return;var k=b.dataset.apx,mid=OV&&OV.el.contains(b)?OV.mid:curMid(),a=b.dataset.a;e.preventDefault();
-  if(k=='pick'){SEL[mid]=a;PH[mid]='fill';AUTO[mid]=null;draw();return}
+  if(k=='pick'){if(SEL[mid]===a&&document.querySelector('.apxd .ap.sel'))return;SEL[mid]=a;OTH[mid]=0;AUTO[mid]=null;draw();return}
   if(k=='pick1'){var L=active(mid),s=SEL[mid]||(L.length==1?L[0].id:null);if(s){SEL[mid]=s;PH[mid]='fill';draw()}return}
   if(k=='next'){PH[mid]='confirm';draw();return}
   if(k=='back'){PH[mid]='list';SEL[mid]=null;OTH[mid]=0;draw();return}
@@ -250,9 +254,9 @@ window.ArbAUDEB=(function(){
   if(k=='ck'){var s2=SEL[mid];CK[s2]=CK[s2]||{};CK[s2][b.dataset.f]=!CK[s2][b.dataset.f];draw();return}
   if(k=='go'){var s3=SEL[mid];if(needConf().every(function(f){return (CK[s3]||{})[f]}))commit(mid,s3);return}
   if(k=='savecp'){saveCP(mid,SEL[mid]);return}
-  if(k=='rev'){var s4=SEL[mid];REV[s4+b.dataset.f]=Date.now()+(+CF.reveal_s||30)*1000;draw();setTimeout(draw,(+CF.reveal_s||30)*1000+50);return}
+  if(k=='rev'){var s4=OV&&OV.el.contains(b)?OV.id:SEL[mid];REV[s4+b.dataset.f]=Date.now()+(+CF.reveal_s||30)*1000;draw();redrawOV();setTimeout(function(){draw();redrawOV()},(+CF.reveal_s||30)*1000+50);return}
   if(k=='revc'){REV[b.dataset.k]=Date.now()+(+CF.reveal_s||30)*1000;redrawOV();setTimeout(redrawOV,(+CF.reveal_s||30)*1000+50);return}
-  if(k=='card'){openOV(mid,'card',a);return}
+  if(k=='card'){e.stopPropagation();var inD=!!b.closest('.apxd');openOV(mid,'card',a);if(OV&&OV.el)OV.el.classList.toggle('apside',inD);return}
   if(k=='cred'){openOV(mid,'cred',b.dataset.c);return}
   if(k=='close'){closeOV();return}
   if(k=='popen'){OPN=Date.now()+(+CF.person_open_min||5)*60000;draw();redrawOV();return}
@@ -262,12 +266,14 @@ window.ArbAUDEB=(function(){
   if(k=='mkdoc'){closeOV();var nav=document.querySelector('nav button[data-v="docs"],nav button[data-v="d"],nav button[data-v="doc"]');if(nav)nav.click();SEL[mid]=a;PH[mid]='fill';OTH[mid]=0;setTimeout(draw,120);return}}
  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.apxd [data-apx],[data-apcard]');if(!b)return;if(b.dataset.apcard){e.preventDefault();openOV(b.dataset.apmid,'card',b.dataset.apcard);return}onClick(e)});
  document.addEventListener('change',function(e){var t=e.target;if(t.matches&&t.matches('.apxc [data-apag]')&&OV){OV.ag=t.value;redrawOV()}});
- document.addEventListener('keydown',function(e){if((e.key==' '||e.key=='Enter')&&e.target.matches&&e.target.matches('.apx [role=checkbox]')){e.preventDefault();e.target.click()}if(e.key=='Escape'&&OV)closeOV()});
+ document.addEventListener('keydown',function(e){if((e.key==' '||e.key=='Enter')&&e.target.matches&&e.target.matches('.apx [role=checkbox],.apx [role=radio]')){e.preventDefault();e.target.click()}if(e.key=='Escape'&&OV)closeOV()});
  document.addEventListener('input',function(e){var t=e.target;if(!t.matches||!t.matches('.apxd [data-apf]'))return;var mid=curMid(),a=SEL[mid];if(!a)return;var f=t.dataset.apf,c=card(mid,a),base=((UO[mid]||{})[a]||{})[f]||((c&&c.fields)||{})[f]||{};
-  ED[a]=ED[a]||{};if(String(t.value)===String(base.value==null?'':base.value))delete ED[a][f];else ED[a][f]={value:t.value,at:new Date().toISOString()};if(CK[a])delete CK[a][f];
+  if(isDF(f)){var ov=t.value,del=e.inputType&&/^delete/.test(e.inputType),nv=del?ov:dmask(ov);if(nv!==ov){var p0=t.selectionStart;t.value=nv;try{var p1=p0+(nv.length-ov.length);t.setSelectionRange(p1,p1)}catch(x){}}}
+  var bv=base.value==null?'':String(base.value);if(isDF(f))bv=dmy(bv);
+  ED[a]=ED[a]||{};if(String(t.value)===bv)delete ED[a][f];else ED[a][f]={value:t.value,at:new Date().toISOString()};if(CK[a])delete CK[a][f];
   var pos=t.selectionStart;draw();var n=document.querySelector('.apxd [data-apf="'+f+'"]');if(n&&n!==t){n.focus();try{n.setSelectionRange(pos,pos)}catch(x){}}});
  ['pointerdown','keydown'].forEach(function(n){document.addEventListener(n,function(){if(OPN>Date.now())OPN=Math.max(OPN,Date.now()+(+CF.person_open_min||5)*60000)},{passive:true,capture:true})});
  document.addEventListener('visibilitychange',function(){if(document.hidden&&OPN){OPN=0;draw();redrawOV()}});window.addEventListener('pagehide',function(){OPN=0});
  setInterval(function(){if(OPN&&OPN<=Date.now()){OPN=0;draw();redrawOV()}},15000);
- var MT=0;new MutationObserver(function(){if(MT)return;MT=setTimeout(function(){MT=0;if(!on())return;if(stepD())draw();badges()},120)}).observe(document.documentElement,{childList:true,subtree:true});
+ var MT=0;new MutationObserver(function(ms){if(MT)return;if(ms.every(function(m){var t=m.target;return t&&t.closest&&(t.closest('.apx')||t.classList&&t.classList.contains('apbdg'))}))return;MT=setTimeout(function(){MT=0;if(!on())return;if(stepD())draw();badges()},120)}).observe(document.documentElement,{childList:true,subtree:true});
  return {ensure:function(mid){if(!mid||!encOK())return;if(!LD[mid])load(mid).then(function(){fetchB(mid);try{ArbAUAP.draw()}catch(e){}});else fetchB(mid)},draw:draw,open:function(mid,a){openOV(mid,'card',a)},openCred:function(mid,c){openOV(mid,'cred',c)},_bun:function(){return BUN},_set:function(mid,o){BUN[mid]=o;LD[mid]=Promise.resolve(o);UO[mid]=UO[mid]||{};draw();redrawOV()},_fetch:fetchB,cards:cards,active:active,mask:mask,pOpen:pOpen}})();

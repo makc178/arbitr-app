@@ -4,7 +4,7 @@
    · Файлы раздела зашифрованы ключом данных DK (AES-256-GCM); DK обёрнут ключом из PIN раздела (PBKDF2 → AES-GCM),
      а сверху каждый файл зашифрован основным PIN: arbitr/ua/f_*.enc (встроенная карточка) и записи _ua_* в IndexedDB (свои бланки/подписи).
    · Пока PIN раздела не введён, файлы раздела не загружаются и не расшифровываются (docs.js auLoad → ArbUAL.gate).
-   · 3 неверные попытки → блокировка на 1 мин (счётчик в localStorage, без ПДн). Автоблокировка: уход со страницы/вкладки, 5 мин бездействия.
+   · 3 неверные попытки → пауза ua_lock.block_s (30 с) с обратным отсчётом (счётчик в localStorage, без ПДн). Автоблокировка: уход со страницы/вкладки, 5 мин бездействия.
    · Честно: 4 цифры — 10 000 вариантов. Тот, у кого уже есть основной PIN и доступ к репозиторию, переберёт их офлайн
      (счётчик попыток защищает только интерфейс). PIN раздела — защита от постороннего у открытого приложения, а не криптостойкий секрет.
    Настройки и тексты — docs_config.json → ua_lock. Крючки в docs.js: auLoad (gate), drawMgr (sec), mgrSave (свои файлы раздела не пишутся в карточку), window.ArbUAD. */
@@ -98,23 +98,40 @@
 function place(){var s=document.querySelector('[data-ual-slot]');if(!s||ST!='locked')return;var root=s.closest('form,.dmgr,.card,section')||s.parentNode,old=document.querySelector('[data-ual=row]');if(old)old.remove();
  var row=document.createElement('div');row.className='dual';row.dataset.ual='row';row.innerHTML='<button type="button" class="dualrow" data-ual="open" aria-label="'+E(U('row_aria'))+'"><span aria-hidden="true">🔒</span> '+E(U('row'))+'</button>';
  var sv=root.querySelector('[data-mg=save]')||document.querySelector('[data-mg=save]'),at=sv?(sv.parentNode.querySelectorAll('[data-mg]').length>1?sv.parentNode:sv):null;if(at&&at.parentNode)at.parentNode.insertBefore(row,at);else s.parentNode.insertBefore(row,s.nextSibling)}
-function pad(mode,why){closePad();var steps=mode=='setup'?['new','again']:mode=='change'?['current','new','again']:['enter'],vals=[],cur='';
-  var el=document.createElement('div');el.className='dualm'+(K().anim?' dualanim':'');el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');PAD=el;
+function pad(mode,why){
+  /* одно окно: повторный вызов не открывает второй пинпад поверх первого; PIN вводится один раз за сессию */
+  if(PAD&&document.body.contains(PAD)){try{PAD.focus()}catch(e){}return}
+  if(mode=='enter'&&ST=='open'){var cb0=PADCB;PADCB=null;if(cb0)cb0(true);return}
+  closePad();var steps=mode=='setup'?['new','again']:mode=='change'?['current','new','again']:['enter'],vals=[],cur='',busy=false,lastK='',lastT=0,deb=+K().key_debounce_ms||150,tk=null;
+  var el=document.createElement('div');el.className='dualm';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');PAD=el;
   var keys=[1,2,3,4,5,6,7,8,9,'',0,'⌫'];
-  function draw(msg,err){var b=blockedFor();el.innerHTML='<div class="dualbox"><b class="dualt">'+E(U('t_'+steps[vals.length]))+'</b>'+(why=='gen'?'<p class="sm dualsub">'+E(U('gen_hint'))+'</p>':'')+'<div class="dualdots" aria-live="polite" aria-label="'+E(U('dots_aria',{n:cur.length}))+'">'+[0,1,2,3].map(function(i){return '<i class="'+(i<cur.length?'on':'')+'"></i>'}).join('')+'</div>'+
-    '<p class="dualmsg'+(err?' err':'')+'" role="'+(err?'alert':'status')+'">'+E(b?U('blocked',{s:b}):(msg||''))+'</p><div class="dualkeys">'+keys.map(function(k){return k===''?'<span></span>':'<button type="button" data-k="'+k+'"'+(b?' disabled':'')+'>'+k+'</button>'}).join('')+'</div>'+
-    (mode=='setup'?'<p class="sm dualwarn">'+E(U('weak'))+'</p>':'')+'<button type="button" class="lbtn sec" data-k="x">'+E(U(why=='gen'?'gen_skip':'cancel'))+'</button></div>';if(err&&K().anim){var dd=el.querySelector('.dualdots');dd.classList.add('shake')}}
+  /* разметка строится один раз; на каждую цифру меняются только точки/сообщение/disabled */
+  el.innerHTML='<div class="dualbox"><b class="dualt"></b>'+(why=='gen'?'<p class="sm dualsub">'+E(U('gen_hint'))+'</p>':'')+'<div class="dualdots" aria-live="polite">'+[0,1,2,3].map(function(){return '<i></i>'}).join('')+'</div>'+
+    '<p class="dualmsg" role="status"></p><div class="dualkeys">'+keys.map(function(k){return k===''?'<span></span>':'<button type="button" data-k="'+k+'"'+(k==='⌫'?' aria-label="'+E(U('backspace')||'Стереть')+'"':'')+'>'+k+'</button>'}).join('')+'</div>'+
+    (mode=='setup'?'<p class="sm dualwarn">'+E(U('weak'))+'</p>':'')+'<button type="button" class="lbtn sec" data-k="x">'+E(U(why=='gen'?'gen_skip':'cancel'))+'</button></div>';
+  var T=el.querySelector('.dualt'),D=el.querySelector('.dualdots'),M=el.querySelector('.dualmsg'),KB=el.querySelectorAll('.dualkeys button');
+  function dots(){var ii=D.children;for(var i=0;i<4;i++)ii[i].className=i<cur.length?'on':'';D.setAttribute('aria-label',U('dots_aria',{n:cur.length}))}
+  function draw(msg,err){var b=blockedFor();T.textContent=U('t_'+steps[Math.min(vals.length,steps.length-1)]);dots();
+    var t=b?U('blocked',{s:b}):(msg||'');if(M.textContent!==t)M.textContent=t;M.className='dualmsg'+(err||b?' err':'');M.setAttribute('role',err||b?'alert':'status');
+    for(var i=0;i<KB.length;i++)KB[i].disabled=!!b||busy}
+  function shake(){D.classList.remove('shake');void D.offsetWidth;D.classList.add('shake')}
+  function wrong(bl){vals=[];cur='';draw(bl?'':U('wrong',{n:Math.max(0,(+K().max_attempts||3)-(att().n||0))}),1);shake();if(bl)tickBlock()}
   async function done(){vals.push(cur);cur='';if(vals.length<steps.length){draw();return}
-   if(steps[steps.length-1]=='again'&&vals[vals.length-1]!==vals[vals.length-2]){vals=mode=='change'?[vals[0]]:[];draw(U('mismatch'),1);return}
-   draw(U('wait'));el.querySelectorAll('button').forEach(function(b){b.disabled=true});
-   try{if(mode=='enter'){if(await open(vals[0])){var cb=PADCB;PADCB=null;closePad();if(cb)cb(true);return}var bl=fail();vals=[];draw(bl?'':U('wrong',{n:Math.max(0,(+K().max_attempts||3)-(att().n||0))}),1);if(bl)tickBlock();return}
-    if(mode=='change'){if(await change(vals[0],vals[1])){closePad();toast(U('changed'));return}var bl2=fail();vals=[];draw(bl2?'':U('wrong',{n:Math.max(0,(+K().max_attempts||3)-(att().n||0))}),1);if(bl2)tickBlock();return}
-    if(mode=='setup'){await setup(vals[0]);closePad();toast(U('set_ok'));return}}catch(e){vals=[];draw(U('error',{m:e.message}),1)}}
-  function tickBlock(){var t=setInterval(function(){if(!PAD||PAD!==el){clearInterval(t);return}draw();if(!blockedFor())clearInterval(t)},1000)}
-  el.addEventListener('click',function(e){var b=e.target.closest('[data-k]');if(!b||b.disabled)return;var k=b.dataset.k;if(k=='x'){closePad();return}if(blockedFor())return;if(k=='⌫')cur=cur.slice(0,-1);else if(cur.length<4)cur+=k;draw();if(cur.length==4)done()});
-  el.addEventListener('keydown',function(e){if(e.key=='Escape'){closePad();return}if(blockedFor())return;if(/^\d$/.test(e.key)&&cur.length<4){cur+=e.key;draw();if(cur.length==4)done()}else if(e.key=='Backspace'){cur=cur.slice(0,-1);draw()}});
+   if(steps[steps.length-1]=='again'&&vals[vals.length-1]!==vals[vals.length-2]){vals=mode=='change'?[vals[0]]:[];draw(U('mismatch'),1);shake();return}
+   busy=true;draw(U('wait'));
+   try{if(mode=='enter'){var ok=await open(vals[0]);busy=false;if(ok){var cb=PADCB;PADCB=null;closePad();if(cb)cb(true);return}wrong(fail());return}
+    if(mode=='change'){var ok2=await change(vals[0],vals[1]);busy=false;if(ok2){closePad();toast(U('changed'));return}wrong(fail());return}
+    if(mode=='setup'){await setup(vals[0]);busy=false;closePad();toast(U('set_ok'));return}}catch(e){busy=false;vals=[];cur='';draw(U('error',{m:e.message}),1)}}
+  function tickBlock(){clearInterval(tk);tk=setInterval(function(){if(!PAD||PAD!==el){clearInterval(tk);return}draw();if(!blockedFor()){clearInterval(tk);draw()}},1000)}
+  function press(k){if(busy||blockedFor())return;var now=Date.now();if(k!=='⌫'&&k===lastK&&now-lastT<deb)return;lastK=k;lastT=now;
+    if(k=='⌫'){cur=cur.slice(0,-1);dots();return}if(k=='ok'){if(cur.length==4)done();return}
+    if(cur.length<4){cur+=k;if(M.textContent&&!blockedFor()){M.textContent='';M.className='dualmsg'}dots();if(cur.length==4)done()}}
+  el.addEventListener('click',function(e){var b=e.target.closest('[data-k]');if(!b||b.disabled)return;e.preventDefault();var k=b.dataset.k;if(k=='x'){closePad();return}press(k)});
+  el._kd=function(e){if(PAD!==el)return;if(e.key=='Escape'){e.preventDefault();closePad();return}
+    if(/^\d$/.test(e.key)){e.preventDefault();press(e.key)}else if(e.key=='Backspace'){e.preventDefault();press('⌫')}else if(e.key=='Enter'){e.preventDefault();press('ok')}};
+  document.addEventListener('keydown',el._kd,true);
   el.tabIndex=-1;document.body.appendChild(el);draw();if(blockedFor())tickBlock();el.focus()}
- function closePad(){if(PAD){PAD.remove();PAD=null}var cb=PADCB;PADCB=null;if(cb&&ST!='open')cb(false)}
+ function closePad(){if(PAD){if(PAD._kd)document.removeEventListener('keydown',PAD._kd,true);PAD.remove();PAD=null}var cb=PADCB;PADCB=null;if(cb&&ST!='open')cb(false)}
 /* подстановка в документ, пока материалы скрыты: один раз спросить PIN, после генерации снова скрыть */
 var PADCB=null,SKIP=0,GEN=null;
 function need(){if(K().enabled===false||ST!='locked'||K().gen_prompt===false||Date.now()<SKIP)return Promise.resolve(null);
