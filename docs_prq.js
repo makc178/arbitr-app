@@ -46,6 +46,14 @@ window.ArbPRQ=(function(){
    var L=pend();L.unshift({id:id,at:Date.now(),status:'new',category:cat,cat_title:(($('prcat')||{}).selectedOptions||[{}])[0].text||cat});setP(L);
    $('prq').value='';FILES=[];attList();setMsg(U('sent'));draw();arm(10)}
   catch(err){setMsg(U('send_error')+': '+(err.message||err))}}
+ /* автоматический запрос (спорные строки «Текущие назначения АУ») — та же очередь, тот же формат заглушки и .enc; без вложений */
+ async function auto(o){var a=A();if(typeof ghApi!='function'||!a||!a.venc||!a.vaultSalt)throw new Error(U('no_store'));
+  var cat=o.category||'other',urg=o.urgency||'normal',id=rid(),pay={type:'court_practice',version:1,source:o.source||'Arbitr App',origin:o.origin||null,role:'au',question:o.question,case:o.case||null,items:o.items||[],
+   position:'neutral',category:cat,parties:['au'],court_type:'arb',instances:['first','appeal','cass'],region:'все',period:{years:3},outcome:'both',urgency:urg,attachments:[]};
+  var vs=a.vaultSalt(),e=await a.venc(new TextEncoder().encode(JSON.stringify(pay)),vs.s,vs.it);
+  await put(RQ()+id+'.enc',JSON.stringify({v:1,s:vs.s,it:vs.it,iv:b64(e.iv),ct:b64(new Uint8Array(e.ct))}),'practice payload '+id);
+  await put(RQ()+id+'.json',JSON.stringify({schema:'arbitr/practice_au_request/v1',type:'au_request',subtype:'court_practice',version:1,id:id,created_at:new Date().toISOString(),status:'new',category:cat,urgency:urg,n_attachments:0,origin:o.origin||null,enc:{format:'arbitr/au',s:vs.s,it:vs.it},payload_path:RQ()+id+'.enc',response_path:RS()+id+'.enc'},null,1),'practice_request '+id);
+  var L=pend();L.unshift({id:id,at:Date.now(),status:'new',category:cat,cat_title:o.title||cat});setP(L);if($('prcl'))draw();arm(10);return id}
  /* ---- опрос и показ ---- */
  function arm(s){clearTimeout(TM);if(pend().some(function(q){return /^(new|in_progress|partial)$/.test(q.status)}))TM=setTimeout(poll,(s!=null?s:(+K().poll_s||60))*1000)}
  async function fetchRes(q){var a=A();var r=await ghApi(RS()+q.id+'.enc');if(!r.ok)return null;var j=await r.json();if(j.sha&&q.rsha==j.sha&&RES[q.id])return RES[q.id];q.rsha=j.sha||'';var res=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(j))));RES[q.id]=res;return res}
@@ -66,4 +74,4 @@ window.ArbPRQ=(function(){
   if(e.target.closest('a'))return;var box=$('prqau'),id=d.dataset.prqopen;box.dataset.open=box.dataset.open==id?'':id;var q=pend().find(function(x){return x.id==id});if(box.dataset.open&&q&&!RES[id]&&/^(done|partial|not_found)$/.test(q.status)){try{await fetchRes(q)}catch(x){}}draw()});
  new MutationObserver(function(){if($('pf')&&(!$('prqcase')||!$('prqatt')||($('prqatt').dataset.k!=(K().ui?1:0))))form();if($('prcl')&&!$('prqau')&&pend().length)draw()}).observe(document.documentElement,{childList:true,subtree:true});
  setTimeout(function(){form();arm(5)},4000);
- return {submit:submit,poll:poll,pending:pend,form:form,draw:draw,_res:function(){return RES},_files:function(){return FILES}}})();
+ return {submit:submit,auto:auto,poll:poll,pending:pend,form:form,draw:draw,_res:function(){return RES},_files:function(){return FILES}}})();

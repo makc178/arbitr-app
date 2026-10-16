@@ -542,3 +542,22 @@ html,body{overflow-x:clip!important;overflow-y:visible!important}
 html.dmbar-on #vdocs{padding-bottom:84px}
 html[data-theme=dark] #dmbar{--bg:#0B2A24;--pan:#13403A;--pan2:#185048;--ink:#E6F4F1;--mut:#7FA39C;--line:rgba(230,244,241,.13);--acc:#14B8A6;--acc2:#5EEAD4;--soft:rgba(94,234,212,.09);--ondark:#06201C;--amber:#E0A020;--amberbg:rgba(224,160,32,.14);--okbg:rgba(20,184,166,.16);--ok:#5EEAD4;--bar:#10302A;--inp:#0F3630}
 html[data-theme=light] #dmbar{--bg:#ECFAF5;--pan:#FFFFFF;--pan2:#F4FBF8;--ink:#0F2E2A;--mut:#5F857E;--line:#CDEBE2;--acc:#0D9488;--acc2:#0D9488;--soft:#DDF3EC;--ondark:#FFFFFF;--amber:#A86A00;--amberbg:#FFF1D6;--okbg:#DDF3EC;--ok:#0D6E66;--bar:#FFFFFF;--inp:#FFFFFF}
+/* Текущие назначения АУ (docs_auap.js) */
+.dmged .dauap{grid-column:1/-1;margin:6px 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--pan2,var(--pan))}
+.dauap .dsh{margin:0 0 6px}
+.dauap .dapl{display:flex;flex-direction:column}
+.dauap .dapr{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;padding:8px 0;border-top:1px solid var(--line)}
+.dauap .dapr:first-child{border-top:0}
+.dauap .dap1{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px;flex:1 1 320px;min-width:0}
+.dauap .dapn{font-weight:600;overflow-wrap:anywhere}
+.dauap .dapc{font-size:12px;line-height:1.2;padding:2px 8px;border-radius:999px;border:1px solid var(--acc2);color:var(--acc2);white-space:nowrap}
+.dauap .dapro{color:var(--mut)}
+.dauap .dap2{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 12px;flex:1 1 auto;justify-content:flex-start}
+.dauap .dapk{white-space:nowrap}
+.dauap a.dapk{color:var(--acc2)}
+.dauap .dapd{margin-left:auto;color:var(--mut);white-space:nowrap}
+.dauap .dapdp{color:var(--amber);white-space:nowrap}
+.dauap .dapem{margin:4px 0}
+.dauap .dapft{margin:8px 0 0;color:var(--mut)}
+.dauap .dapmore{margin-top:6px}
+@media (max-width:640px){.dauap .dap1{flex-basis:100%}.dauap .dap2{flex-basis:100%}}

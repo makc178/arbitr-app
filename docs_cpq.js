@@ -40,6 +40,7 @@ window.ArbCPQ=(function(){
  function summ(it){var fd=it.fedresurs||{},b=fd.bankruptcy||{},eg=it.egrul||{},f=eg.fields||{};
   return {at:it.checked_at||new Date().toISOString(),risk:it.risk||null,bank:b.status||null,case_no:b.case_no||'',stage:b.stage||'',status:f.status||f.state||'',liq:!!(eg.risk&&eg.risk.liquidated),summary:String(fd.summary_ru||'').slice(0,400),errors:(it.errors||[]).slice(0,4),reasons:((eg.risk||{}).reasons||[]).slice(0,3)}}
  async function apply(q,res){var P=Q();if(!P)return;
+  if(q.type=='au_appointments'){if(window.ArbAUAP)await ArbAUAP.apply(q,res);return}
   if(q.type=='au_search'){AUR=[{at:Date.now(),id:q.id,c:res.candidates||[],err:res.error||''}];toast(res.status=='error'?U('au_error'):U('au_found',{n:(res.candidates||[]).length}));return}
   var ed=P.ed(),all=P.all(),n=0;
   for(var i=0;i<(res.items||[]).length;i++){var it=res.items[i],c=all.find(function(x){return x.id==it.cid});

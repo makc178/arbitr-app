@@ -28,28 +28,14 @@ async function init(){C=window.EVAL_CONFIG;$('evalslot').outerHTML=await (await 
  $('etabs').onclick=function(e){var b=e.target.closest('[data-t]');if(b)form(b.dataset.t)};$('ef').addEventListener('change',vis);
  $('ef').onsubmit=send;$('eq').oninput=draw;$('evl').onchange=function(e){var i=e.target.closest('[data-nd]');if(i)more(i)};$('evl').onclick=function(e){if(e.target.closest('[data-f]'))return dlClick(e)};
  document.querySelectorAll('nav button[data-v]').forEach(function(b){b.addEventListener('click',function(){$('veval').style.display=b.dataset.v=='eval'?'':'none';if(b.dataset.v=='eval')list()})})}
-async function send(e){e.preventDefault();var m=$('emsg'),data={},files=[],miss=[];vis();
- fields().forEach(function(f){if(f._h)return;var v=val(f.k);if(f.type=='file'){[].slice.call(v).forEach(function(x){files.push([f.k,x])});if((f.req||(f.k=='files'&&C.types[TY].require_files))&&!v.length)miss.push(f.k=='files'&&C.types[TY].require_files_msg||f.label);return}
-  if(f.type=='inn'&&v){v=v.replace(/\D/g,'');if(!/^(\d{10}|\d{12})$/.test(v))miss.push(f.label+' (10 или 12 цифр)')}
-  if(f.req&&(!v||!v.length))miss.push(f.label);if(v&&v.length)data[f.k]=v});
- if(miss.length){m.textContent='Заполните: '+miss.join(', ');return}
- var AC=C.types[TY].accept;if(AC){var ex=AC.split(','),wr=files.find(function(f){return ex.indexOf((f[1].name.match(/\.[^.]+$/)||[''])[0].toLowerCase())<0});if(wr){m.textContent='Недопустимый формат: '+wr[1].name+' (можно '+AC+')';return}}
- var mx=(C.max_file_mb||20)*1048576,big=files.find(function(f){return f[1].size>mx});if(big){m.textContent='Файл больше '+C.max_file_mb+' МБ: '+big[1].name;return}
- if(!on()){m.textContent='Отправка доступна в онлайн-версии после входа.';return}
- var d=new Date(),rid=d.toISOString().replace(/[-:]/g,'').slice(0,15)+'Z-ev-'+Math.random().toString(36).slice(2,6),cid='V'+rid.slice(0,15).replace('T','')+'-'+rid.slice(-4),b=$('esend'),up=[];b.disabled=true;
- try{for(var i=0;i<files.length;i++){var f=files[i][1];m.textContent='Загружаю '+(i+1)+' из '+files.length+': '+f.name+'…';var nm=f.name.replace(/[\\/:*?"<>|#%]+/g,'_'),path='valuation/'+cid+'/input/'+nm;
-   var r=await ghApi(path.split('/').map(encodeURIComponent).join('/'),{method:'PUT',body:JSON.stringify({message:'valuation upload '+cid,branch:BRANCH,content:ab64(await f.arrayBuffer())})});if(!r.ok)throw new Error(f.name+': GitHub '+r.status);up.push({field:files[i][0],path:path,name:nm,size:f.size})}
-  var c={};['purpose','value_type','valuation_date','value_wish','comment'].forEach(function(k){c[k]=data[k]||null;delete data[k]});
-  var q=Object.assign({type:'valuation',version:2,id:rid,case_id:cid,created_at:d.toISOString(),source:'Arbitr App / Оценка',for:'Оценщик',object_type:TY,mode:C.types[TY].mode||'form',object:data,files:up,doc_title:C.doc_title,disclaimer:C.disclaimer,purpose_warning:(C.purpose_warnings||{})[c.purpose]||null,deliverables:C.card_files.map(function(x){return x.key})},c);
-  var r2=await ghApi('requests/'+rid+'.json',{method:'PUT',body:JSON.stringify({message:'valuation '+rid,branch:BRANCH,content:u8b64(JSON.stringify(q,null,1))})});if(!r2.ok)throw new Error('запрос: GitHub '+r2.status);
-  m.textContent='';toast('✓ '+E(typeof etaAccepted=='function'?etaAccepted(q):'Запрос принят')+'. Оценщик'+(up.length?', файлов: '+up.length:'')+'.',12000);form(TY);list()}
- catch(x){m.textContent='Не удалось отправить: '+x.message}finally{b.disabled=false}}
+/* 16.10: старый путь «Arbitr App / Оценка» (заглушки …Z-ev-xxxx в общем requests/ Everest + файлы в valuation/V…/input) убран — разделение с Everest.
+   Справочная оценка в Arbitr — только своя зашифрованная очередь arbitr/appraisal_requests (Опись имущества → «Справочная оценка», docs_appr.js). */
+var LEGACY_OFF='Запрос оценки отправляется из «Описи имущества» (справочная оценка Arbitr). Эта форма больше не отправляет запросы.';
+async function send(e){e.preventDefault();var m=$('emsg');if(m)m.textContent=C.legacy_off_msg||LEGACY_OFF}
 function title(q){var t=C.types[q.object_type],o=q.object||{};return (t?t.title_keys.map(function(k){return o[k]}).filter(Boolean).join(', '):'')||q.title||q.case_id}
 async function list(){var m=$('evm');if(!on()){m.textContent='Доступно в онлайн-версии после входа.';return}m.textContent='Загрузка…';
  try{try{IDX=norm(JSON.parse(await ghRaw('valuation/index.json')))}catch(e){IDX={}}
   var done=new Set(Object.values(IDX).map(function(x){return x&&x.request_id}).filter(Boolean));PEND=[];
-  var dirs=['requests','requests/picked'];for(var di=0;di<2;di++){try{var r=await ghApi(dirs[di]);if(r.ok){var fl=(await r.json()).filter(function(x){return x.type=='file'&&/-ev-/.test(x.name)&&!done.has(x.name.replace(/\.json$/,''))});
-   for(var i=0;i<fl.length;i++){try{var pq=JSON.parse(await ghRaw(fl[i].path));if(pq.type=='valuation'&&!PEND.some(function(z){return z.id==pq.id})){pq._path=di?null:fl[i].path;PEND.push(pq)}}catch(e){}}}}catch(e){}}
   draw()}catch(e){m.textContent='Не удалось получить список: '+e.message}}
 window.EVAL_LIST=function(){return list()};window.EVAL_IDX=function(){return IDX};
 function opt(k,v){var f=C.common.find(function(x){return x.k==k});return f&&f.options[v]||''}
@@ -69,14 +55,7 @@ function norm(x){var o={},a=Array.isArray(x)?x:x&&typeof x=='object'?(Array.isAr
   r.date=r.date||r.created_at||r.valuation_date;o[k]=r});return o}
 function st(k){return (C.statuses||{})[k]||k}
 function nd(o,cid,rq){if(o.status!='need_data')return '';var N=C.need_data||{};return '<div class="pcard"><div class="sm ewarn"><b>'+E(st('need_data'))+'.</b> '+E(N.missing_title)+'<ul style="margin:4px 0">'+(o.missing||[]).map(function(x){return '<li>'+E(x)+'</li>'}).join('')+'</ul></div><label class="fdrop"><input type="file" multiple data-nd="'+E(cid)+'"'+(rq?' data-rq="'+E(rq)+'"':'')+'><span>'+E(N.upload_label)+'</span></label><span class="sm" data-ndm="'+E(cid)+'"></span></div>'}
-async function more(i){var cid=i.dataset.nd,m=document.querySelector('[data-ndm="'+CSS.escape(cid)+'"]'),fs=[].slice.call(i.files),up=[];if(!fs.length)return;if(!on()){m.textContent='Доступно после входа.';return}
- if(!/^V[\w\-]+$/.test(cid)){m.textContent='Неверный номер запроса';return}
- try{for(var k=0;k<fs.length;k++){var f=fs[k];if(f.size>(C.max_file_mb||20)*1048576)throw new Error('файл больше '+C.max_file_mb+' МБ: '+f.name);m.textContent='Загружаю '+(k+1)+' из '+fs.length+'…';var nm=f.name.replace(/[\\/:*?"<>|#%]+/g,'_'),path='valuation/'+cid+'/input/'+nm;
-   var r=await ghApi(path.split('/').map(encodeURIComponent).join('/'),{method:'PUT',body:JSON.stringify({message:'valuation add '+cid,branch:BRANCH,content:ab64(await f.arrayBuffer())})});if(!r.ok)throw new Error(f.name+': GitHub '+r.status);up.push({field:'need_data',path:path,name:nm,size:f.size})}
-  if(i.dataset.rq){var g=await ghApi(i.dataset.rq);if(g.ok){var j=await g.json(),q=JSON.parse(decodeURIComponent(escape(atob(j.content.replace(/\n/g,'')))));q.files=(q.files||[]).concat(up);q.status='data_added';q.data_added_at=new Date().toISOString();
-   var r2=await ghApi(i.dataset.rq,{method:'PUT',body:JSON.stringify({message:'valuation data_added '+cid,branch:BRANCH,sha:j.sha,content:u8b64(JSON.stringify(q,null,1))})});if(!r2.ok)throw new Error('запрос: GitHub '+r2.status)}}
-  else{var rid=new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z-ev-'+Math.random().toString(36).slice(2,6);var r3=await ghApi('requests/'+rid+'.json',{method:'PUT',body:JSON.stringify({message:'valuation data_added '+cid,branch:BRANCH,content:u8b64(JSON.stringify({type:'valuation_data_added',id:rid,case_id:cid,created_at:new Date().toISOString(),for:'Оценщик',files:up},null,1))})});if(!r3.ok)throw new Error('запрос: GitHub '+r3.status)}
-  toast(E((C.need_data||{}).sent||'✓')+(typeof etaAccepted=='function'?'<br><small>'+E(etaAccepted({type:'valuation',created_at:new Date().toISOString()}))+'</small>':''),10000);list()}catch(x){m.textContent='Не удалось: '+x.message}}
+async function more(i){var m=document.querySelector('[data-ndm="'+CSS.escape(i.dataset.nd||'')+'"]');if(m)m.textContent=C.legacy_off_msg||LEGACY_OFF;i.value=''}
 window.__evalDraw=function(i,p){IDX=norm(i);PEND=p||[];draw()};
 if(document.readyState=='loading')addEventListener('DOMContentLoaded',init);else init();
 })();
