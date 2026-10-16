@@ -15,7 +15,7 @@ window.ArbDFX=(function(){
  function norm(x){return String(x||'').toLowerCase().replace(/ё/g,'е').replace(/[«»"'.,]/g,' ').replace(/\s+/g,' ').trim()}
  function canon(no){return String(no||'').trim().toUpperCase().replace(/A/g,'А').replace(/\s+/g,'')}
  /* ключ дела для сверки: «№ А56–97144/21 (з-1)», «A56-97144/2021», неразрывные/длинные тире → «А56-97144/2021» */
- function ckey(no){var t=String(no||'').toUpperCase().replace(/[\u2010-\u2015\u2212\u00AD]/g,'-').replace(/\u00A0/g,' '),m=/[АA]\s*(\d{2}П?)\s*-\s*(\d+)\s*\/\s*(\d{2,4})/.exec(t);if(!m)return '';var y=m[3].length==2?'20'+m[3]:m[3];return 'А'+m[1]+'-'+(+m[2])+'/'+y}
+ function ckey(no){var t=String(no||'').toUpperCase().replace(/[\u2010-\u2015\u2212\u00AD]/g,'-').replace(/\u00A0/g,' '),m=/[АA][А-ЯA-Z]?\s*(\d{2}П?)\s*-\s*(\d+)\s*\/\s*(\d{2,4})/.exec(t);if(!m)return '';var y=m[3].length==2?'20'+m[3]:m[3];return 'А'+m[1]+'-'+(+m[2])+'/'+y}
  function fvv(o){return o&&typeof o=='object'?o.value:o}
  /* ---------- 1. «Сегодня» ---------- */
  var NRE=(DC.no_re||[]).map(function(r){try{return new RegExp(r)}catch(e){return null}}).filter(Boolean);
