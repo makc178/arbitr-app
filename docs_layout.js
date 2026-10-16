@@ -129,6 +129,7 @@ function gostXml(dx,t,hasLh){var G=LYG();if(!G)return dx;CUR_T=t||null;CUR_LH=!!
  var CD=P.map(function(q,i){return cOf(i)}),sgI=-1;CD.forEach(function(c,i){if(c.indexOf('L')>=0)sgI=i});
  var KB=r7&&sgI>=0&&(G.keep_sign_block!==false)&&(!((t||{}).layout)||!((t.layout||{}).keep_blocks)||(t.layout.keep_blocks||[]).some(function(b){return b&&b.id=='sign_block'&&b.keep_together!==false})),DROPE=r7&&G.sign_empty_to_spacing!==false&&fsa>=0,pend=0,lh=tw((G.text_pt||12)*(G.line||1));
  var nextNE=function(i){for(var k=i+1;k<P.length;k++){if(P[k].tb)return -1;if(P[k].t.trim())return k}return -1};
+ var HYO=G.hyphenation!==false?G.hyphenation_off:null;/* r18: переносы для текста, без переносов — роли из layout.hyphenation_off */
  var out='',last=0;P.forEach(function(p,i){var r=R[i],s=p.s,np=s;
   if(DROPE&&i>=(lastBody>=0?lastBody+1:fsa)&&!p.tb&&(s=='<w:p/>'||!p.t.trim())&&!/<w:drawing|<w:sectPr|<w:pict|<w:object|w:type="page"|<w:pageBreakBefore|<w:bookmarkStart w:id="\d+" w:name="(?!_arb)/.test(s)){pend+=lh;out+=dx.slice(last,p.i);last=p.i+s.length;return}
   if(s!='<w:p/>'){var em=!p.t.trim(),il=+(pAttr(s,'ind','left')||0),jc=pAttr(s,'jc','val'),sp=function(a){return function(v){return spAttr(v,Object.assign({line:ln,lineRule:'auto'},a))}};
@@ -139,14 +140,15 @@ function gostXml(dx,t,hasLh){var G=LYG();if(!G)return dx;CUR_T=t||null;CUR_LH=!!
    else if(r=='salut'){np=ppSet(s,{ind:null,keepNext:'<w:keepNext/>',jc:SAL.align=='left'?null:'<w:jc w:val="center"/>',spacing:sp({before:tw(SAL.before_pt!=null?SAL.before_pt:12),after:tw(SAL.after_pt!=null?SAL.after_pt:12)})});if(SAL.pt)np=runProps(np,{hp:Math.round(SAL.pt*2)})}
    else if(r=='exec'){var rest=p.t.trim().replace(RX(EXC.label||'^(Исп\\.?|Исполнитель)\\s*:?\\s*'),'');var fio=rest.split(/,\s*тел/)[0].trim();
     if(EXC.require_text!==false&&(!fio||/^\[/.test(fio)||/^тел/i.test(fio)||(EXC.require_field&&D.raw&&!String(D.raw(EXC.require_field,CUR_T)||'').trim())))np='';
-    else{var bot=(EXC.position||'last_page_bottom_left')=='last_page_bottom_left';np=ppSet(s,{framePr:bot?'<w:framePr w:wrap="notBeside" w:vAnchor="margin" w:hAnchor="margin" w:xAlign="left" w:yAlign="bottom"/>':undefined,ind:null,jc:null,keepLines:'<w:keepLines/>',spacing:sp({before:bot?0:bef(i,tw(EXC.before_pt||24)),after:0,line:240})});np=runProps(np,{hp:Math.round((EXC.pt||9)*2)});if(bot){EXP.push(np);np=''}}}
+    else{var bot=(EXC.position||'last_page_bottom_left')=='last_page_bottom_left';np=ppSet(s,{framePr:bot?'<w:framePr w:wrap="notBeside" w:vAnchor="margin" w:hAnchor="margin" w:xAlign="left" w:yAlign="bottom"/>':undefined,ind:null,jc:null,keepLines:'<w:keepLines/>',spacing:sp({before:bot?0:bef(i,tw(EXC.before_pt||24)),after:0,line:240})});np=runProps(np,{hp:Math.round((EXC.pt||9)*2)});if(HYO&&(HYO.roles||[]).indexOf('exec')>=0)np=ppSet(np,{suppressAutoHyphens:'<w:suppressAutoHyphens/>'});if(bot){EXP.push(np);np=''}}}
    else if(r=='sig'){var fz=P.findIndex(function(q,k){return R[k]=='sig'});np=ppSet(s,{spacing:sp({before:(i==fz?((CD[i].indexOf('L')>=0||/_{5,}\s*\/[^\/]*\/\s*$/.test(p.t.trim()))?tw(Math.max(0,(G.sig_line_gap_pt||30)-(spc(i-1)?(G.text_pt||12):0))):bef(i,tw(G.sig_before_pt||18))):0),after:0}),ind:il?undefined:null,jc:jc=='center'||jc=='right'?undefined:null})}
    else if(r=='attach'){var first=i>0&&R[i-1]!='attach',isItem=/^\d+[.)]\s/.test(p.t.trim()),hg=Math.round((AT.hanging_mm||6)*MM);if(first)attHead=i;
     np=ppSet(s,{spacing:sp({before:first?bef(i,tw(G.attach_before_pt||12)):0,after:0}),ind:isItem?'<w:ind w:left="'+hg+'" w:hanging="'+hg+'"/>':(il?undefined:null),jc:jc=='center'||jc=='right'?undefined:(isItem?jb:(first?null:jb))})}
    else if(!em&&!il&&jc!='center'&&jc!='right'&&!/<w:tab\/>/.test(s.replace(/<w:pPr>[\s\S]*?<\/w:pPr>/,'')))np=ppSet(s,{spacing:sp({after:pa}),ind:'<w:ind w:firstLine="'+fl+'"/>',jc:jb});
    else np=ppSet(s,{spacing:sp({after:pa})})}
+  if(np&&!p.tb&&HYO&&((HYO.roles||[]).indexOf(r)>=0||(r7&&HYO.codes_17r&&CD[i]&&RX('['+HYO.codes_17r+']').test(CD[i]))))np=ppSet(np,{suppressAutoHyphens:'<w:suppressAutoHyphens/>'});
   if(np&&r7&&!p.tb){var cd=CD[i],nn=nextNE(i),kn=false,kl=false;
-   if(/[PAH]/.test(cd))kn=true;if(/[PLD]/.test(cd))kl=true;if(cd.indexOf('L')>=0){np=sigTab(np,TW);if(nn>=0&&CD[nn].indexOf('D')>=0)kn=true}
+   if(/[PAH]/.test(cd))kn=true;if(/[PLD]/.test(cd))kl=true;if(cd.indexOf('L')>=0){var stb=(C.sign_line||{}).tab;np=sigTab(np,typeof stb=='number'&&stb>0?Math.min(TW,mmT(stb)):TW);if(nn>=0&&CD[nn].indexOf('D')>=0)kn=true}
    if(cd.indexOf('Q')>=0)np=ppSet(np,{jc:'<w:jc w:val="left"/>'});
    if(r=='attach'&&i>0&&R[i-1]!='attach')kn=true;
    if(KB&&i>=lastBody&&lastBody>=0&&i<sgI&&p.t.trim()&&r!='exec'){kn=true;if(i>lastBody&&p.t.trim().length<=300)kl=true}
@@ -166,6 +168,8 @@ async function gostApply(z,t,hasLh){var G=LYG();if(!G)return z;var sx=z.file('wo
   sx=sx.replace(/<w:pPrDefault>[\s\S]*?<\/w:pPrDefault>/,'<w:pPrDefault><w:pPr>'+(G.widow_control!==false?'<w:widowControl/>':'')+'<w:spacing w:after="0" w:line="'+Math.round((G.line||1)*240)+'" w:lineRule="auto"/></w:pPr></w:pPrDefault>');
   sx=sx.replace(/(<w:style [^>]*w:styleId="Normal"[\s\S]*?<w:rPr>)([\s\S]*?)(<\/w:rPr>)/,function(m,a,b,c){return a+b.replace(/<w:rFonts[^>]*\/>/,rf).replace(/<w:sz w:val="\d+"\/>/,'<w:sz w:val="'+hp+'"/>')+c});
   z.file('word/styles.xml',sx)}
+ var FA=G.font_alt;if(FA&&FA.name&&z.file('word/fontTable.xml')){var ft=await z.file('word/fontTable.xml').async('string'),fx=fn.replace(/[&<>"]/g,''),ax=String(FA.name).replace(/[&<>"]/g,'');ft=ft.replace(new RegExp('<w:font w:name="'+fx.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'"(?:/>|>[\\s\\S]*?</w:font>)','g'),'');
+  z.file('word/fontTable.xml',ft.replace(/<\/w:fonts>/,'<w:font w:name="'+fx+'"><w:altName w:val="'+ax+'"/>'+(FA.panose?'<w:panose1 w:val="'+FA.panose+'"/>':'')+(FA.charset?'<w:charset w:val="'+FA.charset+'"/>':'')+'<w:family w:val="'+(FA.family||'roman')+'"/><w:pitch w:val="variable"/></w:font></w:fonts>'))}
  if(G.hyphenation!==false&&z.file('word/settings.xml')){var se0=await z.file('word/settings.xml').async('string');if(se0.indexOf('autoHyphenation')<0)z.file('word/settings.xml',se0.replace(/<w:settings([^>]*)>/,'<w:settings$1><w:autoHyphenation/>'))}
  var pn=G.page_numbers||{};if(!hasLh&&pn.enabled!==false){var dx=await z.file('word/document.xml').async('string'),se=dx.lastIndexOf('<w:sectPr');
   if(se>=0&&dx.slice(se).indexOf('headerReference')<0){var php=Math.round((pn.pt||12)*2),hx='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:p><w:pPr><w:jc w:val="'+(pn.align||'center')+'"/></w:pPr><w:fldSimple w:instr=" PAGE "><w:r><w:rPr><w:rFonts w:ascii="'+fn+'" w:hAnsi="'+fn+'" w:cs="'+fn+'"/><w:sz w:val="'+php+'"/><w:szCs w:val="'+php+'"/></w:rPr><w:t>2</w:t></w:r></w:fldSimple></w:p></w:hdr>';
