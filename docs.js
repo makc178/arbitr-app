@@ -37,7 +37,7 @@ async function ghRaw(path){var tk=(typeof TOKEN!='undefined'&&TOKEN)||'',rp=(typ
 async function vdec(txt){var j=JSON.parse(txt),k=await auKey(j.s,j.it);return crypto.subtle.decrypt({name:'AES-GCM',iv:b64u8(j.iv)},k,b64u8(j.ct))}
 async function auLoad(){var V=C.au_vault||{};if(!V.path||!AU.pin)return;AU.state='loading';
  for(var i=0;i<120&&!(typeof TOKEN!='undefined'&&TOKEN);i++)await new Promise(function(r){setTimeout(r,500)});
- try{var man=JSON.parse(new TextDecoder().decode(await vdec(await ghRaw(V.path+V.manifest))));AU.profile=man.profile||null;
+ try{var man=JSON.parse(new TextDecoder().decode(await vdec(await ghRaw(V.path+V.manifest))));AU.profile=man.profile||null;if(window.ArbUAL&&await ArbUAL.gate(man))man={};
   for(var a=0;a<(man.letterheads||[]).length;a++){var l=man.letterheads[a];try{var d=await vdec(await ghRaw(V.path+l.file));AU.lh=AU.lh.filter(function(x){return x.id!=l.id});AU.lh.push(await lhMeta({id:l.id,name:l.name,type:l.type,builtin:true,data:d,size:d.byteLength,added:0}))}catch(e){}}
   for(var b=0;b<(man.signatures||[]).length;b++){var g=man.signatures[b];try{var sd=await vdec(await ghRaw(V.path+g.file));AU.sig=AU.sig.filter(function(x){return x.id!=g.id});AU.sig.push(await sigMeta({id:g.id,name:g.name,builtin:true,data:sd,order:b}))}catch(e){}}
   AU.state='ok'}catch(e){AU.state='none'}
@@ -264,11 +264,12 @@ function encOK(){return !!(window.ArbArch&&!ArbArch.locked())}
 function newMgr(){return {id:ArbDB.uid('au'),f:{},fed:'',lhv:{},lhT:{},sigSel:'',lh:[],sig:[],created:Date.now()}}
 async function mgrSave(m){if(!encOK())return;var base=m.builtin?(AU.profile||{}):{},f={};Object.keys(m.f).forEach(function(k){if((m.f[k]||'')!==(base[k]||''))f[k]=m.f[k]});
  var as=[],a={},own=function(x){return !x.builtin};
- for(var i=0;i<m.lh.length;i++){var l=m.lh[i];if(!own(l))continue;as.push({id:l.id,kind:'lh',name:l.name,type:l.type,size:l.size,added:l.added});a[l.id]=await ArbArch.enc(l.data.slice(0))}
- for(var j=0;j<m.sig.length;j++){var g=m.sig[j];if(!own(g))continue;as.push({id:g.id,kind:'sig',name:g.name,added:g.added});a[g.id]=await ArbArch.enc(g.data.slice(0))}
+ for(var i=0;i<m.lh.length;i++){var l=m.lh[i];if(!own(l)||l.ua)continue;as.push({id:l.id,kind:'lh',name:l.name,type:l.type,size:l.size,added:l.added});a[l.id]=await ArbArch.enc(l.data.slice(0))}
+ for(var j=0;j<m.sig.length;j++){var g=m.sig[j];if(!own(g)||g.ua)continue;as.push({id:g.id,kind:'sig',name:g.name,added:g.added});a[g.id]=await ArbArch.enc(g.data.slice(0))}
  var meta={id:m.id,builtin:!!m.builtin,f:f,fed:m.fed||'',lhv:m.lhv||{},lhT:m.lhT||{},sigSel:m.sigSel||'',assets:as,created:m.created||Date.now()};
  await ArbDB.put('managers',{id:m.id,m:await ArbArch.enc(new TextEncoder().encode(JSON.stringify(meta))),a:a});
  DEVM[m.id]=m.builtin?{id:m.id,builtin:true,f:f,fed:meta.fed,lhv:meta.lhv,lhT:meta.lhT,sigSel:meta.sigSel,lh:m.lh.filter(own),sig:m.sig.filter(own)}:m}
+window.ArbUAD={AU:AU,lm:lhMeta,sm:sigMeta,sv:mgrSave,mc:mgrCompose,gr:ghRaw,D:function(){return DEVM},ed:function(){return EDM},dr:drawMgr};
 function mgrSaveSoon(m){clearTimeout(MST_T);MST_T=setTimeout(function(){mgrSave(m)},600)}
 async function mgrLoadDev(){DEVM={};var all=[];try{all=await ArbDB.all('managers')}catch(e){}
  for(var i=0;i<all.length;i++){var r=all[i];if(String(r.id).charAt(0)=='_')continue;try{var me=JSON.parse(new TextDecoder().decode(await ArbArch.dec(r.m))),m={id:me.id,builtin:!!me.builtin,f:me.f||{},fed:me.fed||'',lhv:me.lhv||{},lhT:me.lhT||{},sigSel:me.sigSel||'',created:me.created,lh:[],sig:[]};
@@ -301,7 +302,7 @@ function drawMgr(){if(!MEL||!EDM)return;var m=EDM,fl=(C.manager||{}).fields||C.p
  if(!encOK()){MEL.innerHTML='<p class="sm ewarn">'+E(MU2('locked'))+'</p><div class="dact"><button type="button" class="lbtn sec" data-mg="cancel">'+E(MU2('cancel'))+'</button></div>';return}
  MEL.innerHTML='<div class="dmged"><h4 class="dsh">'+E(m._new?MU2('new'):MU2('title'))+'</h4>'+(m.builtin?'<p class="sm">'+E(MU2('builtin'))+'</p>':'')+'<p class="sm">'+E(MU2('enc'))+'</p>'+grid(fl,function(k){return m.f[k]||''},'dm')+
   '<div><label for="dm_fed">'+E(MU2('fed'))+'</label><textarea id="dm_fed" rows="2">'+E(m.fed||'')+'</textarea>'+(links.length?'<div class="sm">'+links.map(function(u,i){return '<a href="'+E(u)+'" target="_blank" rel="noopener">'+E(MU2('fed_open'))+(links.length>1?' '+(i+1):'')+'</a>'}).join(' · ')+'</div>':'')+'</div>'+
-  drawLH(m)+drawSig(m)+'<div class="dact"><button type="button" class="lbtn" data-mg="save">'+E(MU2('save'))+'</button><button type="button" class="lbtn sec" data-mg="cancel">'+E(MU2('cancel'))+'</button>'+(!m._new&&!m.builtin?'<button type="button" class="lbtn sec adred" data-mg="del">'+E(MU2('del'))+'</button>':'')+'</div><p class="sm ewarn" id="dmerr"></p></div>'}
+  (window.ArbUAL?ArbUAL.sec(m,drawLH,drawSig):drawLH(m)+drawSig(m))+'<div class="dact"><button type="button" class="lbtn" data-mg="save">'+E(MU2('save'))+'</button><button type="button" class="lbtn sec" data-mg="cancel">'+E(MU2('cancel'))+'</button>'+(!m._new&&!m.builtin?'<button type="button" class="lbtn sec adred" data-mg="del">'+E(MU2('del'))+'</button>':'')+'</div><p class="sm ewarn" id="dmerr"></p></div>'}
 function mgrBind(el){
  el.addEventListener('input',function(e){if(!EDM||!e.target.closest('.dmged'))return;var i=e.target;if(i.id=='dm_fed'){EDM.fed=i.value;return}if(i.dataset.lhf){(EDM.lhv[i.dataset.lhf]=EDM.lhv[i.dataset.lhf]||{})[i.dataset.fk]=i.value;return}if(i.dataset.k&&i.id.indexOf('dm_')==0)EDM.f[i.dataset.k]=i.value});
  el.addEventListener('change',async function(e){if(!EDM||!e.target.closest('.dmged'))return;var i=e.target;if(i.dataset.lht){EDM.lhT[i.dataset.lht]=i.value;return}
@@ -690,7 +691,7 @@ function runXml(xml,t){return xml.replace(/<w:r>([\s\S]*?)<\/w:r>/g,function(all
   m[1].split(/(\{\{[^{}]+\}\})/).forEach(function(seg){if(!seg)return;var k=(seg.match(/^\{\{([^{}]+)\}\}$/)||[])[1],r=rp,txt;
    if(k){var v=fmt(k,raw(k,t.id));if(v)txt=xe(v);else if(F[k]&&F[k].optional)return;else{txt=xe('['+((F[k]||{}).label||k)+']');r=rp?rp.replace('</w:rPr>','<w:highlight w:val="yellow"/></w:rPr>'):'<w:rPr><w:highlight w:val="yellow"/></w:rPr>'}}else txt=seg;
    out+='<w:r>'+r+'<w:t xml:space="preserve">'+txt.split(/\r?\n/).join('</w:t><w:br/><w:t xml:space="preserve">')+'</w:t></w:r>'})});return out})}
-async function docx(t){raw.pr=1;try{return await docx0(t)}finally{raw.pr=0}}
+async function docx(t){var u=window.ArbUAL&&await ArbUAL.need();raw.pr=1;try{return await docx0(t)}finally{raw.pr=0;u&&u()}}
 /* d7: альбомная ориентация из index.json (orientation:"landscape") — pgSz меняется местами, таблицы растягиваются на новую ширину строки (в т.ч. в колонтитулах бланка) */
 function orientTbl(x,oldTW,newTW){return x.replace(/<w:tbl>[\s\S]*?<\/w:tbl>/g,function(tb){var g=(tb.match(/<w:gridCol w:w="(\d+)"/g)||[]).map(function(q){return +q.match(/\d+/)[0]}),sum=g.reduce(function(a,b){return a+b},0);if(!sum||sum<oldTW*0.85)return tb;var f=newTW/sum;
  return tb.replace(/(<w:gridCol w:w=")(\d+)/g,function(m,a,v){return a+Math.round(v*f)}).replace(/(<w:tcW[^>]*w:w=")(\d+)("[^>]*w:type="dxa")/g,function(m,a,v,c){return a+Math.round(v*f)+c}).replace(/(<w:tcW w:type="dxa" w:w=")(\d+)/g,function(m,a,v){return a+Math.round(v*f)}).replace(/(<w:tblW[^>]*w:w=")(\d+)("[^>]*w:type="dxa")/g,function(m,a,v,c){return a+Math.round(v*f)+c})})}

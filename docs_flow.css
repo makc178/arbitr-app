@@ -562,3 +562,13 @@ html[data-theme=light] #dmbar{--bg:#ECFAF5;--pan:#FFFFFF;--pan2:#F4FBF8;--ink:#0
 .dauap .dapmore{margin-top:6px}
 @media (max-width:640px){.dauap .dap1{flex-basis:100%}.dauap .dap2{flex-basis:100%}}
 .dmged input.dpp_bad,.f input.dpp_bad{border-color:#c0392b}
+/* PIN раздела «Бланки и подписи» */
+.dual{grid-column:1/-1;margin:8px 0}.dualrow{width:100%;text-align:left;padding:6px 4px;border:0;border-top:1px solid var(--line);border-radius:0;background:none;color:var(--mut,#8a9a96);font:inherit;font-size:.82em;font-weight:400;opacity:.75;cursor:pointer}.dualrow:hover,.dualrow:focus-visible{opacity:1}
+.dualsub{display:block;font-weight:400;font-size:.85em;opacity:.7;margin-top:2px}.dualbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 6px}.dualbar span{flex:1 1 220px;font-size:.9em;opacity:.8}
+.dualset{margin-top:10px}.dualm{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px}
+.dualbox{background:var(--bg,#fff);color:inherit;border-radius:16px;padding:20px;width:min(320px,100%);text-align:center;box-shadow:0 10px 40px rgba(0,0,0,.3)}
+.dualt{display:block;margin-bottom:14px}.dualdots{display:flex;gap:14px;justify-content:center;margin:6px 0 10px}.dualdots i{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;opacity:.6}.dualdots i.on{background:currentColor;opacity:1}
+.dualmsg{min-height:1.3em;font-size:.88em;margin:4px 0 10px}.dualmsg.err{color:#c0392b}.dualkeys{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.dualkeys button{font:inherit;font-size:1.25em;padding:12px 0;border-radius:12px;border:1px solid var(--line);background:var(--pan2,var(--pan));color:inherit;cursor:pointer}.dualkeys button:disabled{opacity:.4}
+.dualwarn{font-size:.8em;opacity:.75;text-align:left}.dualanim .dualdots i{transition:background .15s}.dualanim .dualdots.shake{animation:dualsh .3s}@keyframes dualsh{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
