@@ -35,7 +35,7 @@ window.ArbExt={cond:function(b,auto,E,U){var p=function(x){return x?'<p class="s
  function sync(D,t,P,d){/* ручная правка: значение поля отличается от принятого значения источника */var k=P.field,pf=d&&d._pf&&d._pf[k];if(!pf)return false;var m=!same(d[k],pf.v);if(m!==!!pf.manual){pf.manual=m;return true}return false}
  function draft(D,t){return D.dra?D.dra(t.id):D.draftOf(t.id)}
  window.ArbExt=window.ArbExt||{};
- ArbExt.prefill=function(t,D){if(!t||!D)return;LAST={t:t,D:D};setTimeout(function(){try{if(window.ArbImp)ArbImp.mount(t,D)}catch(e){}try{if(window.ArbAppr)ArbAppr.mount(t,D)}catch(e){}try{ArbExt.chDecor&&ArbExt.chDecor(D)}catch(e){}},0);var L=cfg(D);if(!L.length)return;var d=D.draftOf(t.id),c=D.curCase&&D.curCase();if(!c)return;
+ ArbExt.prefill=function(t,D){if(!t||!D)return;LAST={t:t,D:D};setTimeout(function(){try{if(window.ArbImp)ArbImp.mount(t,D)}catch(e){}try{if(window.ArbAppr)ArbAppr.mount(t,D)}catch(e){}try{if(window.ArbAF)ArbAF.mount(t,D)}catch(e){}try{if(window.ArbConcl&&ArbConcl.mount)ArbConcl.mount(t,D)}catch(e){}try{ArbExt.chDecor&&ArbExt.chDecor(D)}catch(e){}},0);var L=cfg(D);if(!L.length)return;var d=D.draftOf(t.id),c=D.curCase&&D.curCase();if(!c)return;
   L.forEach(function(P){var k=P.field;if((t.fields||[]).indexOf(k)<0)return;var pf=d&&d._pf&&d._pf[k];
    if(pf&&sync(D,t,P,d))D.save();
    setTimeout(function(){deco(D,P,D.draftOf(t.id))},0);
