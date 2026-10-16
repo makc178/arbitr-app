@@ -417,3 +417,10 @@ html[data-theme=light] .ddpop{background:#fff;color:#0F2E2A;border-color:#CDEBE2
 :is(#vdocs) .dmuted{background:none!important;border:0!important;color:var(--mut,#8a9a96)!important;padding-left:0!important}:is(#vdocs) .dmuted::before{content:none!important}
 #vdocs .dvfull{font-size:12px;color:var(--mut,#8a9a96);margin:-2px 0 8px;line-height:1.35}
 #vdocs .dvfull{grid-column:1/-1;width:100%;max-width:none}
+#vdocs .dpfh{color:var(--mut,#8a9a96);font-size:12px;margin-top:4px}
+.dclm{border:1px solid var(--line,#2c5a52);border-radius:10px;padding:10px 12px;margin:8px 0}
+.dclm .dclmx{display:flex;align-items:flex-end;justify-content:flex-end}
+.dclm .dclmx{grid-column:1/-1}
+#prqau .prqq{margin:6px 0;padding:6px 10px;border-left:3px solid var(--acc,#1fbfa5);color:var(--mut,#c9d6d2);font-style:italic}
+#prqau .prqr{margin-top:8px}#prqau .prqc{margin:8px 0}
+#prqatt input[type=file]{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;padding:0!important;border:0!important}#prqatt .dlhdrop{position:relative}#prqatt .dlhit{display:flex;align-items:center;gap:10px;margin:4px 0}
