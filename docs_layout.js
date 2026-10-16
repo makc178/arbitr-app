@@ -26,7 +26,21 @@ function boldLabel(p,re){var t=pTx(p),m=re.exec(t);if(!m||m.index!==0)return p;v
  return p.replace(/<w:r(\s[^>]*)?>(<w:rPr>([\s\S]*?)<\/w:rPr>)?<w:t(\s[^>]*)?>([^<]*)<\/w:t><\/w:r>/,function(all,a,_r,rp,ta,tx){if(done||tx.indexOf(lab)!==0)return all;done=true;rp=rp||'';var rest=tx.slice(lab.length);
   return '<w:r'+(a||'')+'><w:rPr>'+ordR(rp.replace(/<w:b\/>/g,'')+'<w:b/>')+'</w:rPr><w:t xml:space="preserve">'+lab+'</w:t></w:r>'+(rest?'<w:r'+(a||'')+'>'+(rp?'<w:rPr>'+rp+'</w:rPr>':'')+'<w:t xml:space="preserve">'+rest+'</w:t></w:r>':'')})}
 function RX(s,f){try{return s?new RegExp(s,f||''):null}catch(e){return null}}
-function titleIdx(P){for(var i=0;i<P.length;i++)if(!P[i].tb&&P[i].t.trim()&&pAttr(P[i].s,'jc','val')=='center')return i;return -1}
+/* роли абзацев писем (1.7f: шаблон помечает абзацы в index → templates[i].paragraph_roles [{role, match|text}]); запасной вариант — регулярки из layout.roles.*.detect */
+var ROLEMAP={salutation:'salut',heading_to_text:'subj',executor_mark:'exec'},CUR_T=null,CUR_COURT=false;
+function RL(G,k){var r=(G.roles||{})[k]||{},o={salutation:G.salutation,heading_to_text:G.subject,executor_mark:G.executor}[k]||{};return Object.assign({},o,r)}
+function roleOf(text,G,px){var t=String(text||'').trim();if(!t)return null;var bm=px&&/_arb_role_(\w+)/.exec(px);if(bm&&ROLEMAP[bm[1]])return CUR_COURT&&RL(G,bm[1]).letters_only!==false?null:bm[1];var T=CUR_T||{},L=T.paragraph_roles||T.layout_roles||[],hit=null;
+ L.forEach(function(x){if(hit||!x||!ROLEMAP[x.role])return;if(x.field&&t.indexOf('{{'+x.field+'}}')>=0)hit=x.role;else if(x.match!=null&&t==String(x.match).trim())hit=x.role;else if(x.text!=null&&t==String(x.text).trim())hit=x.role});
+ if(!hit&&!L.length)Object.keys(ROLEMAP).forEach(function(k){if(hit)return;var c=RL(G,k),d=c.detect||c.match;if(d&&c.auto!==false&&RX(d)&&RX(d).test(t))hit=k});
+ if(hit&&CUR_COURT&&RL(G,hit).letters_only!==false)return null;return hit}
+/* до подстановки значений: абзацы, где стоит поле роли ({{ЗАГОЛОВОК_К_ТЕКСТУ}} и т.п.), получают невидимую закладку _arb_role_<роль> */
+function roleSpecs(t,G){var T=t||{},L=(T.paragraph_roles||T.layout_roles||[]).slice();Object.keys(ROLEMAP).forEach(function(k){(RL(G,k).fields||[]).forEach(function(f){L.push({role:k,field:f})})});return L}
+function pretag(dx,t){var G=LYG();if(!G)return dx;var L=roleSpecs(t,G).filter(function(x){return x&&x.field&&ROLEMAP[x.role]});if(!L.length)return dx;var n=0;
+ return dx.replace(/<w:p[ >][\s\S]*?<\/w:p>/g,function(p){var tx=pTx(p),hit=null;L.forEach(function(x){if(!hit&&tx.indexOf('{{'+x.field+'}}')>=0)hit=x.role});if(!hit)return p;var id=99100+(n++),bm='<w:bookmarkStart w:id="'+id+'" w:name="_arb_role_'+hit+'"/><w:bookmarkEnd w:id="'+id+'"/>';
+  return p.replace(/^(<w:p(?:\s[^>]*)?>(?:\s*<w:pPr>[\s\S]*?<\/w:pPr>)?)/,'$1'+bm)})}
+/* заголовок документа: первый центрированный абзац без роли или (письма 1.7f) заголовок к тексту */
+function titleIdx(P){var G=LYG()||{};for(var i=0;i<P.length;i++){if(P[i].tb||!P[i].t.trim())continue;var rl=roleOf(P[i].t,G,P[i].s);if(rl=='heading_to_text')return i;if(!rl&&pAttr(P[i].s,'jc','val')=='center')return i}return -1}
+function courtDoc(P,G){var CT=G.court||{},cr=RX(CT.detect||'^(В\\s.*[Сс]уд|Судь[ея])');for(var i=0;i<P.length&&i<14;i++){if(P[i].tb)continue;if(cr&&cr.test(P[i].t.trim()))return true;if(pAttr(P[i].s,'jc','val')=='center'&&P[i].t.trim())break}return false}
 /* ---------- шапка: письмо / судебный документ ---------- */
 function headXml(dx,G){var P=pList(dx),ti=titleIdx(P);if(ti<=0)return dx;var H=[];for(var i=0;i<ti;i++){if(P[i].tb)return dx;H.push(i)}
  var TB=G.top_block||{},CT=G.court||{},M=G.margins_mm||{left:30,right:15},pw=210,txw=pw-M.left-M.right,al=mmT(Math.max(0,(TB.addr_left_mm||105)-M.left)),gap=tw(TB.block_gap_pt!=null?TB.block_gap_pt:6);
@@ -51,34 +65,45 @@ function headXml(dx,G){var P=pList(dx),ti=titleIdx(P);if(ti<=0)return dx;var H=[
 function gostRoles(P,dx,t,G){var ti=titleIdx(P),R=[];
  var sg=sigPick(dx,t),sz=-1;if(sg>=0&&!P[sg].tb){sz=sg;for(var j=sg-1;j>ti&&j>=0;j--){if(P[j].tb)break;if(P[j].t.trim()){if(P[j].t.trim().length<=160&&!/[.;:]$/.test(P[j].t.trim()))sz=j;break}}}
  var AT=RX((G.attach||{}).match||'^Приложени[еяй]'),SA=RX((G.salutation||{}).match||'^Уважаем'),EX=RX((G.executor||{}).match||'^(Исп\\.|Исполнитель)'),att=false;
- P.forEach(function(p,i){var r,t=p.t.trim();if(p.tb)r='table';else if(ti<0||i<ti)r='head';else if(i==ti)r='title';else if(EX&&EX.test(t))r='exec';else if(sz>=0&&i>=sz)r='sig';else if(SA&&SA.test(t))r='salut';else{if(AT&&AT.test(t))att=true;r=att?'attach':'body'}R.push(r)});return {R:R,ti:ti}}
+ P.forEach(function(p,i){var r,t=p.t.trim(),rl=p.tb?null:roleOf(t,G,p.s);if(p.tb)r='table';else if(rl)r=ROLEMAP[rl];else if(ti<0||i<ti)r='head';else if(i==ti)r='title';else if(sz>=0&&i>=sz)r='sig';else{if(AT&&AT.test(t))att=true;r=att?'attach':'body'}R.push(r)});return {R:R,ti:ti}}
 /* приложения: «Приложение: а; б» → «Приложение:» + нумерованный список */
 function attachSplit(p,G){var A=G.attach||{};if(A.numbered===false)return p;var t=pTx(p),m=/^(Приложени[еяй]\s*:)\s*(.+)$/.exec(t.trim());if(!m)return p;
  var parts=m[2].split(RX(A.split||';\\s*|,\\s+(?=(?:копи|выписк|документ|справк|отч[её]т|акт[а-я]*\\s|протокол|договор|квитанц|уведомлен|доверенн|платёжн|платежн))','')).map(function(s){return s.trim()}).filter(Boolean);
  if(parts.length<2||(p.match(/<w:r[ >]/g)||[]).length>1)return p;var rp=(/<w:r(?:\s[^>]*)?>(<w:rPr>[\s\S]*?<\/w:rPr>)?/.exec(p)||[])[1]||'',pp=(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(p)||[''])[0];
  var mk=function(s){return '<w:p>'+pp+'<w:r>'+rp+'<w:t xml:space="preserve">'+s+'</w:t></w:r></w:p>'};
  return mk(m[1].replace(/\s+:/,':'))+parts.map(function(s,i){s=s.replace(/[.;,]\s*$/,'');return mk((i+1)+'. '+s+(i==parts.length-1?'.':';'))}).join('')}
-function gostXml(dx,t){var G=LYG();if(!G)return dx;
+/* несколько абзацев «Приложение: …» (напр. бюллетени при заочном голосовании) → один перечень на месте последнего; один пункт — без номера */
+var ATRE=/^(Приложени[еяй])\s*:\s*(.+)$/;
+function attachMerge(dx,G){if((G.attach||{}).merge===false)return dx;var P=pList(dx).filter(function(q){return !q.tb&&ATRE.test(q.t.trim())});if(P.length<2)return dx;
+ var items=P.map(function(q){return ATRE.exec(q.t.trim())[2].replace(/[.;]\s*$/,'')}),last=P[P.length-1],rp=(/<w:r(?:\s[^>]*)?>(<w:rPr>[\s\S]*?<\/w:rPr>)?/.exec(last.s)||[])[1]||'',pp=(/<w:pPr>[\s\S]*?<\/w:pPr>/.exec(last.s)||[''])[0];
+ P.slice(0,-1).forEach(function(q){dx=dx.replace(q.s,'')});return dx.replace(last.s,'<w:p>'+pp+'<w:r>'+rp+'<w:t xml:space="preserve">Приложение: '+items.join('; ')+'.</w:t></w:r></w:p>')}
+function attachMd(L,G){var A=G.attach||{},I=[];L.forEach(function(l,i){if(!/^\|/.test(l)&&ATRE.test(l.trim()))I.push(i)});if(!I.length)return L;
+ var items=[];I.forEach(function(i){var m=ATRE.exec(L[i].trim());items=items.concat(A.numbered===false?[m[2]]:m[2].split(RX(A.split||';\\s*|,\\s+(?=(?:копи|выписк|документ|справк|отч[её]т|акт[а-я]*\\s|протокол|договор|квитанц|уведомлен|доверенн|платёжн|платежн))','')).map(function(x){return x.trim().replace(/[.;,]\s*$/,'')}).filter(Boolean))});
+ if(I.length<2&&items.length<2)return L;if(A.merge===false&&I.length>1)return L;var out=[];L.forEach(function(l,i){if(I.indexOf(i)<0){out.push(l);return}if(i!=I[I.length-1])return;out.push('Приложение:');items.forEach(function(x,j){out.push((j+1)+'. '+x+(j==items.length-1?'.':';'))})});return out}
+function gostXml(dx,t){var G=LYG();if(!G)return dx;CUR_T=t||null;CUR_COURT=courtDoc(pList(dx),G);dx=attachMerge(dx,G);
  dx=dx.replace(/<w:p[ >][\s\S]*?<\/w:p>/g,function(p){return /Приложени[еяй]\s*:/.test(pTx(p))?attachSplit(p,G):p});
  try{dx=headXml(dx,G)}catch(e){console.warn('layout head',e)}
  var P=pList(dx),o=gostRoles(P,dx,t,G),R=o.R,fl=Math.round((G.first_line_cm||1.25)*567),ln=Math.round((G.line||1)*240),pa=tw(G.para_after_pt||0),ha=tw(G.head_after_pt!=null?G.head_after_pt:6),SJ=G.subject||{},AT=G.attach||{},EXC=G.executor||{},jb=G.justify!==false?'<w:jc w:val="both"/>':undefined;
  var spc=function(k){var q=P[k];return !!q&&!q.tb&&(q.s=='<w:p/>'||!q.t.trim())&&!/<w:drawing/.test(q.s)},bef=function(i,v){return spc(i-1)?Math.max(0,v-tw((G.text_pt||12)*(G.line||1))):v},aft=function(i,v){return spc(i+1)?0:v};
  var TBC=[],tre=/<w:tbl>([\s\S]*?)<w:tblGrid>([\s\S]*?)<\/w:tblGrid>/g,tm;while((tm=tre.exec(dx))){var e0=dx.indexOf('</w:tbl>',tm.index);TBC.push({s:tm.index,e:e0<0?dx.length:e0,n:(tm[2].match(/<w:gridCol\b/g)||[]).length,top:tm[1].indexOf('arb-top')>=0})}
  var tbOf=function(pos){var r=null;TBC.forEach(function(b){if(pos>=b.s&&pos<b.e)r=b});return r};
- var subj=o.ti>=0&&RX(SJ.match||'^Об?\\s')&&RX(SJ.match||'^Об?\\s').test(P[o.ti].t.trim()),attHead=-1;
+ SJ=RL(G,'heading_to_text');var SAL=RL(G,'salutation'),EXC=RL(G,'executor_mark'),M0=G.margins_mm||{left:30,right:15},txw=210-M0.left-M0.right,subj=false,EXP=[];if(o.ti>=0&&roleOf(P[o.ti].t,G,P[o.ti].s)=='heading_to_text')subj=true;
  var out='',last=0;P.forEach(function(p,i){var r=R[i],s=p.s,np=s;if(s!='<w:p/>'){var em=!p.t.trim(),il=+(pAttr(s,'ind','left')||0),jc=pAttr(s,'jc','val'),sp=function(a){return function(v){return spAttr(v,Object.assign({line:ln,lineRule:'auto'},a))}};
    if(r=='table'){var tb=tbOf(p.i);if(tb&&tb.top)np=s;else{np=ppSet(s,{});var tp=(G.table_wide&&tb&&tb.n>=(G.table_wide.cols||9))?G.table_wide.pt:G.table_pt;if(tp)np=runSzIfNone(np,Math.round(tp*2))}}
    else if(r=='head'){if(il){np=s}else{var nx=P[i+1],grpEnd=!nx||nx.tb||R[i+1]!='head'||spc(i+1);np=ppSet(s,{spacing:sp({after:grpEnd?aft(i,ha):0})})}}
-   else if(r=='title'){var gp=Math.round((SJ.gap_mm||10)*72/25.4*20);if(subj){np=ppSet(s,{keepNext:'<w:keepNext/>',jc:SJ.align=='center'?'<w:jc w:val="center"/>':null,ind:null,spacing:sp({before:bef(i,gp),after:aft(i,tw(G.title_space_pt||12))})});np=runProps(np,{hp:Math.round((SJ.pt||11)*2),i:SJ.italic!==false,b:SJ.bold?undefined:false})}
+   else if(r=='subj'||r=='title'){var gp=Math.round((SJ.gap_mm||10)*72/25.4*20);if(r=='subj'||subj){var mw=SJ.max_width_mm?mmT(Math.max(0,txw-SJ.max_width_mm)):0;np=ppSet(s,{keepNext:'<w:keepNext/>',jc:SJ.align=='center'?'<w:jc w:val="center"/>':null,ind:mw?'<w:ind w:left="0" w:right="'+mw+'"/>':null,suppressAutoHyphens:'<w:suppressAutoHyphens/>',spacing:sp({before:bef(i,gp),after:aft(i,tw(G.title_space_pt||12))})});np=runProps(np,{hp:Math.round((SJ.pt||11)*2),i:SJ.italic!==false,b:SJ.bold?undefined:false})}
     else np=ppSet(s,{keepNext:'<w:keepNext/>',spacing:sp({before:bef(i,gp),after:aft(i,tw(G.title_space_pt||12))})})}
-   else if(r=='salut')np=ppSet(s,{ind:null,jc:'<w:jc w:val="center"/>',spacing:sp({before:0,after:aft(i,tw(G.title_space_pt||12))})});
-   else if(r=='exec'){np=ppSet(s,{ind:null,jc:null,keepLines:'<w:keepLines/>',spacing:sp({before:bef(i,tw(EXC.before_pt||24)),after:0})});np=runProps(np,{hp:Math.round((EXC.pt||9)*2)})}
+   else if(r=='salut'){np=ppSet(s,{ind:null,keepNext:'<w:keepNext/>',jc:SAL.align=='left'?null:'<w:jc w:val="center"/>',spacing:sp({before:tw(SAL.before_pt!=null?SAL.before_pt:12),after:tw(SAL.after_pt!=null?SAL.after_pt:12)})});if(SAL.pt)np=runProps(np,{hp:Math.round(SAL.pt*2)})}
+   else if(r=='exec'){var rest=p.t.trim().replace(RX(EXC.label||'^(Исп\\.?|Исполнитель)\\s*:?\\s*'),'');var fio=rest.split(/,\s*тел/)[0].trim();
+    if(EXC.require_text!==false&&(!fio||/^\[/.test(fio)||/^тел/i.test(fio)||(EXC.require_field&&D.raw&&!String(D.raw(EXC.require_field,CUR_T)||'').trim())))np='';
+    else{var bot=(EXC.position||'last_page_bottom_left')=='last_page_bottom_left';np=ppSet(s,{framePr:bot?'<w:framePr w:wrap="notBeside" w:vAnchor="margin" w:hAnchor="margin" w:xAlign="left" w:yAlign="bottom"/>':undefined,ind:null,jc:null,keepLines:'<w:keepLines/>',spacing:sp({before:bot?0:bef(i,tw(EXC.before_pt||24)),after:0,line:240})});np=runProps(np,{hp:Math.round((EXC.pt||9)*2)});if(bot){EXP.push(np);np=''}}}
    else if(r=='sig'){var fz=P.findIndex(function(q,k){return R[k]=='sig'});np=ppSet(s,{spacing:sp({before:(i==fz?(/_{5,}\s*\/[^\/]*\/\s*$/.test(p.t.trim())?tw(Math.max(0,(G.sig_line_gap_pt||30)-(spc(i-1)?(G.text_pt||12):0))):bef(i,tw(G.sig_before_pt||18))):0),after:0}),ind:il?undefined:null,jc:jc=='center'||jc=='right'?undefined:null})}
    else if(r=='attach'){var first=i>0&&R[i-1]!='attach',isItem=/^\d+[.)]\s/.test(p.t.trim()),hg=Math.round((AT.hanging_mm||6)*MM);if(first)attHead=i;
     np=ppSet(s,{spacing:sp({before:first?bef(i,tw(G.attach_before_pt||12)):0,after:0}),ind:isItem?'<w:ind w:left="'+hg+'" w:hanging="'+hg+'"/>':(il?undefined:null),jc:jc=='center'||jc=='right'?undefined:(isItem?jb:(first?null:jb))})}
    else if(!em&&!il&&jc!='center'&&jc!='right'&&!/<w:tab\/>/.test(s.replace(/<w:pPr>[\s\S]*?<\/w:pPr>/,'')))np=ppSet(s,{spacing:sp({after:pa}),ind:'<w:ind w:firstLine="'+fl+'"/>',jc:jb});
    else np=ppSet(s,{spacing:sp({after:pa})})}
   out+=dx.slice(last,p.i)+np;last=p.i+s.length});out+=dx.slice(last);
+ if(EXP.length){var bs=out.lastIndexOf('<w:sectPr'),be=out.lastIndexOf('</w:body>');var at=bs>=0&&bs<be?bs:be;if(at>=0)out=out.slice(0,at).replace(/(?:<w:p\/>|<w:p>(?:<w:pPr>(?:(?!<\/w:pPr>)[\s\S])*<\/w:pPr>)?<\/w:p>)+$/,'')+EXP.join('')+out.slice(at)}
  /* повтор строки заголовка таблицы на каждой странице */
  if(G.table_header_repeat!==false)out=out.replace(/<w:tbl>([\s\S]*?)<\/w:tblGrid>\s*<w:tr(\s[^>]*)?>(\s*<w:trPr>)?/g,function(m,a,tra,trp){if(a.indexOf('arb-top')>=0||/<w:tblHeader\/>/.test(m))return m;return '<w:tbl>'+a+'</w:tblGrid><w:tr'+(tra||'')+'>'+(trp?trp+'<w:tblHeader/>':'<w:trPr><w:tblHeader/></w:trPr>')});
  var M=G.margins_mm;if(M)out=out.replace(/<w:pgMar [^>]*\/>/g,function(m){return m.replace(/w:top="\d+"/,'w:top="'+mmT(M.top)+'"').replace(/w:bottom="\d+"/,'w:bottom="'+mmT(M.bottom)+'"').replace(/w:left="\d+"/,'w:left="'+mmT(M.left)+'"').replace(/w:right="\d+"/,'w:right="'+mmT(M.right)+'"')});
@@ -99,12 +124,12 @@ async function gostApply(z,t,hasLh){var G=LYG();if(!G)return z;var sx=z.file('wo
    z.file('word/document.xml',dx.slice(0,se)+sp)}}
  return z}
 /* предпросмотр: роли строк md (b — текст с отступом, r — правый блок шапки, s — тема «О …», c — обращение) */
-function gostMdRoles(L){var G=LYG();if(!G)return null;var ti=L.findIndex(function(l){return /^#+\s+/.test(l)}),sg=-1;for(var i=L.length-1;i>ti;i--)if(SIGLINE.test(L[i])){sg=i;break}var sz=sg;if(sg>0)for(var j=sg-1;j>ti;j--){var s=L[j].trim();if(s){if(s.length<=160&&!/[.;:]$/.test(s))sz=j;break}}
+function gostMdRoles(L,t){var G=LYG();CUR_T=t||null;if(!G)return null;var ti=L.findIndex(function(l){return /^#+\s+/.test(l)}),sg=-1;if(ti<0){CUR_COURT=false;ti=L.findIndex(function(l){return roleOf(l.trim(),G)=='heading_to_text'})}for(var i=L.length-1;i>ti;i--)if(SIGLINE.test(L[i])){sg=i;break}var sz=sg;if(sg>0)for(var j=sg-1;j>ti;j--){var s=L[j].trim();if(s){if(s.length<=160&&!/[.;:]$/.test(s))sz=j;break}}
  var CT=G.court||{},TB=G.top_block||{},cr=RX(CT.detect||'^(В\\s.*[Сс]уд|Судь[ея])'),court=L.slice(0,Math.max(0,ti)).some(function(l){return cr&&cr.test(l.trim())}),stop=RX(TB.stop||'^(От:|Исх\\.)'),inA=true,SJ=RX((G.subject||{}).match||'^Об?\\s'),SA=RX((G.salutation||{}).match||'^Уважаем');
- var att=false;return L.map(function(l,i){var t=l.trim();if(ti<0||i<ti){if(court)return t?'r':'';if(inA){if(!t||stop.test(t)){inA=false;return ''}return 'r'}return ''}if(i==ti)return SJ&&SJ.test(t.replace(/^#+\s+/,''))?'s':'t';if(sz>=0&&i>=sz)return 'x';if(SA&&SA.test(t))return 'c';if(/^Приложени[еяй]/.test(t))att=true;if(att)return 'a';return l.indexOf('\t')>=0?'':'b'})}
+ CUR_COURT=court;var att=false;return L.map(function(l,i){var t=l.trim();if(ti<0||i<ti){if(court)return t?'r':'';if(inA){if(!t||stop.test(t)){inA=false;return ''}return 'r'}return ''}var rl=CUR_COURT?null:roleOf(t.replace(/^#+\s+/,''),G);if(rl=='salutation')return 'c';if(rl=='heading_to_text')return 's';if(rl=='executor_mark')return 'e';if(i==ti)return 't';if(sz>=0&&i>=sz)return 'x';if(/^Приложени[еяй]/.test(t))att=true;if(att)return 'a';return l.indexOf('\t')>=0?'':'b'})}
 /* предпросмотр: тот же порядок правого блока судебного документа */
-function gostMdHead(L){var G=LYG();if(!G)return L;var CT=G.court||{},ord=CT.order||[],cr=RX(CT.detect||'^(В\\s.*[Сс]уд|Судь[ея])'),ti=L.findIndex(function(l){return /^#+\s+/.test(l)});if(ti<=0||CT.right_block===false||!ord.length)return L;
+function gostMdHead(L){var G=LYG();if(!G)return L;L=attachMd(L,G);var CT=G.court||{},ord=CT.order||[],cr=RX(CT.detect||'^(В\\s.*[Сс]уд|Судь[ея])'),ti=L.findIndex(function(l){return /^#+\s+/.test(l)});if(ti<=0||CT.right_block===false||!ord.length)return L;
  var H=L.slice(0,ti);if(!H.some(function(l){return cr&&cr.test(l.trim())}))return L;var G2={},seq=[],cur=null;H.forEach(function(l){var t=l.trim();if(!t)return;var k=null;ord.forEach(function(o){if(!k&&RX(o.re).test(t))k=o.k});if(!k)k=cur||'_';if(!G2[k]){G2[k]=[];seq.push(k)}G2[k].push(l);cur=k});
  var keys=ord.map(function(o){return o.k}).filter(function(k){return G2[k]}).concat(seq.filter(function(k){return ord.every(function(o){return o.k!=k})}));var out=[];keys.forEach(function(k){out=out.concat(G2[k])});out.push('');return out.concat(L.slice(ti))}
 function gostLabel(){var G=LYG();if(!G)return null;var CT=G.court||{};return CT.bold_labels===false?null:RX(CT.labels||'^(Заявитель:|Должник-гражданин:|Должник:|Ответчики?:|Кредитор:|[Дд]ело\\s№|Судье|Судья:)')}
-return {xml:gostXml,apply:gostApply,mdRoles:gostMdRoles,mdHead:gostMdHead,label:gostLabel}};
+return {pretag:pretag,xml:gostXml,apply:gostApply,mdRoles:gostMdRoles,mdHead:gostMdHead,label:gostLabel}};

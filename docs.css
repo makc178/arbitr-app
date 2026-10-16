@@ -354,3 +354,19 @@ html[data-theme=light] .ddpop{background:#fff;color:#0F2E2A;border-color:#CDEBE2
 :is(#vdocs,#vcp,#varch) .dprev .dlr{margin-left:47%;text-align:left;hyphens:manual}
 :is(#vdocs,#vcp,#varch) .dprev .dls{font-style:italic;font-size:.92em;margin-top:.8em}
 :is(#vdocs,#vcp,#varch) .dprev .dlc{text-align:center}
+/* шаг 6: группы кредиторов по должникам */
+:is(#vcp,#vdocs) .dcgrp{border:1px solid var(--line,rgba(127,127,127,.25));border-radius:12px;margin:8px 0;overflow:hidden;min-width:0}
+:is(#vcp,#vdocs) .dcgrp.cur{border-color:var(--acc,#2DD4BF)}
+:is(#vcp,#vdocs) .dcgrph{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;width:100%;min-height:48px;padding:10px 14px;background:transparent;border:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+:is(#vcp,#vdocs) .dcgrph:focus-visible{outline:2px solid var(--acc,#2DD4BF);outline-offset:-2px}
+:is(#vcp,#vdocs) .dcgrpt{flex:1 1 60%;min-width:0;font-weight:600;overflow-wrap:anywhere}
+:is(#vcp,#vdocs) .dcgrpt .sm{font-weight:400;color:var(--muted,#8a94a6)}
+:is(#vcp,#vdocs) .dcgrpn{color:var(--muted,#8a94a6);font-size:.88em;font-variant-numeric:tabular-nums}
+:is(#vcp,#vdocs) .dcgrp.on .dcgrph{border-bottom:1px solid var(--line,rgba(127,127,127,.25))}
+:is(#vcp,#vdocs) .dcgrpb{padding:4px 12px 12px;min-width:0}
+:is(#vcp,#vdocs) .dgrpm{margin:6px 0}
+:is(#vdocs,#vcp,#varch) .dprev .dle{font-size:.75em;margin-top:2em}
+
+/* предпросмотр: таблицы из md (опись по разделам и др.) */
+.dprev .dtbw{overflow-x:auto;margin:4px 0 8px}.dprev .dtbl{border-collapse:collapse;width:100%;font-size:.8em;line-height:1.25}.dprev .dtbl td,.dprev .dtbl th{border:1px solid currentColor;padding:2px 4px;vertical-align:top;text-align:left;text-indent:0}.dprev .dtbl th{font-weight:bold;text-align:center}
+.dtb{display:block}.dtb .dtbr{display:block;grid-column:1/-1;border:1px solid rgba(127,127,127,.35);border-radius:10px;padding:10px;margin:8px 0}.dtb .dtbr.dnc{border-color:#f5c542;background:rgba(245,197,66,.10)}.dtb .dtbrh{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:6px}.dtb .dtbrh .sp{flex:1}.dtb .dncb{background:#f5c542;color:#222;border-radius:6px;padding:1px 6px;font-size:.8em}.dtb .g2 select{width:100%}
