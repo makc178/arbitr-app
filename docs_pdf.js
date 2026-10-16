@@ -53,7 +53,7 @@ function pP(e,o){o=Object.assign({},o||{});if(!e)return o;var x;
  if((x=kid(e,'tabs'))){var T=(o.tabs||[]).slice();kids(x,'tab').forEach(function(t){var v=at(t,'val'),p=num(at(t,'pos'),0)/20;T=T.filter(function(q){return Math.abs(q.pos-p)>0.5});if(v!='clear')T.push({pos:p,v:v=='end'?'right':v=='start'?'left':v,ld:at(t,'leader')})});o.tabs=T.sort(function(a,b){return a.pos-b.pos})}
  if((x=kid(e,'pBdr'))){o.bd=Object.assign({},o.bd||{});['top','bottom','left','right','between'].forEach(function(s){var b=kid(x,s);if(b)o.bd[s]=bdr(b)})}
  if((x=kid(e,'shd'))){var fl=at(x,'fill');o.shd=fl&&fl!='auto'?fl:null}
- if((x=kid(e,'pageBreakBefore')))o.pbb=onoff(x);
+ if((x=kid(e,'pageBreakBefore')))o.pbb=onoff(x);if((x=kid(e,'keepNext')))o.kn=onoff(x);
  if((x=kid(e,'keepNext')))o.kn=onoff(x);
  if((x=kid(e,'contextualSpacing')))o.cs=onoff(x);
  if((x=kid(e,'pStyle')))o.ps=at(x,'val');
@@ -291,6 +291,9 @@ Flow.prototype.table=async function(tEl,part){var cx=this.L.cx,tp=kid(tEl,'tblPr
  return {style:null}};
 function shift(o,dx,dy){var n=Object.assign({},o);if(n.absY)return n;if('y' in n)n.y+=dy;if('y1' in n){n.y1+=dy;n.y2+=dy}return n}
 Flow.prototype.blocks=async function(el,part,tbl){var prev=null;for(var c=el.firstElementChild;c;c=c.nextElementSibling){var n=c.localName;
+  if(n=='p'&&this.opt.page&&!tbl){var pk=this.L.cx.pOf(kid(c,'pPr'),tbl);if(pk.kn){var ch=[c],q=c;while(q.nextElementSibling&&q.nextElementSibling.localName=='p'&&ch.length<12){q=q.nextElementSibling;ch.push(q);if(!this.L.cx.pOf(kid(q,'pPr'),tbl).kn)break}
+   var fk=new Flow(this.L,this.x,this.w,{});fk.pg=this.pg;fk.page=0;fk.y=0;var pv=prev;for(var ki=0;ki<ch.length;ki++)pv=await fk.para(ch[ki],part,tbl,pv);
+   if(this.y+fk.y>this.bottom()+0.01&&this.y>this.top()+0.01&&fk.y<this.bottom()-this.top())this.newPage()}}
   if(n=='p'){var sp=kid(kid(c,'pPr'),'sectPr');if(sp&&c.nextElementSibling&&c.nextElementSibling.localName!='sectPr'){this.L.cx.warn.push('несколько разделов')}prev=await this.para(c,part,tbl,prev)}
   else if(n=='tbl'){prev=await this.table(c,part);}
   else if(n=='sdt'){await this.blocks(kid(c,'sdtContent')||c,part,tbl)}
