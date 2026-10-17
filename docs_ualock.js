@@ -40,7 +40,9 @@
  function blockedFor(){var a=att();return a.until&&a.until>Date.now()?Math.ceil((a.until-Date.now())/1000):0}
  function fail(){var a=att(),n=(a.n||0)+1,max=+K().max_attempts||3;if(n>=max){attSet({n:0,until:Date.now()+(+K().block_s||30)*1000})}else attSet({n:n,until:0});return n>=max}
  /* ---------- состояние ---------- */
- async function gate(man){if(K().enabled===false)return false;var dev=!!(await dGet('_ua_lock')),rem=null;try{rem=await gGet(P()+'lock.enc')}catch(e){}
+ async function gate(man){if(K().enabled===false)return false;var dev=!!(await dGet('_ua_lock')),rem=null,gone=false;try{rem=await gGet(P()+'lock.enc');gone=rem===null}catch(e){}
+  /* 18.10: записи PIN раздела в хранилище нет (ответ 404 — раздел сброшен), а на устройстве осталась старая копия — она недействительна: убрать её, раздел предложит задать PIN заново */
+  if(gone&&dev&&K().drop_stale_local!==false){try{await ArbDB.del('managers','_ua_lock');await ArbDB.del('managers','_ua_idx')}catch(e){}dev=false;IDX=null;DK=null}
   if(rem){LK={txt:rem.txt};LKSHA=rem.sha}if(rem||dev){ST=DK?'open':'locked';return true}ST='none';return false}
  async function lockRec(){var txt=LK&&LK.txt;if(!txt){var r=null;try{r=await gGet(P()+'lock.enc')}catch(e){}if(r){txt=r.txt;LKSHA=r.sha}}
   if(!txt){var d=await dGet('_ua_lock');if(d)return JSON.parse(td.decode(await dDecRec(d)))}if(!txt)throw new Error(U('no_lock'));LK={txt:txt};return JSON.parse(td.decode(await outD(txt)))}
