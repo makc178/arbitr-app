@@ -35,9 +35,11 @@ async function send(e){e.preventDefault();var m=$('emsg');if(m)m.textContent=C.l
 function title(q){var t=C.types[q.object_type],o=q.object||{};return (t?t.title_keys.map(function(k){return o[k]}).filter(Boolean).join(', '):'')||q.title||q.case_id}
 async function list(){var m=$('evm');if(!on()){m.textContent='Доступно в онлайн-версии после входа.';return}m.textContent='Загрузка…';
  try{try{IDX=norm(JSON.parse(await ghRaw('valuation/index.json')))}catch(e){IDX={}}
+  if(window.ArbHide){await ArbHide.load();hide()}
   var done=new Set(Object.values(IDX).map(function(x){return x&&x.request_id}).filter(Boolean));PEND=[];
   draw()}catch(e){m.textContent='Не удалось получить список: '+e.message}}
-window.EVAL_LIST=function(){return list()};window.EVAL_IDX=function(){return IDX};
+function hide(){if(!window.ArbHide)return;Object.keys(IDX).forEach(function(k){var e=IDX[k]||{};if(ArbHide.hidden('eval',k,e.request_id)||ArbHide.has('eval',e.request_id))delete IDX[k]})}
+window.EVAL_LIST=function(){return list()};window.EVAL_REFILTER=function(){hide();try{draw()}catch(e){}};window.EVAL_IDX=function(){return IDX};
 function opt(k,v){var f=C.common.find(function(x){return x.k==k});return f&&f.options[v]||''}
 function draw(){var q=$('eq').value.trim().toLowerCase(),T=function(k){return (C.types[k]||{}).label||''};
  var L=Object.entries(IDX).filter(function(a){return a[1]&&(!q||JSON.stringify(a[1]).toLowerCase().indexOf(q)>=0)}).sort(function(a,b){return (b[1].date||'').localeCompare(a[1].date||'')});
