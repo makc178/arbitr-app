@@ -1,0 +1,24 @@
+/* Общая раскладка (config/layout.json → --page-*): строка разделов и рабочее поле — в одной обёртке .page, одинаковые края во всех разделах */
+@media(min-width:700px){html{scrollbar-gutter:stable}}  /* место под полосу прокрутки только на ПК: на телефоне полосы поверх, отступ не нужен */
+.page{box-sizing:border-box!important;width:100%!important;max-width:var(--page-max,1200px)!important;margin-left:auto!important;margin-right:auto!important;padding-left:var(--page-pad,24px)!important;padding-right:var(--page-pad,24px)}
+.page:not([data-arbh-gut]){padding-right:var(--page-pad,24px)!important}
+/* строка разделов: на всю ширину .page, кнопки шире, в одну строку текста (ширина по подписи + поля, остаток делится поровну), перенос кнопок без горизонтальной прокрутки */
+:is(html,html[data-theme]) body header>.page.pnav>nav{max-width:none!important;grid-template-columns:none!important;box-sizing:border-box!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important;display:flex!important;flex-wrap:wrap!important;overflow:visible!important;gap:var(--navb-gap,6px)!important;justify-content:stretch!important}
+:is(html,html[data-theme]) body header>.page.pnav>nav>button:not(.hid):not([hidden]){max-width:none!important;flex:1 1 auto!important;min-width:var(--navb-min,96px)!important;padding-left:var(--navb-px,20px)!important;padding-right:var(--navb-px,20px)!important;white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important;margin:0!important;box-sizing:border-box!important}
+:is(html,html[data-theme]) body header>.page.pnav>nav>button.hid{display:none!important}
+/* рабочее поле: разделы без своих max-width/полей по бокам — края совпадают со строкой разделов */
+.page.pmain>:is(#vreg,#vmet,#vman,#vrep,#vprop,#vprc,#vfin,#veval,#vsrc,#vdocs,#vcp,#varch,#vai,#othbar,#dreq){box-sizing:border-box!important;max-width:none!important;width:auto!important;margin-left:0!important;margin-right:0!important;padding-left:0!important;padding-right:0!important}
+.page.pmain>:is(#vreg,#vmet,#vman,#vrep,#vprop,#vprc,#vfin,#veval,#vsrc,#vdocs,#vcp,#varch,#vai)>:is(.md,.wrap,.dwrap){box-sizing:border-box!important;max-width:none!important;margin-left:0!important;margin-right:0!important}
+.page>#vreg.wrap,.page>#vprop>.wrap,.page>#vman>.wrap{padding-left:0!important;padding-right:0!important}
+.page.pmain>:is(#vreg,#vmet,#vman,#vrep,#vprop,#vprc,#vfin,#veval,#vsrc,#vdocs,#vcp,#varch,#vai){padding-top:var(--page-top,16px)!important}
+.page.pmain>:is(#vreg,#vmet,#vman,#vrep,#vprop,#vprc,#vfin,#veval,#vsrc,#vdocs,#vcp,#varch,#vai)>:first-child{margin-top:0!important}
+/* ширину текста отчётов ограничиваем внутри карточки, а не шириной раздела */
+.page .md :is(p,li,h2,h3,summary){max-width:var(--page-text,90ch)}
+/* «Что подготовить»: сетка плиток, названия целыми словами, 2 строки с многоточием, полный текст в подсказке (title) */
+#vdocs .dfx .qs:has(>.qb.pk){grid-template-columns:repeat(auto-fill,minmax(min(var(--prep-min,240px),100%),1fr))!important}
+#vdocs .dfx .qb.pk,#vdocs .dfx .qb.pk *{word-break:normal!important;overflow-wrap:normal!important;hyphens:none!important}
+#vdocs .dfx .qb.pk .pkt{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:var(--prep-lines,2);line-clamp:var(--prep-lines,2);overflow:hidden;text-overflow:ellipsis;flex:none!important;font-weight:600;color:inherit;white-space:normal}
+#vdocs .dwrap:has(.qb.pk){overflow-wrap:normal}
+/* строка разделов в <header>: шапка без своих боковых полей (логотип центрируется своим .hb, кнопки темы/обновления — абсолютно у краёв), обёртка .pnav на всю ширину */
+html[data-theme] body header,html body header{padding-left:0!important;padding-right:0!important}
+header>.page.pnav{flex:1 1 100%!important}

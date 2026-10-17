@@ -1,0 +1,5 @@
+/* общий компонент даты (docs.css .ddate) вне «Документов»: исходное нативное поле скрыто, хранит ISO */
+input.dmsrc{display:none!important}
+.ddate.dmw{display:inline-flex;flex-direction:column;min-width:0;width:100%;max-width:100%;vertical-align:top}
+.two>.ddate.dmw,.pflt>.ddate.dmw{width:auto;flex:1 1 150px;min-width:150px}
+.pflt>.ddate.dmw .ddrow:empty,.ddate.dmw .ddrow:not(:has(.ddtoday)):has(.ddbad[hidden]){display:none}

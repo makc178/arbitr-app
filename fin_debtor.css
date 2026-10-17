@@ -46,8 +46,9 @@
 #vfin .fdact{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:12px}
 #vfin .fdact .lbtn{min-height:44px}
 #vfin .fdban{display:flex;align-items:center;gap:12px;justify-content:space-between;border:1px solid var(--line);border-left:3px solid #14B8A6;border-radius:12px;padding:10px 12px;position:sticky;top:0;z-index:2;background:var(--pan,var(--bg))}
-#vfin .fdbt{min-width:0;display:flex;flex-direction:column;gap:2px}
-#vfin .fdbt b{overflow-wrap:anywhere}
+#vfin .fdbt{min-width:0;flex:1 1 auto;display:flex;flex-direction:column;gap:2px}
+#vfin .fdbn{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:15px}
+#vfin .fdbs{display:block;font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 #vfin .fdchg{flex:0 0 auto;min-height:44px;padding:0 6px}
 #vfin .link{border:0;background:transparent;color:var(--acc2,#5EEAD4);font:inherit;font-weight:600;cursor:pointer}
 @media(max-width:560px){#vfin .fdhd{flex-direction:column;align-items:stretch}#vfin .fdseg{display:flex}#vfin .fdseg button{flex:1}}

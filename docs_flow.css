@@ -593,3 +593,5 @@ html[data-theme=light] #dmbar{--bg:#ECFAF5;--pan:#FFFFFF;--pan2:#F4FBF8;--ink:#0
 #vdocs .dfx .af,#vdocs .dfx .rc{container-type:inline-size}
 @container (max-width:480px){#vdocs .dfx .af .kv2,#vdocs .dfx .rc .kv2{grid-template-columns:minmax(0,1fr)}#vdocs .dfx .af .kv2>span,#vdocs .dfx .rc .kv2>span,#vdocs .dfx .af .kv2>:not(span),#vdocs .dfx .rc .kv2>:not(span){grid-column:1}}
 #vdocs .dfx .lot.drow{display:block;cursor:default}  /* строки таблицы в форме: не карточка-флекс, иначе «Строка 1» сжимается в столбик */
+/* «Документы»: строка «Бланки и подписи скрыты PIN раздела · Открыть» в нижней панели над переключателем «Подпись» */
+.dualdoc{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 6px;grid-column:auto}.dualdoc .sm{flex:1 1 200px;opacity:.8}

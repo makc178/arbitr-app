@@ -73,7 +73,9 @@ function debName(b,card){var s=card.summary||{},ap=card.appointment||{},n=fvv(s.
 /* блок в карточке контрагента (под реквизитами): «ИНН не указан» + «↻ Подтянуть», «из карточки дела · ДД.ММ.ГГГГ», «дел: N» и строки дел */
 function cardBlock(){var q=window.ArbCP&&ArbCP.qapi&&ArbCP.qapi(),c=q&&q.ed&&q.ed(),k=document.getElementById('dcp_kind');if(!c||!c.crx||!k)return;var g=k.closest('.g2');if(!g)return;
  var X=c.crx,L=(X.links||[]).map(caseRow),as=ASK[c.id]||X.asked,h='';
- if(X.inn_missing&&!dig(c.inn))h+='<p class="crxinn"><span class="bdg warn">'+E(U.inn_missing)+'</span> <button type="button" class="lbtn sec" data-crx="pull">'+E(U.pull)+'</button>'+(window.__crxErr&&!as?' <span class="sm ewarn">'+E(U.pull_fail)+'</span>':'')+(as?' <span class="sm">'+E(T(U.pulled,{d:dmy(as.at)}))+'</span>':'')+'</p>';
+ var ih=X.inn_missing&&!dig(c.inn)?'<span class="crxinn" data-crxinn="1"><span class="bdg warn">'+E(U.inn_missing)+'</span> <button type="button" class="lbtn sec" data-crx="pull">'+E(U.pull)+'</button>'+(window.__crxErr&&!as?' <span class="sm ewarn">'+E(U.pull_fail)+'</span>':'')+(as?' <span class="sm">'+E(T(U.pulled,{d:dmy(as.at)}))+'</span>':'')+'</span>':'';
+ /* под полем ИНН вместо подсказки «Для проверки нужен ИНН» — рядом с «Проверить по реестрам» */
+ var hn=g.querySelector('.dinn')&&g.querySelector('.dinn').parentNode.querySelector('.dhint');if(hn){if(ih){if(!hn.dataset.crxOrig)hn.dataset.crxOrig=hn.textContent;if(hn.innerHTML!==ih)hn.innerHTML=ih;hn.classList.add('crxh2')}else if(hn.dataset.crxOrig!=null&&hn.querySelector('[data-crxinn]')){hn.textContent=hn.dataset.crxOrig;hn.classList.remove('crxh2')}}else if(ih)h+='<p>'+ih+'</p>';
  h+='<p class="crxsrc" title="'+E(L.map(function(x){return x.no}).join(', '))+'">'+E(T(U.src,{d:dmy(X.at)}))+'</p><h4 class="dsh">'+E(T(U.cases,{n:L.length}))+'</h4><ul class="crxl">'+L.map(function(x,i){var l=X.links[i];return '<li><button type="button" class="crxa" data-crx="open" data-mid="'+E(l.mid)+'" data-a="'+E(l.a||'')+'">'+E(x.t)+'</button></li>'}).join('')+'</ul>';
  var box=g.parentNode.querySelector(':scope > .crxbox');if(!box){box=document.createElement('div');box.className='crxbox';g.parentNode.insertBefore(box,g.nextSibling)}if(box.innerHTML!==h)box.innerHTML=h}
 function bannerPaint(){var bn=banner(),bar=document.querySelector('.dcpbar');var ex=document.querySelector('.crxban');
@@ -89,6 +91,8 @@ async function pull(c){var A=window.ArbCP&&ArbCP.qapi().A,R=CF.analyst||{};if(ty
  await put(Q+id+'.enc',JSON.stringify({v:1,s:vs.s,it:vs.it,iv:b64(e.iv),ct:b64(e.ct)}),'analyst payload '+id);
  await put(Q+id+'.json',JSON.stringify({schema:R.schema||'arbitr/practice_au_request/v1',type:'au_request',subtype:'creditor_requisites',version:1,id:id,created_at:new Date().toISOString(),status:'new',category:R.category||'creditor_requisites',urgency:R.urgency||'normal',eta_minutes:+R.eta_minutes||120,n_attachments:0,origin:'creditor_card',enc:{format:'arbitr/au',s:vs.s,it:vs.it},payload_path:Q+id+'.enc'},null,1),'analyst request '+id);
  return id}
+/* «ИНН не указан» в строке «Юридическое лицо · …» списка (docs_cp.js cpRow) */
+function badge(c){return c&&c.crx&&c.crx.inn_missing&&!dig(c.inn)?' <span class="crxnoinn">'+E(U.inn_missing)+'</span>':''}
 /* ---- группировка списка ---- */
 function grouped(sec){var N=window.ArbCpNav;if(!N||!N.sortKey)return false;var k=N.sortKey(sec);return k=='debtor'||k=='case'}
 function caseData(id){var a=window.ArbCP&&ArbCP.qapi().A,S=a&&a.S();return ((S&&S.cases)||[]).find(function(c){return c.id==id})}
@@ -98,7 +102,7 @@ function groups(L,sec,H){var mode=window.ArbCpNav.sortKey(sec),col=new Intl.Coll
   G={},NO=[],vis=[];
  L.forEach(function(x){var M=memb(x);if(!M.length){NO.push(x);return}M.forEach(function(m){var g=G[m.k]||(G[m.k]={k:m.k,no:m.no,deb:m.deb,items:[]});if(!g.deb&&m.deb)g.deb=m.deb;g.items.push({x:x,row:m.row,more:M.length-1})})});
  var byName=function(p,q){var a=!!(p.x.crx&&p.x.crx.inn_missing&&!p.x.inn),b=!!(q.x.crx&&q.x.crx.inn_missing&&!q.x.inn);return (a-b)||col.compare(sn(p.x.name),sn(q.x.name))};
- function rows(items){return items.sort(byName).slice(0,H.lim||100).map(function(it){vis.push(it.x.id);var r=H.row(it.x),ex='<div class="sm crxrow">'+E(it.row)+(it.more>0?' · <span class="crxmore">'+E(T(U.more_cases,{n:it.more}))+'</span>':'')+'</div>';return '<div class="crxit">'+r+ex+'</div>'}).join('')}
+ function rows(items){return items.sort(byName).slice(0,H.lim||100).map(function(it){vis.push(it.x.id);var r=H.row(it.x),ex=it.row||it.more>0?'<div class="crxrow">'+E(it.row)+(it.more>0?' · <span class="crxmore">'+E(T(U.more_cases,{n:it.more}))+'</span>':'')+'</div>':'';var m=/<\/div>\s*$/.exec(r);return m?r.slice(0,m.index)+ex+r.slice(m.index):'<div class="crxit">'+r+ex+'</div>'}).join('')}   /* строка дела — последней строкой внутри карточки кредитора */
  function grp(id,title,body,sub){var on=document.querySelector('[data-grp="'+id+'"]'),open=on?on.classList.contains('on'):true;var pre=window.__crxOpen=window.__crxOpen||{};if(pre[id]!=null)open=pre[id];
   return '<div class="dcgrp crxg'+(sub?' crxsub':'')+(open?' on':'')+'" data-grp="'+E(id)+'"><button type="button" class="dcgrph crxh" data-crxg="'+E(id)+'" aria-expanded="'+open+'"><span class="dcgrpt">'+E(title)+'</span><span class="dcseca" aria-hidden="true">'+(open?'▴':'▾')+'</span></button>'+(open?'<div class="dcgrpb">'+body+'</div>':'')+'</div>'}
  var gs=Object.keys(G).map(function(k){return G[k]}),h=H.sel();
@@ -107,7 +111,7 @@ function groups(L,sec,H){var mode=window.ArbCpNav.sortKey(sec),col=new Intl.Coll
   Object.keys(D).sort(function(a,b){return a=='~'?1:b=='~'?-1:col.compare(a,b)}).forEach(function(dk){var d=D[dk],ids={};d.cs.sort(function(a,b){return col.compare(a.no,b.no)});d.cs.forEach(function(g){g.items.forEach(function(it){ids[it.x.id]=1})});var n=Object.keys(ids).length,nm=d.d||U.unknown_debtor;
    if(d.cs.length==1){var g=d.cs[0];h+=grp('d:'+dk,T(U.grp,{d:nm,no:g.no,n:n}),rows(g.items))}
    else h+=grp('d:'+dk,T(U.grp_debtor,{d:nm,k:d.cs.length,n:n}),d.cs.map(function(g){return grp('k:'+g.k,T(U.grp_case,{no:g.no,n:g.items.length}),rows(g.items),true)}).join(''))})}
- if(NO.length)h+=grp('none',U.no_case||'Без дела',rows(NO.map(function(x){return {x:x,row:'',more:0}})).replace(/<div class="sm crxrow"><\/div>/g,''));
+ if(NO.length)h+=grp('none',U.no_case||'Без дела',rows(NO.map(function(x){return {x:x,row:'',more:0}})));
  H.vis(vis.filter(function(v,i){return vis.indexOf(v)==i}));return h}
 /* ---- события ---- */
 document.addEventListener('click',async function(e){var b=e.target.closest&&e.target.closest('[data-crx],[data-crxg]');if(!b)return;var d=b.dataset;
@@ -119,4 +123,4 @@ document.addEventListener('click',async function(e){var b=e.target.closest&&e.ta
 var MT=null;function tick(){if(MT)return;MT=setTimeout(function(){MT=null;cardBlock();bannerPaint();run().catch(function(e){try{console.warn('crx',e&&e.message)}catch(x){}})},120)}
 function init(){if(window.__crx)return;window.__crx=1;var l=document.createElement('link');l.rel='stylesheet';l.href=SRC.replace(/docs_crx\.js/,'docs_crx.css');document.head.appendChild(l);new MutationObserver(function(m){for(var i=0;i<m.length;i++){var t=m[i].target;if(t&&t.closest&&t.closest('.crxbox,.crxban'))continue;tick();return}}).observe(document.body,{childList:true,subtree:true});setInterval(function(){run().catch(function(){})},30000);tick()}
 if(document.readyState=='loading')document.addEventListener('DOMContentLoaded',init);else init();
-return {run:run,units:units,groups:groups,grouped:grouped,caseRow:caseRow,banner:banner,_pull:pull}})();
+return {badge:badge,run:run,units:units,groups:groups,grouped:grouped,caseRow:caseRow,banner:banner,_pull:pull}})();

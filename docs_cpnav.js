@@ -54,6 +54,7 @@ function ioRow(sec,fileInput,items){var IO=CF().io||{},F=IO.formats||{};items=it
 function bar(sec,search){return '<div class="dsrow'+(search?'':' nos')+'">'+(search?'<div class="dsrq">'+search+'</div>':'')+sortBtn(sec)+'</div>'}
 /* ---- разметка раздела (data-cpsec на пунктах колонки — совместимость со старыми ссылками/тестами аккордеона; щелчок обрабатывает data-cpnav) ---- */
 function render(o){/* o: {sec, count(id), body(id), msg, setSec(id)} */
+ try{var w=+CF().nav_width_px,vc=document.getElementById('vcp');if(vc&&w>0)vc.style.setProperty('--cpnav-w',w+'px')}catch(e){}   /* ширина колонки — cp_nav.nav_width_px */
  var sec=alias(o.sec);if(!allSecs().some(function(s){return s.id==sec})){sec=first();o.setSec(sec)}
  var dirOn=isDir(sec),D=CF().directory||{},cnt=function(id){var n=o.count(id);return n===''||n==null?'':String(n)};
  var item=function(s,sub){var on=s.id==sec;return '<button type="button" class="dnvi'+(sub?' sub':'')+(on?' on':'')+'" data-cpnav="'+E(s.id)+'" data-cpsec="'+E(s.id)+'"'+(on?' aria-current="page"':'')+'><span class="dnvic" aria-hidden="true">'+E(s.icon||'')+'</span><span class="dnvt">'+E(s.title)+'</span><span class="dnvn">'+E(cnt(s.id))+'</span></button>'};

@@ -303,3 +303,13 @@ html.arbh-noanim body.arbh-sheet-open #arbh{transition:none}
 #arbh.pinpg:not(.hero) .arbh-tail{right:calc(var(--a-size) / 2 - 6px);left:auto;top:auto;bottom:calc(var(--a-size) + var(--a-gap) - 6px);transform:rotate(135deg)}
 #arbh.pinpg.pbtight .b-ref,#arbh.pinpg.pbtight .b-act{display:none}
 body.arbh-pinpg-m #pin{padding-bottom:var(--arbh-pinpad,88px)!important;box-sizing:border-box}
+
+/* красная точка со счётчиком: предупреждения о сроках на узком экране (ui.deadline_dot_under_1280) */
+#arbh .a-dlc{display:none;position:absolute;z-index:3;top:calc(var(--a-size) * .02);right:calc(var(--a-size) * .02);min-width:20px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:10px;background:var(--arbh-dl-bg,#E5484D);color:#fff;font:700 12px/20px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;text-align:center;box-shadow:0 0 0 2px var(--a-bg);pointer-events:none}
+#arbh.has-dl .a-dlc{display:block}
+#arbh.has-dl .a-dot{display:none}
+#arbh.off .a-dlc{display:none!important}
+
+/* имя под аватаром (arbitr_config.json → helper_name: caption, caption_px, caption_weight; 17.10 «Саныч», макет Дизайнера: 13 px, полужирный, бирюзовый) */
+#arbh .a-name{position:absolute;z-index:3;left:50%;top:calc(100% + 1px);transform:translateX(-50%);padding:0 6px;border-radius:7px;background:var(--a-bg);color:var(--a-acc);font:var(--a-capw,600) var(--a-cap,13px)/14px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;white-space:nowrap;pointer-events:none;user-select:none}
+#arbh.mini .a-name,#arbh.off .a-name,#arbh.hero .a-name{display:none}

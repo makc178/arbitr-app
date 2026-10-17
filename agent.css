@@ -1,0 +1,74 @@
+/* Arbitr App · «ИИ Агент». Цвета и размеры приходят из config/agent.json как CSS-переменные --ai-* на .aig.
+   Базовая раскладка: одна колонка в общем контейнере (форма, под ней список). .aiv1 — макет Дизайнера v1 (флаг ai_agent_layout_v1). */
+#vai{max-width:var(--ai-page-max,1200px);margin:0 auto;padding:10px;box-sizing:border-box;padding-bottom:88px;animation:viewin .2s ease}
+#vai .aig{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--ai-ws-gap,16px);align-items:start}
+#vai .aig.two{grid-template-columns:var(--ai-cols)}
+#vai .aig>.md{max-width:none;width:100%;box-sizing:border-box;margin:0;min-width:0;padding:16px var(--ai-card-pad,24px) 20px;border-radius:var(--ai-card-radius,14px)}
+#vai h2{margin:4px 0 6px}
+#vai .aig-lead{margin:0 0 14px;color:var(--mut)}
+#vai .aig-gate{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:var(--soft,rgba(94,234,212,.09));border:1px solid var(--line);font-size:14px}
+#vai .aig-gate[hidden]{display:none}
+#vai .aig-lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:14px 0 6px}
+#vai .aig-lh label,#vai .aig-flab{font-size:13px;color:var(--mut)}
+#vai .aig-cnt{font-size:12px;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+#vai .aig-cnt.lim{color:var(--ai-danger)}
+#vai textarea{display:block;width:100%;box-sizing:border-box;font:inherit;font-size:16px;line-height:1.45;padding:12px 14px;border:1px solid var(--line);border-radius:var(--ai-textarea-radius,10px);background:var(--bg);color:var(--ink);resize:none;overflow-y:hidden}
+#vai textarea:focus{outline:2px solid var(--ai-acc);outline-offset:0;border-color:transparent}
+#vai .aig-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:var(--ai-drop-min-h,96px);padding:14px;box-sizing:border-box;border:1.5px dashed var(--line);border-radius:12px;cursor:pointer;text-align:center;background:var(--ai-chip-sent-bg)}
+#vai .aig-drop.over,#vai .aig-drop:hover{border-color:var(--ai-acc);background:var(--ai-chip-work-bg)}
+#vai .aig-drop u{color:var(--ai-acc);text-underline-offset:3px}
+#vai .aig-up{width:20px;height:20px;background:var(--ai-acc);-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 16V4M6 10l6-6 6 6M4 20h16'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M12 16V4M6 10l6-6 6 6M4 20h16'/%3E%3C/svg%3E") center/contain no-repeat}
+#vai .aig-files{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+#vai .aig-files:empty{display:none}
+#vai .aig-file{display:flex;align-items:center;gap:10px;min-height:var(--ai-file-row-h,44px);padding:0 6px 0 12px;border:1px solid var(--line);border-radius:10px;background:var(--bg);min-width:0}
+#vai .aig-fi{flex:0 0 auto;width:14px;height:16px;border:1.5px solid var(--mut);border-radius:2px;opacity:.8}
+#vai .aig-fnm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vai .aig-fs{flex:0 0 auto;font-size:13px;color:var(--mut);white-space:nowrap}
+#vai .aig-x{flex:0 0 auto;width:36px;height:36px;border:0;background:transparent;color:var(--mut);font-size:20px;line-height:1;cursor:pointer;border-radius:8px}
+#vai .aig-x:hover{color:var(--ink);background:var(--ai-chip-sent-bg)}
+#vai .aig-enc{display:flex;align-items:center;gap:6px;margin:10px 0 0;color:var(--mut)}
+#vai .aig-lock{width:10px;height:8px;border:1.5px solid currentColor;border-radius:2px;position:relative;margin-top:4px}
+#vai .aig-lock:before{content:"";position:absolute;left:1px;top:-6px;width:5px;height:5px;border:1.5px solid currentColor;border-bottom:0;border-radius:4px 4px 0 0}
+#vai .aig-fail{display:flex;align-items:center;gap:12px;margin:14px 0 0;padding:10px 12px;border-radius:8px;background:var(--ai-danger-bg);border:1px solid var(--ai-danger-line);color:#fecaca;font-size:14px}
+#vai .aig-fail[hidden]{display:none}
+#vai .aig-fail span{flex:1 1 auto}
+#vai .aig-fail button{flex:0 0 auto;white-space:nowrap;background:transparent;border:1px solid rgba(254,202,202,.6);color:inherit;border-radius:6px;padding:6px 10px;cursor:pointer;font:inherit}
+#vai .aig-send{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:14px;flex-wrap:wrap}
+#vai .aig-hint,#vai #aimsg{margin-right:auto;color:var(--mut)}
+#vai .aig-hint:empty,#vai #aimsg:empty{display:none}
+#vai .aig-btn{height:var(--ai-btn-h,44px);padding:0 var(--ai-btn-pad-x,22px);border:0;border-radius:var(--ai-btn-radius,12px);background:var(--ai-acc);color:var(--ai-acc-ink);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+#vai .aig-btn:hover:not(:disabled){background:var(--ai-acc-hover)}
+#vai .aig-btn:disabled{background:var(--ai-disabled-bg);color:var(--ai-disabled-ink);cursor:not-allowed}
+#vai .aig-ok{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--ai-chip-work-bg);border:1px solid var(--ai-acc);color:var(--ink);font-size:14px}
+#vai .aig-ok[hidden]{display:none}
+#vai .aig-list{display:flex;flex-direction:column;gap:8px}
+#vai .aig-empty{padding:14px 0;color:var(--mut)}
+#vai .aig-row{padding:10px 12px;border:1px solid var(--line);border-radius:var(--ai-row-radius,12px);background:var(--bg);min-width:0}
+#vai .aig-rh{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+#vai .aig-no{display:none}
+#vai .aig-chip{margin-left:auto;display:inline-flex;align-items:center;height:var(--ai-chip-h,24px);padding:0 10px;border-radius:999px;font-size:12px;white-space:nowrap;background:var(--ai-chip-sent-bg);color:var(--ai-chip-sent-ink)}
+#vai .aig-work .aig-chip{background:var(--ai-chip-work-bg);color:var(--ai-chip-work-ink)}
+#vai .aig-done .aig-chip{background:var(--ai-chip-done-bg);color:var(--ai-chip-done-ink);font-weight:600}
+#vai .aig-l{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#vai .aig-bots,#vai .aig-eta{margin-top:4px;font-size:13px;color:var(--mut)}
+#vai .aig-bots i{font-style:normal;color:var(--ink)}
+#vai .aig-btns{display:flex;gap:8px;justify-content:flex-end;margin-top:8px;flex-wrap:wrap}
+#vai .aig-btns button{height:36px;padding:0 14px;border-radius:10px;font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}
+#vai .aig-b1{border:0;background:var(--ai-acc);color:var(--ai-acc-ink);font-weight:600}
+#vai .aig-b2{border:1px solid var(--ai-acc);background:transparent;color:var(--ai-acc)}
+#vai .aig-pm:empty{display:none}
+#vai .aig-pm{margin-top:6px;text-align:right}
+html[data-theme=light] #vai .aig-fail{color:#991b1b;background:#fef2f2;border-color:#fca5a5}
+html[data-theme=light] #vai .aig-fail button{border-color:#fca5a5}
+@media (max-width:699px){#vai{padding:8px}#vai .aig>.md{padding:12px 14px 16px}#vai .aig-send .aig-btn{width:100%}#vai .aig-btns button{flex:1 1 0}}
+/* ---------- макет v1 (spec.md Дизайнера) ---------- */
+#vai .aiv1 .aig-no{display:inline;font-weight:600;color:var(--ink)}
+#vai .aiv1 .aig-row{padding:12px 14px}
+#vai .aiv1 .aig-work .aig-chip{background:transparent;border:1px solid var(--ai-acc);color:var(--ai-chip-work-ink)}
+#vai .aiv1 .aig-sent .aig-chip:before,#vai .aiv1 .aig-work .aig-chip:before{content:"●";font-size:8px;margin-right:6px}
+#vai .aiv1 .aig-bots{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+#vai .aiv1 .aig-bots i{padding:2px 8px;border-radius:6px;background:var(--ai-chip-sent-bg);font-size:12px}
+#vai .aiv1 .aig-pf{margin-top:6px;font-size:13px;color:var(--mut)}
+#vai .aiv1 .aig-fail{margin:14px 0 0}
+#vai .aiv1 .aig-ok{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50;margin:0;background:var(--ai-acc);color:var(--ai-acc-ink);border:0;box-shadow:0 8px 24px rgba(0,0,0,.35);white-space:nowrap}
+@media (max-width:699px){#vai .aiv1 .aig-ok{white-space:normal;width:calc(100% - 32px)}}
