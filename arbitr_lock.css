@@ -1,0 +1,29 @@
+/* Кнопка с замком (18.10, config/pin_lock.json): размеры и отступы — переменные из настроек (--lk-*), здесь только вид */
+header>.page.pnav.arblk-host{display:flex!important;align-items:flex-start;gap:var(--lk-gap,8px)}
+header>.page.pnav.arblk-host>nav{flex:1 1 auto!important;min-width:0}
+.arblk{flex:0 0 auto;box-sizing:border-box;width:var(--lk-sz,36px);height:var(--lk-sz,36px);min-width:0!important;padding:0!important;margin:0;border-radius:50%;border:1.5px solid #14B8A6;background:rgba(11,42,36,.85);color:#5EEAD4;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background-color .15s,color .15s,transform .1s}
+.arblk svg{width:18px;height:18px}
+.arblk:hover{background:rgba(20,184,166,.18)}
+.arblk:active{transform:scale(.95)}
+.arblk:focus-visible{outline:2px solid #5EEAD4;outline-offset:2px}
+.arblk.on{background:#14B8A6;border-color:#14B8A6;color:#0B2A24}
+.arblk.on:hover{background:#2dd4bf}
+header>.page.pnav.arblk-host>.arblk{margin-top:calc((var(--navb-h,48px) - var(--lk-sz,36px))/2)}
+header>.arblk.m{position:absolute;top:calc(env(safe-area-inset-top) + var(--lk-t,10px));right:var(--lk-r,56px);z-index:6}
+header>.arblk.m svg{width:20px;height:20px}
+html[data-theme=light] .arblk:not(.on){background:#fff;color:#0f766e;border-color:#14B8A6}
+/* значок на кнопках защищённых разделов (флаг menu_icons.enabled) */
+.arblk-mi{display:inline-flex;width:12px;height:12px;margin-left:5px;opacity:.75;vertical-align:middle}
+.arblk-mi svg{width:12px;height:12px}
+/* окно PIN поверх раздела — разметка .dualm окна PIN раздела, свои только значок и красная плашка ошибки */
+.arblk-m .arblk-hi{width:44px;height:44px;margin:0 auto 8px;border-radius:50%;border:1.5px solid #14B8A6;color:#5EEAD4;display:flex;align-items:center;justify-content:center}
+.arblk-m .arblk-hi svg{width:22px;height:22px}
+.arblk-m .dualsub{margin:-6px 0 8px}
+.arblk-m .dualmsg.arblk-err{background:rgba(192,57,43,.16);border:1px solid rgba(192,57,43,.55);color:#ff8a7a;border-radius:8px;padding:6px 8px}
+html[data-theme=light] .arblk-m .dualmsg.arblk-err{color:#a93226}
+/* меню открытого замка */
+.arblk-menu{position:absolute;z-index:1001;min-width:220px;max-width:calc(100vw - 16px);background:var(--pan,#12352e);color:inherit;border:1px solid var(--line,rgba(94,234,212,.25));border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:6px}
+.arblk-menu button{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:9px 10px;border:0;border-radius:8px;background:none;color:inherit;font:inherit;cursor:pointer}
+.arblk-menu button:hover,.arblk-menu button:focus-visible{background:rgba(20,184,166,.16)}
+.arblk-menu svg{flex:0 0 18px;width:18px;height:18px;color:#5EEAD4;margin-top:1px}
+.arblk-menu small{display:block;opacity:.7;font-size:.8em;margin-top:2px}

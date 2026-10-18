@@ -151,5 +151,5 @@ function release(){var t=GEN;setTimeout(function(){if(GEN===t&&ST=='open'){GEN=n
  /* «Документы» (17.10, «не подгружаются бланки и подпись»): пока раздел скрыт PIN, переключатели «Бланк» и «Подпись» были неактивны без объяснения —
     в нижней панели формы строка «Бланки и подписи скрыты PIN раздела · Открыть»; после ввода PIN бланки и подписи подставляются в предпросмотр и документ (тексты — docs_config.json → ua_lock.ui) */
  function docRow(){if(K().enabled===false||K().doc_row===false||ST!='locked')return '';return '<div class="dual dualdoc" data-ual-doc><span class="sm">🔒 '+E(U('doc_locked'))+'</span><button type="button" class="lbtn sec" data-ual="open">'+E(U('doc_open'))+'</button></div>'}
- window.ArbUAL={gate:gate,sec:sec,lock:lock,need:need,docRow:docRow,state:function(){return ST},_t:TEST,_sweep:sweep};
+ window.ArbUAL={gate:gate,sec:sec,lock:lock,need:need,docRow:docRow,open:function(){if(ST=='locked')pad('enter')},state:function(){return ST},_t:TEST,_sweep:sweep};
 })();
