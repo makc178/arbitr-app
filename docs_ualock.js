@@ -43,7 +43,11 @@
  async function gate(man){if(K().enabled===false)return false;var dev=!!(await dGet('_ua_lock')),rem=null,gone=false;try{rem=await gGet(P()+'lock.enc');gone=rem===null}catch(e){}
   /* 18.10: записи PIN раздела в хранилище нет (ответ 404 — раздел сброшен), а на устройстве осталась старая копия — она недействительна: убрать её, раздел предложит задать PIN заново */
   if(gone&&dev&&K().drop_stale_local!==false){try{await ArbDB.del('managers','_ua_lock');await ArbDB.del('managers','_ua_idx')}catch(e){}dev=false;IDX=null;DK=null}
-  if(rem){LK={txt:rem.txt};LKSHA=rem.sha}if(rem||dev){ST=DK?'open':'locked';return true}ST='none';return false}
+  if(rem){LK={txt:rem.txt};LKSHA=rem.sha;await warm(rem.txt)}if(rem||dev){ST=DK?'open':'locked';return true}ST='none';return false}
+ /* 18.10 «на ПК не работает»: внешний слой lock.enc и файлов раздела зашифрован основным PIN с солью того устройства, где PIN раздела задавали (reqSalt).
+    На другом устройстве ключ для этой соли надо вывести, пока основной PIN ещё в памяти (gate вызывается из auLoad) — иначе после auLoad расшифровать нечем.
+    Выводятся только ключи (кэш docs.js); содержимое раздела не расшифровывается до PIN раздела. */
+ async function warm(txt){try{var j=JSON.parse(txt),rec=JSON.parse(td.decode(await outD(txt)));var fs=rec.fs||{};if(fs.s&&(fs.s!=j.s||fs.it!=j.it))await A().vkey(fs.s,fs.it)}catch(e){console.warn('ua warm',e&&e.name)}}
  async function lockRec(){var txt=LK&&LK.txt;if(!txt){var r=null;try{r=await gGet(P()+'lock.enc')}catch(e){}if(r){txt=r.txt;LKSHA=r.sha}}
   if(!txt){var d=await dGet('_ua_lock');if(d)return JSON.parse(td.decode(await dDecRec(d)))}if(!txt)throw new Error(U('no_lock'));LK={txt:txt};return JSON.parse(td.decode(await outD(txt)))}
  async function check(rec,pin){var h=await pb(pin,ub(rec.sh));return same(h,ub(rec.h))}
@@ -81,7 +85,7 @@
   var src=AU.lh.map(function(x){return ['lh',x]}).concat(AU.sig.map(function(x){return ['sig',x]})).filter(function(q){return q[1].builtin&&!q[1].ua&&q[1].data});
   for(var i=0;i<src.length;i++){var k=src[i][0],x=src[i][1],fn='f_'+ArbDB.uid('').replace(/[^\w]/g,'')+'.enc';
    await gPut(P()+fn,await outE(await gcmE(DK,x.data.slice(0))),null,'arbitr ua file');files.push({id:x.id,kind:k,name:x.name,type:x.type||'',file:fn,order:i});old.push('arbitr/au/'+String(x.id).replace(/^au_/,'')+'.enc')}
-  var rec=await mkRec(pin,dk,files);dk.fill(0);await saveRec(rec);
+  var rec=await mkRec(pin,dk,files);rec.fs=A().vaultSalt();dk.fill(0);await saveRec(rec);
   /* проверка цепочки до удаления старых копий */
   var back=JSON.parse(td.decode(await outD((await gGet(P()+'lock.enc')).txt)));if(!(await check(back,pin)))throw new Error(U('verify_fail'));
   if(files.length){var v=await gcmD(await unwrap(back,pin),await outD(await d.gr(P()+files[0].file)));if(!v.byteLength)throw new Error(U('verify_fail'))}
@@ -89,7 +93,7 @@
   var rm=0;if(K().remove_old_copies!==false&&typeof ghDelete=='function')for(var j=0;j<old.length;j++){try{await ghDelete(old[j]);rm++}catch(e){console.warn('ua rm',old[j],e)}}
   TEST.setup={files:files.length,removed:rm};d.mc();edSync();return rec}
  async function change(cur,nw){var rec=await lockRec();if(!(await check(rec,cur)))return false;var kek=await aes(await pb(cur,ub(rec.sw)),['decrypt']),dk=new Uint8Array(await gcmD(kek,ub(rec.wk)));
-  var r2=await mkRec(nw,dk,rec.files);dk.fill(0);r2.changed=new Date().toISOString();await saveRec(r2);attSet({});return true}
+  var r2=await mkRec(nw,dk,rec.files);r2.fs=rec.fs||(function(){try{var j=JSON.parse(LK.txt);return {s:j.s,it:j.it}}catch(e){return undefined}})();dk.fill(0);r2.changed=new Date().toISOString();await saveRec(r2);attSet({});return true}
  /* ---------- интерфейс ---------- */
  function edSync(){var d=D();if(!d)return;var ed=d.ed();if(ed){var m=mgrs().find(function(x){return x.id==ed.id});if(m){ed.lh=m.lh.slice();ed.sig=m.sig.slice()}d.dr()}try{if(A().refresh)A().refresh()}catch(e){}}
  function sec(m,drawLH,drawSig){if(K().enabled===false)return drawLH(m)+drawSig(m);
@@ -123,7 +127,7 @@ function pad(mode,why){
    busy=true;draw(U('wait'));
    try{if(mode=='enter'){var ok=await open(vals[0]);busy=false;if(ok){var cb=PADCB;PADCB=null;closePad();if(cb)cb(true);return}wrong(fail());return}
     if(mode=='change'){var ok2=await change(vals[0],vals[1]);busy=false;if(ok2){closePad();toast(U('changed'));return}wrong(fail());return}
-    if(mode=='setup'){await setup(vals[0]);busy=false;closePad();toast(U('set_ok'));return}}catch(e){busy=false;vals=[];cur='';draw(U('error',{m:e.message}),1)}}
+    if(mode=='setup'){await setup(vals[0]);busy=false;closePad();toast(U('set_ok'));return}}catch(e){busy=false;vals=[];cur='';draw(emsg(e),1)}}
   function tickBlock(){clearInterval(tk);tk=setInterval(function(){if(!PAD||PAD!==el){clearInterval(tk);return}draw();if(!blockedFor()){clearInterval(tk);draw()}},1000)}
   function press(k){if(busy||blockedFor())return;var now=Date.now();if(k!=='⌫'&&k===lastK&&now-lastT<deb)return;lastK=k;lastT=now;
     if(k=='⌫'){cur=cur.slice(0,-1);dots();return}if(k=='ok'){if(cur.length==4)done();return}
@@ -139,6 +143,8 @@ var PADCB=null,SKIP=0,GEN=null;
 function need(){if(K().enabled===false||ST!='locked'||K().gen_prompt===false||Date.now()<SKIP)return Promise.resolve(null);
  return new Promise(function(res){PADCB=null;pad('enter','gen');PADCB=function(ok){if(!ok){SKIP=Date.now()+(+K().gen_skip_s||60)*1000;res(null);return}GEN=Date.now();res(release)}})}
 function release(){var t=GEN;setTimeout(function(){if(GEN===t&&ST=='open'){GEN=null;lock('gen')}},(+K().gen_hold_s||20)*1000)}
+ /* понятные сообщения вместо сырых ошибок WebCrypto/сети (тексты — docs_config.json → ua_lock.ui) */
+ function emsg(e){e=e||{};if(e.code=='nopin')return U('err_nopin');if(e.name=='OperationError'||e.name=='InvalidAccessError'||e.name=='DataError')return U('err_decrypt');if(e.name=='SyntaxError')return U('err_format');if(/GitHub|fetch|network|доступа/i.test(String(e.message||'')))return U('err_net');return U('error',{m:e.message||e.name||'?'})}
  function toast(m){try{A().toast(m)}catch(e){}}
  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-ual]');if(b){var a=b.dataset.ual;if(a=='open')pad('enter');else if(a=='setup')pad('setup');else if(a=='change')pad('change');else if(a=='close')lock('manual');return}
   var nv=e.target.closest&&e.target.closest('nav button[data-v]');if(nv&&nv.dataset.v!='cp')lock('leave');
