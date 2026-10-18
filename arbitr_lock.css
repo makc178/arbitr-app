@@ -27,3 +27,6 @@ html[data-theme=light] .arblk-m .dualmsg.arblk-err{color:#a93226}
 .arblk-menu button:hover,.arblk-menu button:focus-visible{background:rgba(20,184,166,.16)}
 .arblk-menu svg{flex:0 0 18px;width:18px;height:18px;color:#5EEAD4;margin-top:1px}
 .arblk-menu small{display:block;opacity:.7;font-size:.8em;margin-top:2px}
+/* 18.10: замок PIN скрытых данных — «не задан» (пунктир) и пояснение в меню */
+.arblk.unset{border-style:dashed;opacity:.8}
+.arblk-menu .arblk-info{margin:4px 6px 6px;font-size:.85em;line-height:1.4;opacity:.85;max-width:280px}

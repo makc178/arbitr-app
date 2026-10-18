@@ -1,5 +1,10 @@
-window.ARB_LOCK_CFG={"enabled": true, "size_px": 36, "size_px_mobile": 40, "mobile_below_w": 700, "mobile_right_px": 56, "mobile_top_px": 10, "gap_px": 8, "max_attempts_before_pause": 3, "texts": {"tip_locked": "Ввести PIN", "tip_open": "PIN введён — защищённые разделы открыты", "aria_locked": "Ввести PIN: открыть защищённые разделы", "aria_open": "PIN введён. Меню блокировки", "t_enter": "Введите PIN", "sub": "Откроются защищённые разделы: карточки управляющих и должников, Архив, ИИ Агент", "wait": "Проверка…", "wrong": "Неверный PIN", "left": "Осталось попыток: {n}", "blocked": "Слишком много попыток. Повторите через {s} с", "no_crypto": "Браузер не поддерживает проверку PIN", "cancel": "Отмена", "backspace": "Стереть последнюю цифру", "ok": "PIN принят — разделы открыты", "menu_lock": "Заблокировать", "menu_lock_hint": "Приложение закроется до ввода PIN", "menu_ua": "Служебные материалы (PIN раздела)", "menu_icon_tip": "Раздел под PIN"}, "menu_icons": {"enabled": false, "sections": ["docs", "cp", "arch", "ai"]}, "auto_lock": {"enabled": false, "idle_min": 15, "check_s": 30}, "section_pin_item": true};
-/* Arbitr App — кнопка с замком: ввести основной PIN из любого раздела (18.10, config/pin_lock.json → window.ARB_LOCK_CFG).
+window.ARB_LOCK_CFG={"enabled": true, "size_px": 36, "size_px_mobile": 40, "mobile_below_w": 700, "mobile_right_px": 56, "mobile_top_px": 10, "gap_px": 8, "max_attempts_before_pause": 3, "texts": {"tip_locked": "Открыть скрытые данные (PIN)", "tip_open": "Скрытые данные открыты", "aria_locked": "Открыть скрытые данные: ввести PIN", "aria_open": "Скрытые данные открыты. Меню блокировки", "t_enter": "PIN приложения", "sub": "После входа откроется окно PIN скрытых данных", "wait": "Проверка…", "wrong": "Неверный PIN", "left": "Осталось попыток: {n}", "blocked": "Слишком много попыток. Повторите через {s} с", "no_crypto": "Браузер не поддерживает проверку PIN", "cancel": "Отмена", "backspace": "Стереть последнюю цифру", "ok": "PIN приложения принят", "menu_lock": "Заблокировать", "menu_lock_hint": "Бланки, подписи и карточки граждан снова скрыты", "menu_icon_tip": "Раздел под PIN", "tip_unset": "PIN скрытых данных не задан", "tip_nomain": "Скрытые данные: сначала вход по PIN приложения", "aria_unset": "PIN скрытых данных не задан. Подробнее", "aria_nomain": "Скрытые данные закрыты. Подробнее", "menu_main": "Ввести PIN приложения", "info_nomain": "Скрытые данные (бланки, подписи, карточки граждан) открываются PIN скрытых данных — после входа по PIN приложения.", "info_unset": "PIN скрытых данных не задан. Задать: «Документы» → карточка управляющего → «Скрыть бланки и подписи под PIN»."}, "menu_icons": {"enabled": false, "sections": ["docs", "cp", "arch", "ai"]}, "auto_lock": {"enabled": false, "idle_min": 15, "check_s": 30}, "main_pin_fallback": true, "chain_after_main": true};
+/* Arbitr App — кнопка с замком (18.10, config/pin_lock.json → window.ARB_LOCK_CFG).
+   С 18.10 16:28 (команда пользователя) замок привязан к PIN скрытых данных — PIN раздела «Служебные материалы» (ArbUAL, docs_ualock.js):
+   бланки, подписи и карточки граждан. Закрыт → существующее окно PIN раздела (солёный PBKDF2-хеш в arbitr/ua/lock.enc), данные открываются на месте;
+   открыт → меню «Заблокировать» (ArbUAL.lock — снова скрыты, без перезагрузки). Состояние замка = состояние ArbUAL.
+   Пока не было входа по PIN приложения, скрытые данные открыть нельзя (внешний слой — основной PIN): в меню — «Ввести PIN приложения» (окно ниже).
+   Прежнее описание (окно основного PIN):
    · Закрыт (основной PIN в этой сессии не вводился, напр. «Вход по ключу») → окно PIN поверх текущего раздела, без перехода.
    · Проверка — та же, что на странице PIN: unpin() расшифровывает PINBLOB (PBKDF2 → AES-GCM). Затем тот же крючок window.__arbPin(pin):
      docs.js (карточки АУ, бланки, архив, дела), agent.js (ключ пользователя «ИИ Агента»). Новой криптографии нет, PIN нигде не сохраняется и не выводится.
@@ -19,15 +24,18 @@ window.ARB_LOCK_CFG={"enabled": true, "size_px": 36, "size_px_mobile": 40, "mobi
   open:SV+'<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 7.6-1.7"/><path d="M12 14.5v2.5"/></svg>',
   mini:'<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>'};
  function unlocked(){return UNL||!!(window.ArbArch&&ArbArch.locked&&!ArbArch.locked())}
+ function ual(){try{return window.ArbUAL&&ArbUAL.state?ArbUAL.state():'none'}catch(e){return 'none'}}
+ /* состояние замка: open — скрытые данные открыты; locked — PIN скрытых данных задан, не введён; unset — вход по PIN был, PIN скрытых данных не задан; nomain — не было входа по PIN приложения */
+ function lst(){var u=ual();if(u=='open')return 'open';if(u=='locked')return 'locked';return unlocked()?'unset':'nomain'}
  /* учёт входа по PIN: обёртка над общим крючком (docs.js/agent.js уже повесили свои — вызываются как раньше) */
  var prev=window.__arbPin;window.__arbPin=function(pin){UNL=true;LAST=Date.now();setTimeout(draw,0);if(typeof prev=='function')return prev.apply(this,arguments)};
  function mob(){return innerWidth<(+C.mobile_below_w||700)}
  function mount(){var nav=document.querySelector('header>.page.pnav>nav'),hd=document.querySelector('header');if(!nav||!hd)return false;
-  if(!BTN){BTN=document.createElement('button');BTN.type='button';BTN.id='arblk';BTN.className='arblk';BTN.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(unlocked())menu();else pad()})}
+  if(!BTN){BTN=document.createElement('button');BTN.type='button';BTN.id='arblk';BTN.className='arblk';BTN.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();var q=lst();if(q=='locked'&&typeof ArbUAL.open=='function'){closeMenu();ArbUAL.open()}else menu()})}
   var m=mob(),host=m?hd:nav.parentNode;if(BTN.parentNode!==host||(!m&&BTN.previousElementSibling!==nav)){if(m)hd.appendChild(BTN);else nav.parentNode.insertBefore(BTN,nav.nextSibling)}
   BTN.classList.toggle('m',m);var sz=(m?+C.size_px_mobile:+C.size_px)||36;BTN.style.setProperty('--lk-sz',sz+'px');BTN.style.setProperty('--lk-r',(+C.mobile_right_px||56)+'px');BTN.style.setProperty('--lk-t',(+C.mobile_top_px||10)+'px');BTN.style.setProperty('--lk-gap',(+C.gap_px||8)+'px');
   nav.parentNode.classList.toggle('arblk-host',!m);var fb=nav.querySelector('button:not(.hid)');if(fb&&fb.offsetHeight)BTN.style.setProperty('--navb-h',fb.offsetHeight+'px');return true}
- var DS='';function draw(){if(!mount())return;var u=unlocked(),k=(u?1:0)+':'+(mob()?1:0);icons(u);if(k===DS&&BTN.firstChild)return;DS=k;BTN.classList.toggle('on',u);BTN.innerHTML=u?IC.open:IC.lock;BTN.title=t(u?'tip_open':'tip_locked');BTN.setAttribute('aria-label',t(u?'aria_open':'aria_locked'));BTN.setAttribute('aria-haspopup',u?'menu':'dialog');BTN.dataset.state=u?'open':'locked'}
+ var DS='';function draw(){if(!mount())return;var q=lst(),u=q=='open',k=q+':'+(mob()?1:0);icons(u);if(k===DS&&BTN.firstChild)return;DS=k;BTN.classList.toggle('on',u);BTN.classList.toggle('unset',q=='unset');BTN.innerHTML=u||q=='unset'?IC.open:IC.lock;BTN.title=t('tip_'+q);BTN.setAttribute('aria-label',t('aria_'+q));BTN.setAttribute('aria-haspopup',q=='locked'?'dialog':'menu');BTN.dataset.state=q}
  function icons(u){var M=C.menu_icons||{},on=M.enabled===true&&!u;(M.sections||[]).forEach(function(v){var b=document.querySelector('header nav button[data-v="'+v+'"]');if(!b)return;var i=b.querySelector('.arblk-mi');if(on&&!i){i=document.createElement('span');i.className='arblk-mi';i.title=t('menu_icon_tip');i.innerHTML=IC.mini;b.appendChild(i)}else if(!on&&i)i.remove()})}
  /* ---------- окно PIN (разметка и стили — как у окна PIN раздела, .dualm) ---------- */
  function pad(){if(PADE||document.querySelector('.dualm'))return;closeMenu();var v='',busy=false;
@@ -45,7 +53,7 @@ window.ARB_LOCK_CFG={"enabled": true, "size_px": 36, "size_px_mobile": 40, "mobi
     var had=typeof TOKEN!='undefined'&&!!TOKEN;try{if(typeof saveTok=='function')saveTok(tok)}catch(e){}
     try{window.__arbPin(pin)}finally{pin=null}
     if(!had){try{if(typeof sync=='function')sync()}catch(e){}}
-    close();toast(t('ok'))}
+    close();toast(t('ok'));chain()}
    catch(e){pin=null;busy=false;if(e&&e.message=='nc'){msg(t('no_crypto'),1);return}var n=(+lg(FK)||0)+1,mx=+C.max_attempts_before_pause||3;ls(FK,n);ls(FT,Date.now()+(n<mx?0:Math.min(300,Math.pow(2,n-2)*5))*1000);
     dots();D.classList.remove('shake');void D.offsetWidth;D.classList.add('shake');if(navigator.vibrate)try{navigator.vibrate(150)}catch(_){}
     msg(t('wrong')+(n<mx?'. '+t('left',{n:mx-n}):''),1);st()}}
@@ -54,23 +62,27 @@ window.ARB_LOCK_CFG={"enabled": true, "size_px": 36, "size_px_mobile": 40, "mobi
   el._kd=function(e){if(PADE!==el)return;if(e.key=='Escape'){e.preventDefault();close();return}var k=e.key;if(/^Numpad\d$/.test(e.code)&&!/^\d$/.test(k))k=e.code.slice(6);
    if(/^\d$/.test(k)){e.preventDefault();e.stopPropagation();press(k)}else if(k=='Backspace'||k=='Delete'){e.preventDefault();e.stopPropagation();press('⌫')}};
   document.addEventListener('keydown',el._kd,true);el.tabIndex=-1;document.body.appendChild(el);dots();st();el.focus()}
+ /* после входа по PIN приложения: если PIN скрытых данных задан — сразу его окно (флаг chain_after_main) */
+ function chain(){if(C.chain_after_main===false)return;var n=0,iv=setInterval(function(){n++;var q=ual();if(q=='locked'&&window.ArbUAL&&typeof ArbUAL.open=='function'){clearInterval(iv);draw();ArbUAL.open()}else if(q=='open'||n>40){clearInterval(iv);draw()}},250)}
  function close(){if(!PADE)return;document.removeEventListener('keydown',PADE._kd,true);PADE.remove();PADE=null;if(BTN)try{BTN.focus({preventScroll:true})}catch(e){}}
  /* ---------- меню открытого замка ---------- */
- function menu(){if(MENU){closeMenu();return}var ua=C.section_pin_item!==false&&window.ArbUAL&&ArbUAL.state&&ArbUAL.state()=='locked'&&typeof ArbUAL.open=='function';
-  MENU=document.createElement('div');MENU.className='arblk-menu';MENU.setAttribute('role','menu');
-  MENU.innerHTML=(ua?'<button type="button" role="menuitem" data-lkm="ua">'+IC.lock+'<span>'+E(t('menu_ua'))+'</span></button>':'')+'<button type="button" role="menuitem" data-lkm="lock">'+IC.lock+'<span>'+E(t('menu_lock'))+'<small>'+E(t('menu_lock_hint'))+'</small></span></button>';
+ function menu(){if(MENU){closeMenu();return}var q=lst(),h='';
+  if(q=='open')h='<button type="button" role="menuitem" data-lkm="lock">'+IC.lock+'<span>'+E(t('menu_lock'))+'<small>'+E(t('menu_lock_hint'))+'</small></span></button>';
+  else if(q=='unset')h='<p class="arblk-info">'+E(t('info_unset'))+'</p>';
+  else if(q=='nomain')h='<p class="arblk-info">'+E(t('info_nomain'))+'</p>'+(C.main_pin_fallback!==false?'<button type="button" role="menuitem" data-lkm="main">'+IC.lock+'<span>'+E(t('menu_main'))+'</span></button>':'');
+  MENU=document.createElement('div');MENU.className='arblk-menu';MENU.setAttribute('role','menu');MENU.innerHTML=h;
   document.body.appendChild(MENU);var r=BTN.getBoundingClientRect(),w=MENU.offsetWidth;MENU.style.top=(r.bottom+6+scrollY)+'px';MENU.style.left=Math.max(8,Math.min(innerWidth-w-8,r.right-w))+'px';
-  MENU.addEventListener('click',function(e){var b=e.target.closest('[data-lkm]');if(!b)return;var a=b.dataset.lkm;closeMenu();if(a=='lock')lockNow('manual');else if(a=='ua')ArbUAL.open()});
-  BTN.setAttribute('aria-expanded','true');var f=MENU.querySelector('button');if(f)f.focus()}
+  MENU.addEventListener('click',function(e){var b=e.target.closest('[data-lkm]');if(!b)return;var a=b.dataset.lkm;closeMenu();if(a=='lock')lockNow('manual');else if(a=='main')pad()});
+  BTN.setAttribute('aria-expanded','true');var f=MENU.querySelector('button');if(f)f.focus();else{MENU.tabIndex=-1;MENU.focus()}}
  function closeMenu(){if(MENU){MENU.remove();MENU=null;if(BTN)BTN.setAttribute('aria-expanded','false')}}
  document.addEventListener('click',function(e){if(MENU&&!MENU.contains(e.target)&&e.target!==BTN)closeMenu()},true);
  document.addEventListener('keydown',function(e){if(MENU&&e.key=='Escape'){closeMenu();try{BTN.focus()}catch(_){}}});
- /* блокировка: закрыть PIN раздела и перезагрузить на страницу PIN — ключи в памяти не переживают перезагрузку */
- function lockNow(why){try{if(window.ArbUAL)ArbUAL.lock(why)}catch(e){}window.__arbLockWhy=why;UNL=false;setTimeout(function(){location.reload()},50)}
+ /* «Заблокировать»: скрытые данные снова скрыты (ArbUAL.lock стирает ключ раздела и расшифрованные бланки/подписи из памяти), без перезагрузки */
+ function lockNow(why){try{if(window.ArbUAL)ArbUAL.lock(why)}catch(e){}window.__arbLockWhy=why;setTimeout(draw,300);setTimeout(draw,1500)}
  var AL=C.auto_lock||{};if(AL.enabled===true){['pointerdown','keydown','wheel','touchstart'].forEach(function(n){document.addEventListener(n,function(){LAST=Date.now()},{passive:true,capture:true})});
-  setInterval(function(){if(UNL&&Date.now()-LAST>(+AL.idle_min||15)*60000)lockNow('idle')},(+AL.check_s||30)*1000)}
+  setInterval(function(){if(ual()=='open'&&Date.now()-LAST>(+AL.idle_min||15)*60000)lockNow('idle')},(+AL.check_s||30)*1000)}
  function toast(m){try{var d=window.ArbCP&&ArbCP.qapi&&ArbCP.qapi().A;if(d&&d.toast){d.toast(m);return}}catch(e){}}
  var rt=null;addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(function(){draw();closeMenu()},120)});
- setInterval(draw,1500);if(document.readyState!='loading')draw();else document.addEventListener('DOMContentLoaded',draw);
- window.ArbLock={state:function(){return unlocked()?'open':'locked'},open:pad,lock:lockNow,_draw:draw};
+ setInterval(draw,700);if(document.readyState!='loading')draw();else document.addEventListener('DOMContentLoaded',draw);
+ window.ArbLock={state:lst,open:pad,lock:lockNow,_draw:draw};
 })();
