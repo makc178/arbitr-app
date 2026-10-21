@@ -9,7 +9,7 @@ header>.page.pnav.arblk-host>nav{flex:1 1 auto!important;min-width:0}
 .arblk.on{background:#14B8A6;border-color:#14B8A6;color:#0B2A24}
 .arblk.on:hover{background:#2dd4bf}
 header>.page.pnav.arblk-host>.arblk{margin-top:calc((var(--navb-h,48px) - var(--lk-sz,36px))/2)}
-header>.arblk.m{position:absolute;top:calc(env(safe-area-inset-top) + var(--lk-t,10px));right:var(--lk-r,56px);z-index:6}
+header>.arblk.m,header>.arblk.hd{position:absolute;top:var(--lk-t,10px);right:var(--lk-r,56px);z-index:6}
 header>.arblk.m svg{width:20px;height:20px}
 html[data-theme=light] .arblk:not(.on){background:#fff;color:#0f766e;border-color:#14B8A6}
 /* значок на кнопках защищённых разделов (флаг menu_icons.enabled) */

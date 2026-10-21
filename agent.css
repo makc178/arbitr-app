@@ -6,7 +6,7 @@
 #vai .aig>.md{max-width:none;width:100%;box-sizing:border-box;margin:0;min-width:0;padding:16px var(--ai-card-pad,24px) 20px;border-radius:var(--ai-card-radius,14px)}
 #vai h2{margin:4px 0 6px}
 #vai .aig-lead{margin:0 0 14px;color:var(--mut)}
-#vai .aig-gate{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:var(--soft,rgba(94,234,212,.09));border:1px solid var(--line);font-size:14px}
+#vai .aig-gate{margin:0 0 12px;padding:var(--ai-gate-pad,6px 8px);border-radius:var(--ai-gate-radius,0);background:var(--ai-gate-bg,var(--ev-warn-bg));border:0;border-left:var(--ai-gate-line-w,3px) solid var(--ai-gate-line,var(--ev-warn));font-size:var(--ai-gate-font,12.5px);line-height:1.45;color:inherit;overflow-wrap:break-word;hyphens:none}
 #vai .aig-gate[hidden]{display:none}
 #vai .aig-lh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin:14px 0 6px}
 #vai .aig-lh label,#vai .aig-flab{font-size:13px;color:var(--mut)}
