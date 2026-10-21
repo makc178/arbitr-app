@@ -1,0 +1,70 @@
+/* Arbitr App · Финанализ — карточка отчёта, «Риск не оценивался» (макет Дизайнера 21.10.2026). Цвета уровней — переменные из config/fin_card.json (fin_card.js → #vfin). */
+#vfin .pcard.fcp{display:block}
+#vfin .fcard{background:var(--pan);border:1px solid var(--line);border-radius:var(--fc-r);padding:var(--fc-pad);min-width:0;margin:8px 0 10px;color:var(--ink);overflow-wrap:break-word}
+#vfin .fcard svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex:none}
+#vfin .fc-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+#vfin .fc-chip{display:inline-flex;align-items:center;gap:6px;min-height:var(--fc-chip-h);padding:2px 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+#vfin .fc-chip svg{width:14px;height:14px}
+#vfin .fc-chip.form-full{background:var(--risk-low-bg);color:var(--risk-low)}
+#vfin .fc-chip.form-simple{background:var(--risk-none-bg);color:var(--ink);border:1px solid var(--risk-none-line)}
+#vfin .fc-chip.prelim{background:var(--risk-mid-bg);color:var(--risk-mid)}
+#vfin .fc-dt{margin-left:auto;font-size:13px;color:var(--mut);white-space:nowrap}
+#vfin .fc-meta{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--mut);font-size:13px;margin-top:8px}
+#vfin .fc-meta span{white-space:nowrap}
+#vfin .fc-risk{margin-top:14px;border-radius:14px;padding:14px 16px;border:1px solid var(--rl);background:var(--rb);--rc:var(--risk-none);--rb:var(--risk-none-bg);--rl:var(--risk-none-line)}
+#vfin .fc-risk.lv-high{--rc:var(--risk-high);--rb:var(--risk-high-bg);--rl:var(--risk-high-line)}
+#vfin .fc-risk.lv-mid{--rc:var(--risk-mid);--rb:var(--risk-mid-bg);--rl:var(--risk-mid-line)}
+#vfin .fc-risk.lv-low{--rc:var(--risk-low);--rb:var(--risk-low-bg);--rl:var(--risk-low-line)}
+#vfin .fc-risk.lv-none{border-style:dashed}
+#vfin .fc-risk .rl{font-size:13px;color:var(--mut);font-weight:550}
+#vfin .fc-risk .rv{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:680;color:var(--rc);margin-top:2px}
+#vfin .fc-risk .dot{width:12px;height:12px;border-radius:50%;background:var(--rc);flex:none;box-shadow:0 0 0 4px var(--rb)}
+#vfin .fc-risk .ic{width:26px;height:26px;border-radius:50%;border:2px dashed var(--rc);display:grid;place-items:center;flex:none}
+#vfin .fc-risk .ic svg{width:14px;height:14px}
+#vfin .fc-risk .rs{font-size:13px;color:var(--mut);margin-top:4px}
+#vfin .fc-risk .why{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+#vfin .fc-risk .why b{display:block;font-size:13px;font-weight:600;margin-bottom:2px}
+#vfin .fc-risk .why p{margin:0;font-size:14px}
+#vfin .fc-risk .runrow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-top:12px}
+#vfin .fc-risk .runrow .h{flex:1 1 220px;font-size:13px;color:var(--mut)}
+#vfin .fc-runnote{margin-top:8px;font-size:13px;color:var(--gold,var(--acc))}
+#vfin .fc-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--fc-btn-h);padding:0 18px;border-radius:var(--fc-btn-r);border:1px solid var(--risk-none-line);background:transparent;color:var(--ink);font:inherit;font-weight:600;white-space:nowrap;cursor:pointer}
+#vfin .fc-btn.pri{background:var(--acc);border-color:var(--acc);color:var(--ondark,#fff)}
+#vfin .fc-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:14px}
+#vfin .fc-facts .fact{background:var(--risk-none-bg);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+#vfin .fc-facts .k,#vfin .fc-facts .n{font-size:12px;color:var(--mut)}
+#vfin .fc-facts .v{font-weight:650;margin-top:2px}
+#vfin .fc-blk{margin-top:16px}
+#vfin .fc-blk-t{font-size:13px;font-weight:600;color:var(--mut);margin-bottom:6px}
+#vfin ol.fc-causes{margin:0;padding:0;list-style:none;counter-reset:c;display:flex;flex-direction:column;gap:6px}
+#vfin ol.fc-causes li{counter-increment:c;display:flex;gap:10px;font-size:14px}
+#vfin ol.fc-causes li::before{content:counter(c);flex:none;width:22px;height:22px;border-radius:50%;background:var(--risk-low-bg);color:var(--risk-low);font-size:12px;font-weight:700;display:grid;place-items:center;margin-top:1px}
+#vfin .fc-blk .more{font-size:13px;color:var(--mut);margin:6px 0 0 32px}
+#vfin .fc-pp{display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 12px;margin-top:16px;padding:12px 14px;border-radius:12px;background:var(--risk-none-bg);border:1px solid var(--line)}
+#vfin .fc-pp .t{flex:1 1 240px;font-size:14px;font-weight:550;min-width:0}
+#vfin .fc-pp .s{flex-basis:100%;font-size:13px;color:var(--mut)}
+#vfin .fc-pp .s:empty{display:none}
+#vfin .fc-chip.pp-found{background:var(--risk-high-bg);color:var(--risk-high);border:1px solid var(--risk-high-line)}
+#vfin .fc-chip.pp-not_found{background:var(--risk-low-bg);color:var(--risk-low);border:1px solid var(--risk-low-line)}
+#vfin .fc-chip.pp-not_checked{background:transparent;color:var(--risk-none);border:1px dashed var(--risk-none-line)}
+#vfin .fc-lim{margin-top:14px;border:1px solid var(--line);border-radius:12px}
+#vfin .fc-lim-h{display:flex;align-items:center;gap:10px;padding:12px 14px;font-weight:600;flex-wrap:wrap}
+#vfin .fc-lim-h .c{margin-left:auto;font:inherit;font-size:13px;color:var(--gold,var(--acc));font-weight:600;white-space:nowrap;display:inline-flex;align-items:center;gap:4px;background:none;border:0;cursor:pointer;min-height:32px}
+#vfin .fc-lim.open .fc-lim-h .c svg{transform:rotate(180deg)}
+#vfin .fc-lim ul{margin:0;padding:0 14px 12px 34px;font-size:14px;display:flex;flex-direction:column;gap:4px}
+#vfin .fc-acts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+#vfin .fc-acts [data-f]{min-height:var(--fc-btn-h);min-width:96px}
+#vfin .fc-fn{font-size:12px;color:var(--mut);margin-top:12px}
+#vfin .rk.fcb.mid{color:var(--risk-mid);background:var(--risk-mid-bg)}
+#vfin .rk.fcb.none,#vfin .rk.fcb.pending{color:var(--risk-none);background:transparent;border:1px dashed var(--risk-none-line)}
+#vfin .fc-legend{margin:6px 0 10px;border:1px solid var(--line);border-radius:12px;padding:8px 14px;background:var(--pan)}
+#vfin .fc-legend summary{cursor:pointer;font-weight:600;font-size:14px;min-height:32px;display:flex;align-items:center}
+#vfin .fc-legend .lg-i{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+#vfin .fc-legend .lg-i:first-child{border-top:0}
+#vfin .fc-legend .sw{width:12px;height:12px;border-radius:50%;margin-top:5px;flex:none}
+#vfin .fc-legend .sw.high{background:var(--risk-high)}#vfin .fc-legend .sw.low,#vfin .fc-legend .sw.pp-not_found{background:var(--risk-low)}
+#vfin .fc-legend .sw.none,#vfin .fc-legend .sw.pp-not_checked{border:2px dashed var(--risk-none);background:transparent}
+#vfin .fc-legend .lg-i b{display:block;font-size:14px}
+#vfin .fc-legend .lg-i span{font-size:13px;color:var(--mut)}
+#vfin .fc-legend h3{font-size:14px;margin:12px 0 4px}
+@media (max-width:699px){#vfin .fcard{padding:var(--fc-pad-m)}#vfin .fc-risk .runrow .fc-btn{width:100%;white-space:normal}#vfin .fc-acts .fc-btn{flex:1 1 0}}
