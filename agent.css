@@ -39,6 +39,7 @@
 #vai .aig-btn{height:var(--ai-btn-h,44px);padding:0 var(--ai-btn-pad-x,22px);border:0;border-radius:var(--ai-btn-radius,12px);background:var(--ai-acc);color:var(--ai-acc-ink);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
 #vai .aig-btn:hover:not(:disabled){background:var(--ai-acc-hover)}
 #vai .aig-btn:disabled{background:var(--ai-disabled-bg);color:var(--ai-disabled-ink);cursor:not-allowed}
+html[data-theme=light] #vai .aig-btn:disabled{background:var(--ai-l-disabled-bg,var(--ai-disabled-bg));color:var(--ai-l-disabled-ink,var(--ai-disabled-ink))}/* 21.10: config colors_light */
 #vai .aig-ok{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--ai-chip-work-bg);border:1px solid var(--ai-acc);color:var(--ink);font-size:14px}
 #vai .aig-ok[hidden]{display:none}
 #vai .aig-list{display:flex;flex-direction:column;gap:8px}

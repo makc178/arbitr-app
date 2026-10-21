@@ -9,7 +9,7 @@ header>.page.pnav.arblk-host>nav{flex:1 1 auto!important;min-width:0}
 .arblk.on{background:#14B8A6;border-color:#14B8A6;color:#0B2A24}
 .arblk.on:hover{background:#2dd4bf}
 header>.page.pnav.arblk-host>.arblk{margin-top:calc((var(--navb-h,48px) - var(--lk-sz,36px))/2)}
-header>.arblk.m,header>.arblk.hd{position:absolute;top:var(--lk-t,10px);right:var(--lk-r,56px);z-index:6}
+header>.arblk.m,header>.arblk.hd{position:absolute;top:var(--lk-t,calc(env(safe-area-inset-top,0px) + 10px));right:var(--lk-r,56px);z-index:6}
 header>.arblk.m svg{width:20px;height:20px}
 html[data-theme=light] .arblk:not(.on){background:#fff;color:#0f766e;border-color:#14B8A6}
 /* значок на кнопках защищённых разделов (флаг menu_icons.enabled) */
@@ -21,6 +21,7 @@ html[data-theme=light] .arblk:not(.on){background:#fff;color:#0f766e;border-colo
 .arblk-m .dualsub{margin:-6px 0 8px}
 .arblk-m .dualmsg.arblk-err{background:rgba(192,57,43,.16);border:1px solid rgba(192,57,43,.55);color:#ff8a7a;border-radius:8px;padding:6px 8px}
 html[data-theme=light] .arblk-m .dualmsg.arblk-err{color:#a93226}
+/* 21.10: --lk-t ставит mount(); запасное значение до mount() — с отступом выреза (env(safe-area-inset-top)) */
 /* меню открытого замка */
 .arblk-menu{position:absolute;z-index:1001;min-width:220px;max-width:calc(100vw - 16px);background:var(--pan,#12352e);color:inherit;border:1px solid var(--line,rgba(94,234,212,.25));border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.35);padding:6px}
 .arblk-menu button{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;padding:9px 10px;border:0;border-radius:8px;background:none;color:inherit;font:inherit;cursor:pointer}
