@@ -50,5 +50,5 @@ html[data-theme] header .hb{flex:1 1 100%}html[data-theme] nav{margin-left:auto!
 html[data-theme] header nav{flex:1 1 100%}
 
 html[data-theme] .pstar.on,html[data-theme] .star.on{color:var(--gold)!important}
-
-
+/* 21.10: цвет опасных действий (удаление) — --danger; тёмная тема — как у удаления отчётов, светлая — темнее для контраста */
+html[data-theme=dark]{--danger:#EF4444}html[data-theme=light]{--danger:#DC2626}:root{--danger:#EF4444}
