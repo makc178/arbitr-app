@@ -564,9 +564,13 @@ window.EVAL_CONFIG={
  "upload_caption_default": "Загрузить файлы",
  "legacy_off_msg": "Запрос оценки отправляется из «Описи имущества» (справочная оценка Arbitr). Эта форма больше не отправляет запросы.",
  "queue": {
-  "_note": "Отправка из раздела «Оценка» в очередь Arbitr — тот же формат, что «Оценить справочно» в «Описи имущества» (assets/docs_appr.js): заглушка arbitr/appraisal_requests/<id>.json без ПДн + зашифрованный <id>.enc (ключ из PIN), ответ — arbitr/appraisal_results/<id>.enc. Обработчик: tools/appraisal_watch.py, appraisal_request_get.py, appraisal_result_put.py. В общий requests/ Эвереста не пишет. enabled=false — запасной вариант: форма только показывает legacy_off_msg. Файлы в очередь Arbitr не передаются (формат запроса их не содержит): поля файлов и вкладки с обязательными файлами скрыты, пока files=false. Список отправленных запросов хранится в браузере только как id, тип объекта, время и статус (без ПДн).",
+  "_note": "Отправка из раздела «Оценка» в очередь Arbitr — тот же формат, что «Оценить справочно» в «Описи имущества» (assets/docs_appr.js): заглушка arbitr/appraisal_requests/<id>.json без ПДн + зашифрованный <id>.enc (ключ из PIN), ответ — arbitr/appraisal_results/<id>.enc. Обработчик: tools/appraisal_watch.py, appraisal_request_get.py, appraisal_result_put.py. В общий requests/ Эвереста не пишет. enabled=false — запасной вариант: форма только показывает legacy_off_msg. files=true (21.10, «да» пользователя): файлы формы шифруются тем же ключом из PIN и кладутся в arbitr/appraisal_requests/<id>/f<N>.enc, список — payload.files [{n,name,size,type,field,path}], в заглушке только n_files; полный ответ Оценщика — result.files {report,xlsx,methodology} с файлами arbitr/appraisal_results/<id>/… (тоже зашифрованы); формат — arbitr_design/eval_files_format_1021.md. files=false — файлы не передаются, поля скрыты. Список отправленных запросов хранится в браузере только как id, тип объекта, время и статус (без ПДн).",
   "enabled": true,
-  "files": false,
+  "files": true,
+  "max_file_mb": 20,
+  "max_files": 10,
+  "max_total_mb": 50,
+  "_limits_note": "лимиты на один запрос (вместе с дозагрузкой): файл до max_file_mb, файлов до max_files, всего до max_total_mb; GitHub принимает файл до 100 МБ, шифрование и base64 увеличивают размер ~в 1,8 раза",
   "requests": "arbitr/appraisal_requests/",
   "results": "arbitr/appraisal_results/",
   "template": "eval_form",
@@ -576,7 +580,6 @@ window.EVAL_CONFIG={
   "keep_days": 30,
   "store_key": "arbitr_eval_appr",
   "t": {
-   "intro": "Запрос Оценщику Arbitr. Результат — справочная стоимость объекта на дату оценки; появится в списке ниже.",
    "no_store": "Нет доступа к хранилищу: войдите по PIN",
    "required": "Заполните обязательные поля: {f}",
    "sending": "Шифрую и отправляю…",
@@ -588,7 +591,7 @@ window.EVAL_CONFIG={
    "st_new": "в очереди, ответ ожидается до {m} мин",
    "st_in_progress": "в работе, ещё ~{m} мин",
    "st_in_progress_noeta": "в работе",
-   "st_supplement": "дополнение отправлено, ждёт Оценщика",
+   "st_supplement": "файлы дозагружены, ждёт Оценщика",
    "st_partial": "готово частично",
    "st_done": "готово",
    "st_error": "ошибка обработки",
@@ -599,7 +602,15 @@ window.EVAL_CONFIG={
    "need_data_hint": "Отправьте новый запрос и укажите недостающие сведения в комментарии.",
    "reference_only": "Справочная оценка, не отчёт об оценке по 135-ФЗ.",
    "pending_n": "в обработке: {n}",
-   "answered_n": "ответов Оценщика: {n}"
+   "answered_n": "ответов Оценщика: {n}",
+   "uploading": "Шифрую и загружаю файлы: {n}…",
+   "file_too_big": "Файл «{n}» больше {mb} МБ — уменьшите или разделите его",
+   "too_many_files": "Не больше {n} файлов в одном запросе",
+   "total_too_big": "Вместе с уже приложенными файлы больше {mb} МБ на один запрос — уменьшите файлы или отправьте новый запрос",
+   "decrypting": "Расшифровываю…",
+   "file_error": "Не удалось открыть файл, повторите попытку",
+   "need_data_upload_hint": "Дозагрузите недостающие файлы — Оценщик продолжит работу по этому же запросу.",
+   "st_need_data": "нужны данные — дозагрузите файлы"
   }
  }
 };

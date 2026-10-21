@@ -28,7 +28,7 @@ async function init(){C=window.EVAL_CONFIG;$('evalslot').outerHTML=await (await 
  $('etl').textContent=C.title;$('eintro').textContent=QON()&&QT('intro')!='intro'?QT('intro'):C.intro;$('edis').textContent=C.disclaimer;$('eltl').textContent=C.doc_title;form(tkeys()[0]);
  $('ef').addEventListener('click',function(e){var b=e.target.closest('.echips button,.eseg button');if(!b)return;var g=b.parentNode;if(g.classList.contains('eseg')){g.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b)});g.dataset.val=b.dataset.o}else{b.classList.toggle('on');var ex=g.dataset.ex;if(ex&&b.classList.contains('on'))g.querySelectorAll('button').forEach(function(x){if(x!==b&&(b.dataset.o==ex||x.dataset.o==ex))x.classList.remove('on')})}vis()});
  $('etabs').onclick=function(e){var b=e.target.closest('[data-t]');if(b)form(b.dataset.t)};$('ef').addEventListener('change',vis);
- $('ef').onsubmit=send;$('eq').oninput=draw;$('evl').onchange=function(e){var i=e.target.closest('[data-nd]');if(i)more(i)};$('evl').onclick=function(e){if(e.target.closest('[data-f]'))return dlClick(e)};
+ $('ef').onsubmit=send;$('eq').oninput=draw;$('evl').onchange=function(e){var q=e.target.closest('[data-qnd]');if(q)return qsupp(q);var i=e.target.closest('[data-nd]');if(i)more(i)};$('evl').onclick=function(e){var qf=e.target.closest('[data-qf]');if(qf)return qdl(qf);if(e.target.closest('[data-f]'))return dlClick(e)};
  document.querySelectorAll('nav button[data-v]').forEach(function(b){b.addEventListener('click',function(){$('veval').style.display=b.dataset.v=='eval'?'':'none';if(b.dataset.v=='eval')list()})})}
 /* 16.10: старый путь «Arbitr App / Оценка» (заглушки …Z-ev-xxxx в общем requests/ Everest + файлы в valuation/V…/input) убран — разделение с Everest.
    21.10: форма снова отправляет запрос — в очередь Arbitr arbitr/appraisal_requests/ ТЕМ ЖЕ форматом, что «Оценить справочно» в «Описи имущества» (docs_appr.js):
@@ -52,36 +52,70 @@ function qload(){if(QL)return QL;try{QL=JSON.parse(localStorage.getItem(QC().sto
 function qsave(){try{localStorage.setItem(QC().store_key||'arbitr_eval_appr',JSON.stringify((QL||[]).map(function(x){return {id:x.id,at:x.at,t:x.t,n:x.n,st:x.st,eta:x.eta||null,rsha:x.rsha||null}})))}catch(e){}}
 /* значение поля для описания позиции: подписи вариантов, даты ДД.ММ.ГГГГ */
 function shown(f){var v=val(f.k),o=f.options||{};if(f.type=='file')return '';if(Array.isArray(v))return v.map(function(k){return o[k]||k}).join(', ');v=String(v||'').trim();if(!v)return '';if(f.type=='select'||f.type=='segment')return o[v]||v;if(f.type=='date')return dmy(v);return v}
-function missingReq(){return fields().filter(function(f){return f.req&&!f._h&&f.type!='file'&&!String(shown(f)).trim()}).map(function(f){return f.label})}
-function item(){var o={};fields().forEach(function(f){if(f._h||f.type=='file'||f.k=='valuation_date')return;var v=shown(f);if(v)o[f.label]=v});
+function freq(f){return f.type=='file'&&(f.req||(f.k=='files'&&C.types[TY].require_files))}
+function missingReq(){return fields().filter(function(f){if(f._h)return false;if(f.type=='file')return QC().files&&freq(f)&&!(val(f.k)||[]).length;return f.req&&!String(shown(f)).trim()}).map(function(f){return f.k=='files'&&C.types[TY].require_files_msg||f.label})}
+/* 21.10 (вариант «с файлами»): файлы формы — каждый зашифрован тем же ключом из PIN, что и payload: arbitr/appraisal_requests/<id>/f<N>.enc; список — в payload.files */
+function pickFiles(){var L=[];if(!QC().files)return L;fields().forEach(function(f){if(f.type!='file'||f._h)return;[].slice.call(val(f.k)||[]).forEach(function(x){L.push({f:x,field:f.k})})});return L}
+/* лимиты на запрос вместе с дозагрузками: extra — сколько файлов уже приложено, extraBytes — их суммарный размер (payload.files[].size) */
+function sizeErr(L,extra,extraBytes){var Q=QC(),mb=+(Q.max_file_mb||C.max_file_mb||20),mx=+(Q.max_files||10),tot=+(Q.max_total_mb||50),all=(extra||0)+L.length,sum=(+extraBytes||0)+L.reduce(function(a,x){return a+x.f.size},0);
+ var big=L.find(function(x){return x.f.size>mb*1048576});if(big)return QT('file_too_big',{n:big.f.name,mb:mb});if(all>mx)return QT('too_many_files',{n:mx});if(sum>tot*1048576)return QT('total_too_big',{mb:tot});return ''}
+async function upFiles(a,id,L,vs,start){var out=[];for(var i=0;i<L.length;i++){var n=start+i+1,x=L[i],path=RQ()+id+'/f'+n+'.enc',en=await a.venc(new Uint8Array(await x.f.arrayBuffer()),vs.s,vs.it);
+  await put(path,JSON.stringify({v:1,s:vs.s,it:vs.it,iv:b64(en.iv),ct:b64(new Uint8Array(en.ct))}),'appraisal file '+id+' f'+n);out.push({n:n,name:x.f.name,size:x.f.size,type:x.f.type||'',field:x.field,path:path})}return out}
+function item(){var o={};fields().forEach(function(f){if(f._h||f.type=='file'||f.k=='valuation_date'||(f.k=='object_type'&&C.types[TY].mode=='by_document'))return;var v=shown(f);if(v)o[f.label]=v});
  var t=C.types[TY]||{},nm=(t.title_keys||[]).map(function(k){var f=fields().find(function(x){return x.k==k});return f?shown(f):''}).filter(Boolean).join(', ')||t.label||'';
  return {row:1,table:null,idx:null,section:t.label||null,subgroup:null,fields:o,name:nm}}
-async function put(path,text,msg,sha){var bo={message:msg,branch:typeof BRANCH!='undefined'?BRANCH:'main',content:u8b64(text)};if(sha)bo.sha=sha;var r=await ghApi(path,{method:'PUT',body:JSON.stringify(bo)});if(!r.ok)throw new Error('GitHub '+r.status)}
+async function put(path,text,msg,sha){var bo={message:msg,branch:typeof BRANCH!='undefined'?BRANCH:'main',content:typeof text=='string'?u8b64(text):b64(text)};if(sha)bo.sha=sha;var r=await ghApi(path,{method:'PUT',body:JSON.stringify(bo)});if(!r.ok)throw new Error('GitHub '+r.status)}
 async function send(e){e.preventDefault();var m=$('emsg');if(!QON()){if(m)m.textContent=C.legacy_off_msg||LEGACY_OFF;return}
  vis();var miss=missingReq();if(miss.length){m.textContent=QT('required',{f:miss.join(', ')});return}
  var a=QA();if(typeof ghApi!='function'||!a||!a.venc||!a.vaultSalt||(a.encOK&&!a.encOK())){m.textContent=QT('no_store');return}
+ var FL=pickFiles(),se=sizeErr(FL);if(se){m.textContent=se;return}
  var b=$('esend');if(b.disabled)return;b.disabled=true;m.textContent=QT('sending');
- var id=rid(),it=[item()],vd=val('valuation_date')||new Date().toISOString().slice(0,10);
- var pay={schema:'arbitr/appraisal_request/v1',request_id:id,rev:0,object_type:TY,template:QC().template||'eval_form',template_title:(QC().template_title||'')+' · '+((C.types[TY]||{}).label||TY),valuation_requirement:null,debtor_type:null,region:null,case_no:null,debtor:null,valuation_date:vd,items:it};
- try{var vs=a.vaultSalt(),en=await a.venc(new TextEncoder().encode(JSON.stringify(pay)),vs.s,vs.it);
+ var id=rid(),it=[item()],vd=val('valuation_date')||new Date().toISOString().slice(0,10),ot=C.types[TY].mode=='by_document'?(val('object_type')||'auto'):TY;
+ var pay={schema:'arbitr/appraisal_request/v1',request_id:id,rev:0,object_type:ot,template:QC().template||'eval_form',template_title:(QC().template_title||'')+' · '+((C.types[TY]||{}).label||TY),valuation_requirement:null,debtor_type:null,region:null,case_no:null,debtor:null,valuation_date:vd,items:it};
+ try{var vs=a.vaultSalt();if(FL.length){m.textContent=QT('uploading',{n:FL.length});pay.files=await upFiles(a,id,FL,vs,0)};var en=await a.venc(new TextEncoder().encode(JSON.stringify(pay)),vs.s,vs.it);
   await put(RQ()+id+'.enc',JSON.stringify({v:1,s:vs.s,it:vs.it,iv:b64(en.iv),ct:b64(new Uint8Array(en.ct))}),'appraisal payload '+id);
-  await put(RQ()+id+'.json',JSON.stringify({schema:'arbitr/appraisal_request/v1',type:'appraisal',id:id,created_at:new Date().toISOString(),status:'new',n_items:it.length,template:pay.template,enc:{format:'arbitr/au',s:vs.s,it:vs.it},payload_path:RQ()+id+'.enc',response_path:RS()+id+'.enc'},null,1),'appraisal_request '+id);
+  await put(RQ()+id+'.json',JSON.stringify(Object.assign({schema:'arbitr/appraisal_request/v1',type:'appraisal',id:id,created_at:new Date().toISOString(),status:'new',n_items:it.length,template:pay.template,enc:{format:'arbitr/au',s:vs.s,it:vs.it},payload_path:RQ()+id+'.enc',response_path:RS()+id+'.enc'},(pay.files&&pay.files.length)?{n_files:pay.files.length}:{}),null,1),'appraisal_request '+id);
   qload().unshift({id:id,at:Date.now(),t:TY,n:it.length,st:'new',eta:null});qsave();
   m.textContent=QT('sent',{m:+QC().eta_default||20});form(TY);draw();qarm(10)}
  catch(x){try{console.error('[Оценка] отправка не удалась:',x)}catch(_){}m.textContent=QT('send_error')}finally{b.disabled=false}}
 /* опрос статусов: заглушка (status, eta_minutes), при ответе — расшифровка результата в памяти */
 async function qpoll(){var a=QA();if(QBUSY||typeof ghApi!='function'||!a||!a.vdec)return;QBUSY=1;var ch=false;
- try{for(var x of qload()){if(x.st=='done'&&QRES[x.id])continue;try{var r=await ghApi(RQ()+x.id+'.json');if(r.ok){var b=stub64(await r.json());if(b.status!=x.st||(b.eta_minutes||null)!=x.eta){x.st=b.status;x.eta=b.eta_minutes||null;ch=true}}
-   if(/^(partial|done|error)$/.test(x.st)){var r2=await ghApi(RS()+x.id+'.enc');if(r2.ok){var j=await r2.json();if(!(QRES[x.id]&&x.rsha==j.sha)){QRES[x.id]=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(j))));x.rsha=j.sha||'';ch=true}}}}catch(e){}}}
+ try{for(var x of qload()){var sc=false;try{var r=await ghApi(RQ()+x.id+'.json');if(r.ok){var b=stub64(await r.json()),stamp=String(b.done_at||'')+'|'+String(b.partial_at||'')+'|'+String(b.need_data_at||'')+'|'+String(b.result_rev==null?'':b.result_rev);if(stamp!==(x.ra||'')){if(x.ra!=null)sc=true;x.ra=stamp};if(b.status!=x.st||(b.eta_minutes||null)!=x.eta){x.st=b.status;x.eta=b.eta_minutes||null;ch=true}}
+   /* повторный ответ (Оценщик заменил файлы/значения): отметка времени в заглушке сменилась — ответ перечитывается */
+   if(/^(partial|done|error|need_data)$/.test(x.st)&&(!QRES[x.id]||sc)){var r2=await ghApi(RS()+x.id+'.enc');if(r2.ok){var j=await r2.json();if(!(QRES[x.id]&&x.rsha==j.sha)){QRES[x.id]=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(j))));x.rsha=j.sha||'';ch=true}}}}catch(e){}}}
  finally{QBUSY=0}if(ch){qsave();draw()}qarm()}
 function qarm(s){clearTimeout(QTM);if(!QON()||!qload().length)return;var v=$('veval');if(s==null&&!(v&&v.style.display!='none'))return;if(s==null&&!qload().some(function(x){return !/^(done|error)$/.test(x.st)||!QRES[x.id]}))return;QTM=setTimeout(qpoll,(s!=null?s:(+QC().poll_s||60))*1000)}
 function qst(x){var k='st_'+x.st,m=x.eta||(+QC().eta_default||20);if(x.st=='in_progress'&&!x.eta)k='st_in_progress_noeta';return QT(k,{m:m})}
 function money(v){var n=+v;return isFinite(n)?Math.round(n).toLocaleString('ru-RU'):String(v||'')}
-function qcard(x){var t=(C.types[x.t]||{}).label||x.t||'',r=QRES[x.id],h='<div class="lot pend" data-eq="'+E(x.id)+'"><div class="row" style="grid-template-columns:1fr auto;cursor:default"><div><div class="d1">'+E(QT('pend_title',{t:t}))+'</div><div class="sm">'+E(QT('sent_at',{d:dmy(new Date(x.at-new Date(x.at).getTimezoneOffset()*6e4).toISOString())}))+(r?'':' · <b>'+E(qst(x))+'</b>')+'</div></div><span class="tag">'+E(st(x.st=='done'||x.st=='partial'?'done':(r&&(r.items||[]).some(function(y){return y.status=='need_data'})?'need_data':'pending')))+'</span></div>';
+/* «нужны данные» проверяется ПЕРВЫМ: status need_data в заглушке/ответе ИЛИ хотя бы одна позиция need_data (в т.ч. при partial/done) — значок «Нужны данные», а не «готово» */
+function qneed(x,r){return x.st=='need_data'||!!(r&&(r.status=='need_data'||(r.items||[]).some(function(y){return y&&y.status=='need_data'})))}
+function qnd(x,missing,note){return '<div class="pcard"><div class="sm ewarn"><b>'+E(QT('need_data'))+'</b><ul style="margin:4px 0">'+(missing||[]).map(function(z){return '<li>'+E(z)+'</li>'}).join('')+'</ul>'+(note?E(note)+'<br>':'')+E(QC().files?QT('need_data_upload_hint'):QT('need_data_hint'))+'</div>'+
+  (QC().files&&x.st!='supplement'?'<label class="fdrop"><input type="file" multiple data-qnd="'+E(x.id)+'" accept="'+E(C.accept||'')+'"><span>'+E((C.need_data||{}).upload_label||'')+'</span></label><span class="sm" data-qndm="'+E(x.id)+'"></span>':'')+'</div>'}
+function qcard(x){var t=(C.types[x.t]||{}).label||x.t||'',r=QRES[x.id],h='<div class="lot pend" data-eq="'+E(x.id)+'"><div class="row" style="grid-template-columns:1fr auto;cursor:default"><div><div class="d1">'+E(QT('pend_title',{t:t}))+'</div><div class="sm">'+E(QT('sent_at',{d:dmy(new Date(x.at-new Date(x.at).getTimezoneOffset()*6e4).toISOString())}))+(r?'':' · <b>'+E(qst(x))+'</b>')+'</div></div><span class="tag">'+E(st(qneed(x,r)?'need_data':(x.st=='done'||x.st=='partial'?'done':'pending')))+'</span></div>';
  if(r){var dt=r.date||'';(r.items||[]).forEach(function(y){if(y.status=='valued')h+='<div class="sm"><b>'+E(QT('value',{v:money(y.value)}))+'</b>'+((y.date||dt)?' '+E(QT('on_date',{d:y.date||dt})):'')+(y.method?' · '+E(y.method):'')+(y.note?'<div>'+E(y.note)+'</div>':'')+'</div>';
-   else h+='<div class="pcard"><div class="sm ewarn"><b>'+E(QT('need_data'))+'</b><ul style="margin:4px 0">'+(y.missing||[]).map(function(z){return '<li>'+E(z)+'</li>'}).join('')+'</ul>'+(y.note?E(y.note)+'<br>':'')+E(QT('need_data_hint'))+'</div></div>'});
+   else if(y.status=='need_data')h+=qnd(x,y.missing,y.note)});
+  if(r.status=='need_data'&&!(r.items||[]).some(function(y){return y&&y.status=='need_data'}))h+=qnd(x,r.missing,r.note);
+  /* полный ответ: справка PDF, расчёт XLSX, «Описание методики» — зашифрованы тем же ключом (arbitr/appraisal_results/<id>/…), расшифровка только в памяти; кнопки и предупреждение — eval_config.json → card_files */
+  var F=r.files||{},bt='',wr='';(C.card_files||[]).forEach(function(cf){var f=F[cf.key];if(f&&f.path)bt+='<button type="button" class="lbtn" data-qf="'+E(f.path)+'" data-qn="'+E(f.name||cf.name)+'">'+E(cf.label)+'</button> ';else if(cf.required&&(r.status=='done'||Object.keys(F).length))wr+='<div class="sm ewarn">'+E(cf.missing_warning)+'</div>'});
+  if(bt)h+='<div class="evbt">'+bt+'</div>';h+=wr+'<span class="sm" data-qfm="'+E(x.id)+'"></span>';
   h+='<p class="sm">'+E(QT('reference_only'))+'</p>'}
  return h+'</div>'}
+async function rawJ(path){var r=await ghApi(path,{headers:{Accept:'application/vnd.github.raw+json'}});if(!r.ok)throw new Error('GitHub '+r.status);return await r.text()}
+async function qdl(b){var a=QA(),m=b.closest('.lot').querySelector('[data-qfm]');try{if(!a||!a.vdec)throw new Error('no key');if(m)m.textContent=QT('decrypting');var pl=await a.vdec(await rawJ(b.dataset.qf));
+  var u=URL.createObjectURL(new Blob([pl])),l=document.createElement('a');l.href=u;l.download=b.dataset.qn||'file';document.body.appendChild(l);l.click();setTimeout(function(){URL.revokeObjectURL(u);l.remove()},2000);if(m)m.textContent=''}
+ catch(x){try{console.error('[Оценка] файл не открылся:',x)}catch(_){}if(m)m.textContent=QT('file_error')}}
+/* «Дозагрузить файлы» по «нужны данные»: тот же id, rev+1, reason supplement, новые файлы дописываются к payload.files (f<N+1>…), заглушка status=supplement → appraisal_watch снова берёт в работу */
+async function qsupp(inp){var id=inp.dataset.qnd,m=document.querySelector('[data-qndm="'+CSS.escape(id)+'"]'),a=QA(),L=[].slice.call(inp.files||[]).map(function(f){return {f:f,field:'need_data'}});if(!L.length)return;
+ try{if(!a||!a.vdec||!a.venc)throw new Error('no key');var rs=await ghApi(RQ()+id+'.json');if(!rs.ok)throw new Error('stub '+rs.status);var sj=await rs.json(),stub=stub64(sj),e=stub.enc||{};
+  var re=await ghApi(RQ()+id+'.enc');if(!re.ok)throw new Error('payload '+re.status);var ej=await re.json(),pay=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(ej))));
+  var have=(pay.files||[]),se=sizeErr(L,have.length,have.reduce(function(a,f){return a+(+f.size||0)},0));if(se){if(m)m.textContent=se;inp.value='';return}if(m)m.textContent=QT('uploading',{n:L.length});
+  var nr=(+pay.rev||0)+1,res=QRES[id]||{},need=(res.items||[]).filter(function(y){return y.status=='need_data'}).map(function(y){return y.row});if(!need.length&&res.status=='need_data')need=(pay.items||[]).map(function(y){return y.row});var start=have.reduce(function(mx,f){return Math.max(mx,+f.n||0)},0);
+  var nf=await upFiles(a,id,L,{s:e.s,it:e.it},start);pay.files=have.concat(nf);pay.rev=nr;pay.reason='supplement';pay.supplement={rev:nr,reason:'supplement',rows:need,prev_status:res.status||stub.status||null,files:nf.map(function(f){return f.n})};
+  var en=await a.venc(new TextEncoder().encode(JSON.stringify(pay)),e.s,e.it);await put(RQ()+id+'.enc',JSON.stringify({v:1,s:e.s,it:e.it,iv:b64(en.iv),ct:b64(new Uint8Array(en.ct))}),'appraisal payload '+id+' rev '+nr,ej.sha);
+  stub.rev=nr;stub.status='supplement';stub.reason='supplement';stub.supplemented_at=new Date().toISOString();stub.n_supplement=need.length;stub.n_files=pay.files.length;delete stub.eta_minutes;
+  await put(RQ()+id+'.json',JSON.stringify(stub,null,1),'appraisal_request '+id+': supplement rev '+nr,sj.sha);
+  var x=qload().find(function(y){return y.id==id});if(x){x.st='supplement';x.eta=null;x.rsha=null}delete QRES[id];qsave();draw();qarm(10)}
+ catch(x){try{console.error('[Оценка] дозагрузка не удалась:',x)}catch(_){}if(m)m.textContent=QT('send_error')}inp.value=''}
 window.__evalQ=function(){return {list:qload(),res:QRES,poll:qpoll}};
 function title(q){var t=C.types[q.object_type],o=q.object||{};return (t?t.title_keys.map(function(k){return o[k]}).filter(Boolean).join(', '):'')||q.title||q.case_id}
 async function list(){var m=$('evm');if(!on()){m.textContent='Доступно в онлайн-версии после входа.';return}m.textContent='Загрузка…';
