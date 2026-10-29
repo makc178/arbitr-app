@@ -57,7 +57,8 @@ window.ArbAUDEB=(function(){
  function mask(n){var p=String(n||'').trim().split(/\s+/);if(!p[0])return '•••••••';return p[0][0]+'••••••'+(p.length>1?' '+p.slice(1,3).map(function(x){return x[0]+'.'}).join(' '):'')}
  function nm(c){var s=c.summary||{};return person(c)&&!pOpen()?(s.mask||mask(s.name)):(s.name||'—')}
  /* ---------- поля: источник, правки, подтверждения ---------- */
- function srcName(s){return (UI.src_names||{})[s]||s||''}   /* подписи источников — config/au_debtors.json ui.src_names */
+ function srcName(s){return (UI.src_names||{})[s]||s||''}
+ function srcFrom(s){return (UI.src_names_from||{})[s]||srcName(s)}   /* 29.10 (QA п.18): после «из» — родительный падеж (ui.src_names_from) */   /* подписи источников — config/au_debtors.json ui.src_names */
  function asked(mid,a,f){var c=card(mid,a),rf=(c&&c.refresh)||{},M=((CF.requests||{}).missing)||{},r=null;Object.keys(M).forEach(function(w){var x=rf['asked_'+w];if(x&&(x.fields||[]).indexOf(f)>=0)r={s:M[w].provider||w,d:x.at}});return r}
  function isDF(f){return /^ДАТА_/.test(f)||(UI.date_fields||[]).indexOf(f)>=0}
  /* даты: хранение может быть ISO, показ и запись в дело — ДД.ММ.ГГГГ */
@@ -71,7 +72,7 @@ window.ArbAUDEB=(function(){
  function isMask(f){return (CF.mask_reveal||[]).indexOf(f)>=0}
  function maskV(v){return String(v||'').replace(/[0-9A-Za-zА-Яа-яЁё]/g,'•')}
  function fx(mid,a,f,key){var v=fval(mid,a,f),val=v?String(v.value==null?'':v.value):'',w=(UI.wide||[]).indexOf(f)>=0,ed=v&&v.edited,mk=isMask(f)&&!(REV[a+f]>Date.now()),hint=key&&(UI.hints||{})[f];
-  var ak=!v&&asked(mid,a,f),bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?(function(bt){return '<i class="bdg" title="'+E(bt)+'">'+E(bt)+'</i>'})(v.saved?T('saved_cp'):v.source?T('src_from',{s:srcName(v.source),d:dmy(v.updated_at)}):T('src',{d:dmy(v.updated_at)}))+(v.unreliable?'<i class="bdg warn" title="'+E(v.note||T('unreliable'))+'">⚠ '+E(T('unreliable'))+'</i>':''):ak?(function(bt){return '<i class="bdg wait" title="'+E(bt)+'">'+I.clock+E(bt)+'</i>'})(T('asked',{s:ak.s,d:dmy(ak.d)})):'');
+  var ak=!v&&asked(mid,a,f),bd=ed?'<i class="bdg ed">'+I.pen+E(T('edited'))+'</i>':(v?(function(bt){return '<i class="bdg" title="'+E(bt)+'">'+E(bt)+'</i>'})(v.saved?T('saved_cp'):v.source?T('src_from',{s:srcFrom(v.source),d:dmy(v.updated_at)}):T('src',{d:dmy(v.updated_at)}))+(v.unreliable?'<i class="bdg warn" title="'+E(v.note||T('unreliable'))+'">⚠ '+E(T('unreliable'))+'</i>':''):ak?(function(bt){return '<i class="bdg wait" title="'+E(bt)+'">'+I.clock+E(bt)+'</i>'})(T('asked',{s:ak.s,d:dmy(ak.d)})):'');
   var alt=v&&!ed&&v.alt&&v.alt.length?'<div class="alt">'+E(T('alt',{v:v.alt[0].value,s:srcName(v.alt[0].source)}))+'</div>':'';
   var nl=(UI.never_local||[]).indexOf(f)>=0?'<div class="hint">'+I.info+E(T('not_local'))+'</div>':'';
   return '<label class="fx'+(ed?' edited':'')+(key?' key':'')+(w?' w':'')+'"><span class="frow"><span class="fl">'+E(label(f))+'</span>'+bd+'</span>'+(mk&&val?'<span style="display:flex;gap:6px;align-items:center"><input class="inp" value="'+E(maskV(val))+'" disabled><button type="button" class="opn" data-apx="rev" data-f="'+E(f)+'">'+I.eye+E(T('show'))+'</button></span>':

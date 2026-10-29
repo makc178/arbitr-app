@@ -523,7 +523,7 @@ function start(){if(R)return;build();buildSheet();apply();try{var o0=JSON.parse(
  doc.addEventListener('click',function(e){var x=e.target.closest&&e.target.closest('[data-t]');if(x&&x.dataset.t)lastT=x.dataset.t},true);
  addEventListener('resize',placeSoon);
  var FF='input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]),textarea,select,[contenteditable=""],[contenteditable=true]';function ffchk(){var e=doc.activeElement;var v=!!(e&&e.matches&&e.matches(FF)&&!(R&&R.contains(e)));if(v!==ffocus){ffocus=v;placeSoon()}}
- doc.addEventListener('focusin',ffchk);doc.addEventListener('focusout',function(){setTimeout(ffchk,0)});addEventListener('scroll',placeSoon,{passive:true});
+ doc.addEventListener('focusin',ffchk);doc.addEventListener('focusout',function(){setTimeout(ffchk,0)});addEventListener('scroll',placeSoon,{passive:true});/* QA п.19: скролл внутренних списков (напр. .fddd) не всплывает до window — ловим на фазе захвата */doc.addEventListener('scroll',function(e){if(e.target!==doc)placeSoon()},{passive:true,capture:true});
  doc.addEventListener('change',function(e){if(e.target&&e.target.dataset&&e.target.dataset.k){clearTimeout(dlT);dlT=setTimeout(dlScan,300)}},true);
  var mt=0;new MutationObserver(function(){placeSoon();clearTimeout(mt);mt=setTimeout(function(){watch();secTick();clearTimeout(dlT);dlT=setTimeout(dlScan,400)},250)}).observe(doc.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','open']});
  setInterval(function(){if(unlocked())loadHints();place();idleTick()},1000);place()}

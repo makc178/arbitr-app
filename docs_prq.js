@@ -2,7 +2,7 @@
    Заглушка arbitr/practice_requests/<id>.json — без ПДн (тип, категория, срочность, соль); вопрос, дело, вложения (PDF ≤ лимита) — <id>.enc (AES-GCM, ключ из PIN).
    Ответ — arbitr/practice_results/<id>.enc. Открытая отправка в requests/ из этой формы в Arbitr App не выполняется. Тексты — docs_config.json → practice_au. */
 window.ArbPRQ=(function(){
- var LK='arbitr_prq',TM=null,RES={},PAY={},PAYQ={},BUSY=0,FILES=[],RTR={};
+ var LK='arbitr_prq',TM=null,RES={},PAY={},PAYQ={},BUSY=0,FILES=[],RTR={},DECF={},PAYF={},OPQ={};  /* DECF/PAYF — отчёт/запрос не расшифровался на этом устройстве (29.10, QA п.4): .enc повторно не запрашиваем */
  function A(){return window.ArbCP&&ArbCP.qapi?ArbCP.qapi().A:null}
  function K(){var a=A(),C=a&&a.C?a.C():{};return C.practice_au||{}}
  function U(k,o){var s=(K().ui||{})[k];if(s==null)s=k;if(o)Object.keys(o).forEach(function(n){s=String(s).split('{'+n+'}').join(o[n])});return s}
@@ -16,6 +16,7 @@ window.ArbPRQ=(function(){
  function pv(k){return [].slice.call(document.querySelectorAll('.pills[data-p="'+k+'"] button.on')).map(function(b){return b.dataset.x})}
  function txt64(j){return atob(String(j.content||'').replace(/\s/g,''))}
  async function put(path,text,msg){var r=await ghApi(path,{method:'PUT',body:JSON.stringify({message:msg,branch:typeof BRANCH!='undefined'?BRANCH:'main',content:u8b64(text)})});if(!r.ok)throw new Error('GitHub '+r.status)}
+ function authed(){try{return typeof TOKEN!='undefined'&&!!String(TOKEN||'').trim()}catch(e){return false}}   /* 29.10 (QA п.14): без входа по PIN к хранилищу не обращаемся (был 401 на листинг очереди) */
  function enabled(){return K().enabled!==false&&!!$('pf')}
  /* ---- форма: «Дело» вместо «Привязка к лоту», вложения PDF ---- */
  function cases(){var a=A();return a&&a.S?(a.S().cases||[]):[]}
@@ -56,26 +57,27 @@ window.ArbPRQ=(function(){
   var L=pend();L.unshift({id:id,at:Date.now(),status:'new',category:cat,cat_title:o.title||cat});setP(L);if($('prcl'))draw();arm(10);return id}
  /* ---- опрос и показ ---- */
  function arm(s){clearTimeout(TM);if(pend().some(function(q){return /^(new|in_progress|partial)$/.test(q.status)}))TM=setTimeout(poll,(s!=null?s:(+K().poll_s||60))*1000)}
- async function fetchRes(q){var a=A();var r=await ghApi(RS()+q.id+'.enc');if(!r.ok)return null;var j=await r.json();if(j.sha&&q.rsha==j.sha&&RES[q.id])return RES[q.id];q.rsha=j.sha||'';var res=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(j))));RES[q.id]=res;return res}
+ async function fetchRes(q){if(DECF[q.id])return null;var a=A();var r=await ghApi(RS()+q.id+'.enc');if(!r.ok)return null;var j=await r.json();if(j.sha&&q.rsha==j.sha&&RES[q.id])return RES[q.id];var res;try{res=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(j))))}catch(e){DECF[q.id]=1;throw e}q.rsha=j.sha||'';RES[q.id]=res;return res}
  /* список: отчёты (не служебные категории) и «Ожидают ответа»; правила — docs_config.json → practice_au.list */
  function LC(){return K().list||{}}
  function isSvc(q){return (LC().service_categories||[]).indexOf(q.category)>=0}
  function hiddenRes(q){return (LC().hide_resolutions||[]).indexOf(q.res)>=0}
+ function shownRes(q){return !!q.res&&(LC().show_resolutions||[]).indexOf(q.res)>=0}   /* 29.10: закрытые без отправки (already_fulfilled) видны и у служебных категорий, с текстом resolution_text */
  function isReport(q){return (LC().report_statuses||[]).indexOf(q.status)>=0}
  function isWait(q){return (LC().wait_statuses||[]).indexOf(q.status)>=0}
  function final(q){return isReport(q)||(LC().final_statuses||[]).indexOf(q.status)>=0}
  /* срок — только собственный срок Судебной практики: eta_minutes в заглушке вместе с eta_by == list.eta_by (наблюдатель срок не ставит) */
  function meta(q,b){var ch=false,set=function(k,v){if((q[k]==null?null:q[k])!==(v==null?null:v)){q[k]=v;ch=true}};var L=LC();
-  set('status',b.status||q.status);set('category',b.category||q.category);set('picked',b.picked_at||null);set('done',b.done_at||b.partial_at||null);set('res',b.resolution||null);
+  set('status',b.status||q.status);set('category',b.category||q.category);set('picked',b.picked_at||null);set('done',b.done_at||b.partial_at||null);set('res',b.resolution||null);set('rtext',b.resolution_text||null);
   var own=!!(L.eta_by&&b.eta_by==L.eta_by&&+b.eta_minutes>0);set('beta',own?+b.eta_minutes:null);set('beta_at',own?(b.eta_at||b.picked_at||null):null);if('eta' in q){delete q.eta;ch=true}return ch}
- async function poll(){if(BUSY||typeof ghApi!='function'||!A()||!A().vdec)return;BUSY=1;var L=pend(),ch=false;
-  try{for(var i=0;i<L.length;i++){var q=L[i];if(final(q)&&q.metaOk&&(RES[q.id]||isSvc(q)||hiddenRes(q)))continue;try{
+ async function poll(){if(BUSY||typeof ghApi!='function'||!A()||!A().vdec)return;if(!authed()){arm();return}BUSY=1;var L=pend(),ch=false;
+  try{for(var i=0;i<L.length;i++){var q=L[i];if(final(q)&&q.metaOk&&(RES[q.id]||DECF[q.id]||isSvc(q)||hiddenRes(q)))continue;try{
     var r2=await ghApi(RQ()+q.id+'.json');if(r2.ok){var b=JSON.parse(decodeURIComponent(escape(txt64(await r2.json()))));if(meta(q,b))ch=true;if(final(q)&&!q.metaOk){q.metaOk=1;ch=true}}
     var res=await fetchRes(q);if(res&&res.status&&!final(q)&&q.status!=res.status){q.status=res.status;ch=true}}catch(e){}}
    setP(L);draw()}finally{BUSY=0;arm()}}
  /* дело и должник — из зашифрованной части запроса (<id>.enc), только после PIN; в памяти, не в localStorage */
- async function loadPay(q){if(PAY[q.id]||PAYQ[q.id])return;var a=A();if(typeof ghApi!='function'||!a||!a.vdec||(a.encOK&&!a.encOK()))return;PAYQ[q.id]=1;
-  try{var r=await ghApi(RQ()+q.id+'.enc');if(!r.ok)return;var j=await r.json(),p=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(j)))),c=p.case||{};PAY[q.id]={no:c.case_no||'',debtor:((c.debtor||{}).name)||''};draw()}catch(e){}finally{delete PAYQ[q.id]}}
+ async function loadPay(q){if(PAY[q.id]||PAYQ[q.id]||PAYF[q.id])return;var a=A();if(typeof ghApi!='function'||!a||!a.vdec||(a.encOK&&!a.encOK()))return;PAYQ[q.id]=1;
+  try{var r=await ghApi(RQ()+q.id+'.enc');if(!r.ok)return;var j=await r.json(),p=JSON.parse(new TextDecoder().decode(await a.vdec(txt64(j)))),c=p.case||{};PAY[q.id]={no:c.case_no||'',debtor:((c.debtor||{}).name)||''};draw()}catch(e){PAYF[q.id]=1}finally{delete PAYQ[q.id]}}
  function two(n){return ('0'+n).slice(-2)}
  function dt(v){var d=new Date(typeof v=='number'?v:Date.parse(v||''));if(isNaN(d))return '';return two(d.getDate())+'.'+two(d.getMonth()+1)+'.'+d.getFullYear()+' '+two(d.getHours())+':'+two(d.getMinutes())}
  function left(q){if(!q.beta)return null;var t0=Date.parse(q.beta_at||q.picked||'')||q.at;return Math.ceil((t0+q.beta*60000-Date.now())/60000)}
@@ -117,17 +119,19 @@ window.ArbPRQ=(function(){
    acts(r).forEach(function(c){put([badge(c),c.case_no,c.date?U('act_date',{d:dmy(c.date)}):''].filter(Boolean).join(' · '),{st:'bold',fs:11,after:2});if(c.thesis)put(c.thesis,{after:3});put('«'+c.quote+'»',{st:'italic',ind:12,col:[60,60,60],after:3});if(c.url)put(c.url,{fs:9,col:[20,110,100],after:10})});
    var b=doc.output('blob'),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=String(R.pdf_name||'{id}.pdf').replace('{id}',id);document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},2000);if(el)el.textContent=''}
   catch(e){if(el)el.textContent=U('pdf_err')}}
- function topic(q){return q.cat_title||q.category||U('practice')}
+ /* 29.10 (QA п.4): название категории, не код — list.cat_titles, затем подпись в форме (#prcat / #fcat), иначе «Подборка практики» */
+ function catT(c){if(!c)return '';var M=LC().cat_titles||{};if(M[c]&&c.charAt(0)!='_')return M[c];var o=document.querySelector('#prcat option[value="'+CSS.escape(c)+'"],#fcat option[value="'+CSS.escape(c)+'"]');return o?o.textContent.trim():''}
+ function topic(q){var t=q.cat_title&&q.cat_title!==q.category?q.cat_title:'';return t||catT(q.category)||U('practice')}
  function waitRow(g){var q=g[0],p=PAY[q.id]||{},od=overdue(q),st=od?'':stTxt(q),r=RTR[q.id];
   return '<div class="lot dit prqw" data-prqw="'+E(q.id)+'"><div class="d1">'+E([topic(q),p.no].filter(Boolean).join(' · '))+(g.length>1?' <span class="prqn">'+E(U('dup',{n:g.length}))+'</span>':'')+'</div><div class="sm prqs">'+E([U('sent_on',{d:dt(q.at)}),st].filter(Boolean).join(' · '))+
    (od?' · <span class="ewarn">'+E(U('st_overdue'))+'</span> · '+(r=='ok'?'<span>'+E(U('retry_sent'))+'</span>':'<button type="button" class="link prqre" data-prqretry="'+E(q.id)+'"'+(r===1?' disabled':'')+'>'+E(U('retry'))+'</button>'+(r=='err'?' <span class="ewarn">'+E(U('retry_err'))+'</span>':'')):'')+'</div></div>'}
  function draw(){var host=$('prcl');if(!host||!enabled())return;var box=$('prqau');if(!box){box=document.createElement('div');box.id='prqau';host.before(box)}
-  var L=pend().filter(function(q){return !isSvc(q)&&!hiddenRes(q)}),R=L.filter(isReport),W=L.filter(isWait);
+  var L=pend().filter(function(q){return (!isSvc(q)||shownRes(q))&&!hiddenRes(q)&&!(window.ArbHide&&ArbHide.req(q.id))}),R=L.filter(isReport),W=L.filter(isWait);
   if(!R.length&&!W.length){box.innerHTML='';return}
   R.sort(function(a,b){return (Date.parse(b.done||'')||b.at)-(Date.parse(a.done||'')||a.at)});R.concat(W).forEach(loadPay);
   var G=[],GK={};W.slice().sort(function(a,b){return b.at-a.at}).forEach(function(q){var k=q.category+'|'+((PAY[q.id]||{}).no||'')+'|'+topic(q);if(GK[k])GK[k].push(q);else{GK[k]=[q];G.push(GK[k])}});
-  var h='<h4 class="dsh">'+E(U('list_title'))+'</h4>'+(R.length?R.map(function(q){var r=RES[q.id],p=PAY[q.id]||{},open=box.dataset.open==q.id;return '<div class="lot dit prqi" data-prqopen="'+E(q.id)+'" role="button" tabindex="0" aria-expanded="'+open+'"><div class="d1">'+E([topic(q),p.debtor,p.no].filter(Boolean).join(' · '))+'</div><div class="sm prqs">'+E(U('got_'+q.status,{d:dt(q.done||q.at)}))+'</div>'+
-   (open&&r?repHtml(q,r):'')+'</div>'}).join(''):'<p class="sm">'+E(U('no_reports'))+'</p>');
+  var h='<h4 class="dsh">'+E(U('list_title'))+'</h4>'+(R.length?R.map(function(q){var r=RES[q.id],p=PAY[q.id]||{},open=box.dataset.open==q.id;return '<div class="lot dit prqi" data-prqopen="'+E(q.id)+'" role="button" tabindex="0" aria-expanded="'+open+'"><div class="d1">'+E([topic(q),p.debtor,p.no].filter(Boolean).join(' · '))+'</div><div class="sm prqs">'+E(q.rtext&&shownRes(q)?q.rtext:U('got_'+q.status,{d:dt(q.done||q.at)}))+'</div>'+
+   (open&&r?repHtml(q,r):open&&DECF[q.id]?'<p class="sm ewarn prqerr" role="alert">'+E(U('open_err'))+'</p>':open&&OPQ[q.id]?'<p class="sm prqerr" role="status">'+E(U('open_loading'))+'</p>':'')+'</div>'}).join(''):'<p class="sm">'+E(U('no_reports'))+'</p>');
   if(W.length)h+='<details class="prqwait"'+(box.dataset.wopen?' open':'')+'><summary>'+E(U('waiting',{n:W.length}))+'</summary>'+G.map(waitRow).join('')+'</details>';
   box.innerHTML=h;var d=box.querySelector('.prqwait');if(d)d.addEventListener('toggle',function(){box.dataset.wopen=d.open?'1':''})}
  document.addEventListener('submit',function(e){if(e.target&&e.target.id=='pf'&&enabled()){e.preventDefault();e.stopImmediatePropagation();submit()}},true);
@@ -137,7 +141,22 @@ window.ArbPRQ=(function(){
   var pf=e.target.closest&&e.target.closest('[data-prqpdf]');if(pf){e.preventDefault();pdf(pf.dataset.prqpdf);return}
   if(e.target.closest&&e.target.closest('.prqrep')&&!e.target.closest('a'))return;
   var d=e.target.closest&&e.target.closest('[data-prqdel],[data-prqopen]');if(!d)return;if(d.dataset.prqdel!=null){FILES.splice(+d.dataset.prqdel,1);attList();return}
-  if(e.target.closest('a'))return;var box=$('prqau'),id=d.dataset.prqopen;box.dataset.open=box.dataset.open==id?'':id;var q=pend().find(function(x){return x.id==id});if(box.dataset.open&&q&&!RES[id]&&isReport(q)){try{await fetchRes(q)}catch(x){}}draw()});
+  if(e.target.closest('a'))return;var box=$('prqau'),id=d.dataset.prqopen;box.dataset.open=box.dataset.open==id?'':id;var q=pend().find(function(x){return x.id==id});if(box.dataset.open&&q&&!RES[id]&&!DECF[id]&&!OPQ[id]&&isReport(q)&&!shownRes(q)){OPQ[id]=1;draw();try{await fetchRes(q)}catch(x){DECF[id]=1}finally{delete OPQ[id]}}draw()});
  new MutationObserver(function(){if($('pf')&&(!$('prqcase')||!$('prqatt')||($('prqatt').dataset.k!=(K().ui?1:0))))form();if($('prcl')&&!$('prqau')&&pend().length)draw()}).observe(document.documentElement,{childList:true,subtree:true});
- setTimeout(function(){form();arm(5)},4000);
+ /* 29.10: список запросов — не только из localStorage этого устройства: раз в list.repo_sync.every_min минут листинг очереди RQ() в репозитории,
+   новые для устройства заглушки (не старше days, не больше max_new_per_pass за проход; служебные — только origin из origins) добавляются в список */
+ var RS_T=0,RS_BUSY=0;function rsCfg(){return LC().repo_sync||{}}
+ function idTs(id){var m=/_(\d{4})(\d\d)(\d\d)-(\d\d)(\d\d)(\d\d)_/.exec(id||'');return m?new Date(+m[1],+m[2]-1,+m[3],+m[4],+m[5],+m[6]).getTime():0}
+ async function repoSync(){var C=rsCfg();clearTimeout(RS_T);if(C.enabled===false||RS_BUSY||typeof ghApi!='function'||!enabled()||!authed()){RS_T=setTimeout(repoSync,(+C.every_min||5)*60000);return}RS_BUSY=1;
+  try{var r=await ghApi(RQ().replace(/\/$/,''));if(!r.ok)return;var ls=await r.json();if(!Array.isArray(ls))return;
+   var L=pend(),have={},n=0,lim=+C.max_new_per_pass||30,min=Date.now()-(+C.days||30)*864e5,ch=false;L.forEach(function(q){have[q.id]=1});
+   var SK='prq_repo_skip',SKIP={};try{SKIP=JSON.parse(localStorage.getItem(SK)||'{}')}catch(e){}
+   var cand=ls.filter(function(f){return f.type=='file'&&/\.json$/.test(f.name)}).map(function(f){return f.name.slice(0,-5)}).filter(function(id){return !have[id]&&!SKIP[id]&&idTs(id)>=min}).sort().reverse();
+   for(var i=0;i<cand.length&&n<lim;i++){var id=cand[i];n++;try{var w=await ghApi(RQ()+id+'.json');if(!w.ok)continue;var b=JSON.parse(decodeURIComponent(escape(txt64(await w.json()))));
+     var q={id:id,at:Date.parse(b.created_at||'')||idTs(id),status:b.status||'new',category:b.category||'',cat_title:catT(b.category)||'',from_repo:1};
+     if(b.status=='deleted'||(isSvc(q)&&(C.origins||[]).indexOf(b.origin)<0)){SKIP[id]=1;continue}
+     meta(q,b);L.push(q);ch=true}catch(e){}}
+   try{localStorage.setItem(SK,JSON.stringify(SKIP))}catch(e){}
+   if(ch){L.sort(function(a,b){return b.at-a.at});setP(L);draw();arm(5)}}catch(e){}finally{RS_BUSY=0;RS_T=setTimeout(repoSync,(+C.every_min||5)*60000)}}
+ setTimeout(function(){form();arm(5);repoSync()},4000);
  return {submit:submit,auto:auto,poll:poll,retry:retry,pdf:pdf,_pay:function(){return PAY},pending:pend,form:form,draw:draw,_res:function(){return RES},_files:function(){return FILES}}})();

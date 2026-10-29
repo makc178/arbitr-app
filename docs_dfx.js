@@ -88,10 +88,12 @@ window.ArbDFX=(function(){
   try{ArbCP.qapi().draw()}catch(e){}}finally{BUSY=0}apFill();paint()}
  function caseOfView(){var no=document.querySelector('[data-dk="НОМЕР_ДЕЛА"]');if(!no)return null;var v=ckey(no.value)||canon(no.value);if(!v)return null;return cases().find(function(c){var d=(c.data||{}).НОМЕР_ДЕЛА;return (ckey(d)||canon(d))==v})||null}
  function etaTxt(min){min=+min||0;return min>=60?Math.round(min/60)+' ч':min+' мин'}
+ function askedRes(r){try{var q=(window.ArbPRQ&&ArbPRQ.pending?ArbPRQ.pending():[]).find(function(x){return x.id==r.id});return q&&q.rtext&&q.status=='done'?q.rtext:''}catch(e){return ''}}
  function paint(){var no=document.querySelector('[data-dk="НОМЕР_ДЕЛА"]');if(!no)return;var g=no.closest('.g2');if(!g)return;var box=g.parentNode.querySelector(':scope > .dfxcr');
   var cs=caseOfView(),st=cs&&STAT[cs.id],h;
   if(!unlocked())h='<p class="st sm">'+E(CU.locked)+'</p>';
   else if(!cs||!st)h='<p class="st sm">'+E(CU.waiting)+'</p>';
+  else if(st.asked&&askedRes(st.asked))h='<p class="st" data-dfx-st="fulfilled">'+E(askedRes(st.asked))+'</p>';   /* 29.10: заявку закрыли без отправки — «данные уже есть от …» */
   else if(st.asked){var R=CR.request||{},left=Math.max(0,(+R.eta_minutes||180)-Math.round((Date.now()-st.asked.at)/60000));h='<p class="st" data-dfx-st="asked">'+E(T(CU.asked,{s:R.provider||'Судебная практика',eta:etaTxt(left||R.eta_minutes)}))+'</p>'}
   else if(st.wait)h='<p class="st sm" data-dfx-st="wait">'+E(CU.waiting)+'</p>';
   else{var sN=(CU.src||{})[st.src]||st.src;h='<p class="st" data-dfx-st="found">'+E(T(st.n?CU.found:CU.none,{n:st.n,s:sN,d:dmy(st.at)}))+(st.made?' · '+E(T(CU.created,{n:st.made})):'')+'</p><ul>'+(st.items||[]).map(function(x){var sl=sealedKind(x.kind),open=window.ArbAUDEB&&ArbAUDEB.pOpen&&ArbAUDEB.pOpen();

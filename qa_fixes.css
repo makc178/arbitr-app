@@ -1,0 +1,120 @@
+/* 29.10.2026 · QA 9e6efe2 (список Дизайнера): вёрстка. Подключается последним (после page.css и helper.css).
+   Пп.: 9 «Сбросить» вторичной кнопкой · 12 нижние полосы мастера без обрезки · 13 навигация · 15 выбор должника на 360 ·
+   16 тап-зоны ≥44px на узких/сенсорных экранах · 17 без обрезки «Реалистичная/Консервативная», «Арбитражный управляющий» · 19 Саныч · окно #dbmiss. */
+:root{--qa-tap:44px}
+
+/* п.13 — разделы: сетка вместо переноса по ширине; «ИИ Агент» не остаётся одна в ряду */
+@media (max-width:899px){
+ :is(html,html[data-theme]) body header>.page.pnav>nav{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px!important}
+ :is(html,html[data-theme]) body header>.page.pnav>nav>button:not(.hid):not([hidden]){min-width:0!important;padding-left:4px!important;padding-right:4px!important;white-space:normal!important;line-height:1.15!important;text-align:center!important;min-height:var(--qa-tap)}
+}
+@media (max-width:399px){:is(html,html[data-theme]) body header>.page.pnav>nav>button:not(.hid):not([hidden]){font-size:12.5px!important}}
+@media (max-width:899px) and (orientation:landscape){
+ :is(html,html[data-theme]) body header>.page.pnav>nav{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+ :is(html,html[data-theme]) body header>.page.pnav>nav>button:not(.hid):not([hidden]){font-size:12.5px!important}
+}
+
+/* п.9 — «Сбросить»: вторичная кнопка, не красная, не на всю ширину */
+#vdocs .dfrstb{background:transparent!important;border:1px solid var(--line,rgba(127,163,156,.45))!important;color:var(--ink,inherit)!important;font-weight:600;box-shadow:none!important;width:auto!important;flex:0 0 auto!important;padding:8px 16px}
+#vdocs .dfrstb:hover{background:rgba(127,163,156,.12)!important}
+@media (max-width:600px){#vdocs #dfrst{justify-content:flex-end!important}#vdocs .dfrstb{flex:0 0 auto!important;width:auto!important}}
+
+/* п.12 — нижние полосы мастера: перенос по словам вместо «доку…» */
+@media (max-width:699px){
+ :is(#vdocs,#vcp,#varch) .dbbar{flex-wrap:wrap;row-gap:8px}
+ :is(#vdocs,#vcp,#varch) .dbbar .dbi{flex:1 1 100%}
+ :is(#vdocs,#vcp,#varch) .dbbar .dbi .sm,:is(#vdocs,#vcp,#varch) .dbbar .dbi b{white-space:normal;overflow:visible;text-overflow:clip}
+ :is(#vdocs,#vcp,#varch) .dbbar>:not(.dbi){flex:1 1 auto}
+ .apx .lbar{flex-wrap:wrap;row-gap:8px}
+ .apx .lbar .info{flex:1 1 100%}
+ .apx .lbar .info b,.apx .lbar .info .sm{white-space:normal;overflow:visible;text-overflow:clip}
+ .apx .lbar .btn.pri{flex:1 1 100%}
+}
+
+/* п.15 — выбор должника в Финанализе: имя по словам, ИНН и дело видны, «Открыть карточку» под текстом */
+@media (max-width:599px){
+ #vfin .fdpick .fdr{display:grid!important;grid-template-columns:auto minmax(0,1fr);column-gap:10px;row-gap:6px;align-items:start}
+ #vfin .fdpick .fdr .tx{min-width:0}
+ #vfin .fdpick .fdr .nm{word-break:normal!important;overflow-wrap:break-word!important;hyphens:manual!important}
+ #vfin .fdpick .fdr .kv{display:flex!important;flex-wrap:wrap;gap:2px 6px;grid-template-columns:none}
+ #vfin .fdpick .fdr .kv b{width:auto;min-width:0;overflow:visible;white-space:nowrap;margin-right:6px}
+ #vfin .fdpick .fdopen{grid-column:2;justify-self:start;margin:0}
+ #vfin .fdpick .fdseg button{white-space:nowrap;padding-left:6px;padding-right:6px;font-size:.92em}
+ #vfin .fdpick #fdq{padding-left:10px;padding-right:8px;font-size:15px;text-overflow:ellipsis}
+}
+
+/* п.17 — сегмент «Пожелание по стоимости» в Оценке: 2×2 вместо обрезки */
+/* ширина сегмента зависит от колонки формы (на ПК ~417px), а не от экрана — поэтому container query, а не @media */
+#veval .eseg{container-type:inline-size;flex-wrap:wrap!important;row-gap:6px!important}
+@media (max-width:599px){#veval .eseg{gap:6px!important}}
+@container (max-width:479px){
+ #veval .eseg button{flex:1 1 calc(50% - 3px)!important;margin-left:0!important;border-radius:10px!important;overflow:visible!important;text-overflow:clip!important}
+}
+/* п.17 — «Арбитражный управляющий» в навигации Контрагентов */
+#vcp .dnvt{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;overflow-wrap:normal;line-height:1.2}
+
+/* п.19 — Саныч не закрывает карточку PIN (до входа он не нужен) и низ списков */
+body:has(#pin:not([style*="none"])) #arbh{display:none!important}
+@media (max-width:699px){body:has(#arbh:not([hidden])) main{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}}
+/* п.19 — внутренний список должников (.fddd, свой скролл): запас снизу под пузырь Саныча, чтобы последнее имя докручивалось выше него */
+/* r2: и на телефоне в альбомной ориентации (667×375, 844×390), где список занимает почти всю высоту экрана */
+@media (max-width:699px),(max-height:500px){body:has(#arbh:not([hidden])) #vfin .fddd{padding-bottom:calc(var(--qa-helper-clear,96px) + env(safe-area-inset-bottom,0px));scroll-padding-bottom:calc(var(--qa-helper-clear,96px) + env(safe-area-inset-bottom,0px))}}
+
+/* п.16 — тап-зоны ≥44px на узких и сенсорных экранах */
+@media (max-width:899px),(pointer:coarse){
+ #thm,#rfb{width:var(--qa-tap)!important;height:var(--qa-tap)!important}
+ header .arblk{--lk-sz:var(--qa-tap)}
+ .arblk{width:var(--qa-tap)!important;height:var(--qa-tap)!important}
+ #pinkey,#pininfo{min-height:var(--qa-tap);display:inline-flex;align-items:center;justify-content:center}
+ body :is(select,.msb,.lbtn,.pchip,.seg button,.pills button,.eseg button,.echips button,.fdseg button),dialog :is(.lbtn,button){min-height:var(--qa-tap)}
+ #vprc form button,#vcp .dsegb{min-height:var(--qa-tap)}
+ #vdocs .stp a{min-height:var(--qa-tap);display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box}
+ .ddate .ddcal{width:var(--qa-tap)!important;height:var(--qa-tap)!important;right:0}
+ .ddate .ddtoday{min-height:var(--qa-tap);padding:2px 14px}
+ :is(#vprc,#vfin,#veval,#vdocs,#vcp,#varch) .adcb{position:relative}
+ :is(#vprc,#vfin,#veval,#vdocs,#vcp,#varch) .adcb::before{content:"";position:absolute;inset:-13px}
+ #arbhf{min-height:var(--qa-tap);display:inline-flex;align-items:center}
+ #arbh :is(.b-ico,.arbh-min){min-width:var(--qa-tap);min-height:var(--qa-tap)}
+ #arbhs .toast button{min-width:var(--qa-tap)}
+ #arbhs .sw{min-height:var(--qa-tap)}
+}
+
+/* п.7 — окно «Не заполнено N полей» (#dbmiss): список полей, кнопки 44px; на узких — нижний лист */
+#dbmiss{max-width:min(560px,calc(100vw - 24px));width:100%;box-sizing:border-box;border:1px solid var(--line,rgba(127,163,156,.35));border-radius:16px;padding:18px 18px 16px;background:var(--pan,#13403A);color:var(--ink,#E6F4F1);box-shadow:0 18px 48px rgba(0,0,0,.45)}
+#dbmiss::backdrop{background:rgba(0,0,0,.5)}
+#dbmiss h3{margin:0 0 6px;font-size:18px}
+#dbmiss .dbml{list-style:none;margin:10px 0 14px;padding:0;max-height:min(46vh,360px);overflow:auto;border-top:1px solid var(--line,rgba(127,163,156,.25))}
+#dbmiss .dbml li{border-bottom:1px solid var(--line,rgba(127,163,156,.25))}
+#dbmiss .dbml li.sm{padding:10px 4px;opacity:.75}
+#dbmiss .dbml button.link{display:block;width:100%;min-height:var(--qa-tap);padding:8px 4px;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;line-height:1.3}
+#dbmiss .dbml button.link:hover,#dbmiss .dbml button.link:focus-visible{background:rgba(20,184,166,.12)}
+#dbmiss .dbmb{display:flex;flex-wrap:wrap;gap:8px}
+#dbmiss .dbmb .lbtn{min-height:var(--qa-tap);margin:0;flex:1 1 auto}
+#dbmiss.sheet{margin:auto 0 0;max-width:none;width:100vw;border-radius:16px 16px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+#dbmiss.sheet .dbmb .lbtn{flex:1 1 100%}
+html[data-theme=light] #dbmiss{background:#fff;color:#0F2E2A}
+/* п.17 — заголовки запросов в ИИ Агенте: до двух строк вместо обрезки в одну */
+#vai .aig-l{white-space:normal!important;overflow:hidden;text-overflow:clip!important;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow-wrap:break-word}
+@media (max-width:899px),(pointer:coarse){
+ #arbh .b-ico{width:var(--qa-tap)!important;height:var(--qa-tap)!important;line-height:var(--qa-tap)!important;flex:0 0 var(--qa-tap)!important}
+ html[data-theme] #pin #pininfo,html[data-theme] #pin #pinkey{min-height:var(--qa-tap)!important}
+ #arbhs .toast button{min-height:var(--qa-tap)!important}
+}
+@media (max-width:899px),(pointer:coarse){
+ #veval :is(.echips,.eseg) button,#vfin .fdpick .fdseg button{min-height:var(--qa-tap)!important}
+ #vcp .dsegb{min-width:var(--qa-tap)}
+ #arbh .b-ico{box-sizing:border-box!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;flex-basis:48px!important;line-height:48px!important}   /* пузырь Саныча масштабирован (~0.95), 48px → ≥44px на экране */
+}
+@media (max-width:399px){#vfin .fdpick #fdq{font-size:14px;padding-left:8px;padding-right:6px}}
+
+/* п.16 (r2 Дизайнера) — поля ввода в Финанализе и Оценке, «Запрос» в ИИ Агенте, плитки Контрагентов в альбомной ориентации: ≥44px */
+@media (max-width:899px),(pointer:coarse){
+ :is(#vfin,#veval) :is(input[type=text],input[type=search],input[type=number],input[type=email],input[type=tel],input:not([type])){min-height:var(--qa-tap)!important}
+ #vfin .fdrop input[type=file]{min-height:var(--qa-tap)}
+ #vai .aig-lh label[for]{display:inline-block;padding-block:13px;margin-block:-13px}   /* зона нажатия 44px без изменения вёрстки строки */
+ #vcp .dnv .dnvi{min-height:var(--qa-tap)!important}
+}
+
+/* п.2 (r2 Дизайнера) — окно «Скрыть» в Оценке (#evdlg) как общее (#addlg): «Скрыть» бирюзовым контуром, кнопки 44px на всех ширинах */
+/* как основная кнопка #adyes общего окна #addlg */ html #evdlg .evdyes{background:var(--acc,#14B8A6)!important;color:var(--ondark,#06201C)!important;border:0!important;font-weight:600}
+html #evdlg .r .lbtn{min-height:44px}

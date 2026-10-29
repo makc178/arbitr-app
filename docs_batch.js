@@ -6,7 +6,7 @@ var A,ROOT,B=null,SHEET=null,RES=null,BUSY=false,PVI=null;
 function E(s){return A.E(s)}function T(k,o){return A.BU(k,o)}
 function cfg(){return A.C.batch||{}}function MU(){return cfg().multi||{}}function PER(t){return (cfg().per_addressee||{})[t.id]||[]}
 function F(k){return A.F[k]||{k:k,label:k,scope:'document',type:'text'}}
-function scope(k){return F(k).scope||'document'}function opt(k){return !!F(k).optional}
+function scope(k){return F(k).scope||'document'}function opt(k){return !!F(k).optional||!!(A.dtOpt&&A.dtOpt(k))}
 function nP(n){return n+' '+A.pl(n,'поле','поля','полей')}function nD(n){return n+' '+A.pl(n,'документ','документа','документов')}function nT(n){return n+' '+A.pl(n,'шаблон','шаблона','шаблонов')}
 function S(){return A.S()}
 function st(){var s=S();s.bvals=s.bvals||{'*':{}};s.bper=s.bper||{};s.baddr=s.baddr||{};return s}
@@ -17,7 +17,22 @@ function caseNow(){return A.curCase()}
 /* ---- поля пакета ---- */
 function common(){var ts=sel(),U={},cnt={};ts.forEach(function(t){t.fields.forEach(function(k){if(A.RF(t).indexOf(k)>=0)return;U[k]=1;if(scope(k)=='document')cnt[k]=(cnt[k]||0)+1})});
  var ord=function(sc,o){return (o||[]).filter(function(k){return U[k]&&scope(k)==sc}).concat(Object.keys(U).filter(function(k){return scope(k)==sc&&(o||[]).indexOf(k)<0}))};
- return {prof:ord('profile',A.C.profile_order),cas:ord('case',A.C.case_order),shared:Object.keys(cnt).filter(function(k){return cnt[k]>=2&&k!='ИСХ_НОМЕР'&&!MU()[k]}).sort(function(a,b){return F(a).label.localeCompare(F(b).label,'ru')})}}
+ return {prof:ord('profile',A.C.profile_order),cas:ord('case',A.C.case_order).filter(function(k){return !(A.dtSkip&&A.dtSkip(k))}),shared:Object.keys(cnt).filter(function(k){return cnt[k]>=2&&k!='ИСХ_НОМЕР'&&!MU()[k]}).sort(function(a,b){return F(a).label.localeCompare(F(b).label,'ru')})}}
+/* 29.10 (QA п.7): список незаполненного для панели перед формированием — тот же счёт, что missC/missT */
+function missList(c){var L=[],lb=function(k){return F(k).label||k};
+ c.prof.concat(c.cas).forEach(function(k){if(!opt(k)&&!vget(k,'*')&&!(k=='ВИД_УПРАВЛЯЮЩЕГО'&&vget('ПРОЦЕДУРА','*')))L.push({k:k,tid:'*',cas:c.cas.indexOf(k)>=0,l:lb(k)})});
+ c.shared.forEach(function(k){if(!opt(k)&&!vget(k,'*'))L.push({k:k,tid:'*',l:lb(k)})});
+ sel().forEach(function(t){own(t,c.shared).forEach(function(k){if(!opt(k)&&!vget(k,t.id))L.push({k:k,tid:t.id,l:T('miss_in',{f:lb(k),t:t.title})})});if(A.RF(t).length&&!A.rowsFilled(t).length)L.push({tid:t.id,l:T('miss_rows',{t:t.title})});var a=addrs(t);
+  if(a){if(!a.length)L.push({tid:t.id,l:T('miss_addr',{t:t.title})});PER(t).forEach(function(k){a.forEach(function(x){if(!opt(k)&&!pget(t,x,k))L.push({tid:t.id,l:T('miss_in',{f:lb(k),t:t.title+' · '+dn(x)})})})})}});return L}
+function askMiss(L){return new Promise(function(res){var d=document.getElementById('dbmiss');if(!d){d=document.createElement('dialog');d.id='dbmiss';d.setAttribute('aria-labelledby','dbmq');document.body.appendChild(d)}
+ var mx=+(cfg().miss_list_max||8),sh=L.slice(0,mx);
+ d.innerHTML='<h3 id="dbmq">'+E(T('miss_title',{n:nP(L.length)}))+'</h3><p class="sm">'+E(T('miss_lead'))+'</p><ul class="dbml">'+sh.map(function(x,i){return '<li><button type="button" class="link" data-mi="'+i+'">'+E(x.l)+'</button></li>'}).join('')+(L.length>mx?'<li class="sm">'+E(T('miss_more',{n:L.length-mx}))+'</li>':'')+'</ul><div class="dbmb"><button type="button" class="lbtn" data-mm="go">'+E(T('miss_go'))+'</button><button type="button" class="lbtn sec" data-mm="make">'+E(T('miss_anyway'))+'</button><button type="button" class="lbtn sec" data-mm="no">'+E(T('miss_cancel'))+'</button></div>';
+ d.classList.toggle('sheet',innerWidth<=(+(cfg().miss_sheet_max_px)||699));
+ var done=function(v){d.onclick=null;d.oncancel=null;try{d.close()}catch(e){}res(v)};
+ d.oncancel=function(e){e.preventDefault();done(false)};
+ d.onclick=function(e){if(e.target===d)return done(false);var b=e.target.closest('button');if(!b)return;if(b.dataset.mm=='make')return done(true);if(b.dataset.mm=='no')return done(false);var x=b.dataset.mi!=null?sh[+b.dataset.mi]:L[0];done(false);if(x)goField(x)};
+ try{d.showModal()}catch(e){d.setAttribute('open','')}var g=d.querySelector('[data-mm=go]');if(g)g.focus()})}
+function goField(x){if(x.tid!='*')B.open[x.tid]=true;else if(x.cas)B.pc=true;rerender();setTimeout(function(){var el=x.k?document.getElementById('db_'+(x.tid=='*'?'c':x.tid)+'_'+x.k):null;if(!el)el=document.getElementById('dbs-'+x.tid)||document.querySelector('#ded .dempty input,#ded .dempty textarea,#ded .dempty select');if(el){el.scrollIntoView({block:'center'});if(el.focus)try{el.focus({preventScroll:true})}catch(e){}}},60)}
 function own(t,sh){return t.fields.filter(function(k){return scope(k)=='document'&&k!='ИСХ_НОМЕР'&&sh.indexOf(k)<0&&!MU()[k]&&PER(t).indexOf(k)<0&&A.RF(t).indexOf(k)<0})}
 function vget(k,tid){var s=st();if(scope(k)=='profile')return A.raw(k,'');if(scope(k)=='case'){var c=caseNow();return c?A.raw(k,''):(s.bvals['*'][k]||'')}
  var o=s.bvals[tid]||{};if(tid!='*'&&o[k]!=null)return o[k];var v=s.bvals['*'][k];if(v!=null&&tid=='*')return v;if(tid=='*')return TDF(k)?today():'';
@@ -57,14 +72,14 @@ function vForm(){var c=common(),ts=sel(),P=plan(),cm=missC(c),o=oc(),cs=caseNow(
  var cp=window.ArbCP&&cs?ArbCP.list().filter(function(x){return (x.cases||[]).indexOf(cs.id)>=0}).length:0;
  var h='<div class="dbatch"><button type="button" class="lbtn sec" data-bact="list">'+E(T('back'))+'</button><h3 class="dth">'+E(T('title'))+'</h3><p class="sm">'+E(T('sum',{t:nT(ts.length),d:nD(P.length),a:P[0].no,b:P[P.length-1].no}))+'</p><div class="dbf"><aside class="dtoc"><h4>'+E(T('toc'))+'</h4><a href="#dbs-common"><i class="ddot'+(cm?' w':'')+'"></i><span>'+E(T('common_toc'))+'</span></a>'+secs.map(function(s){return '<a href="#dbs-'+E(s.t.id)+'"><i class="ddot'+(s.m?' w':'')+'"></i><span>'+E(s.t.title)+(s.n>1?' <b class="dmul">× '+s.n+'</b>':'')+'</span></a>'}).join('')+'</aside><div class="dbmain">';
  h+='<div class="lot dcard" id="dbs-common">'+A.mgrTop(B.sign&&A.SIG().length>0,'data-bsw="sign"','dbmgr')+A.mgrRO(c.prof)+'<h4 class="dsh">'+E(T('case_card'))+'</h4><div class="dcrow"><label for="dbcase">'+E(T('case_pick'))+'</label><select id="dbcase"><option value="">'+E(A.U('case_none'))+'</option>'+S().cases.map(function(x){return '<option value="'+E(x.id)+'"'+(cs&&x.id==cs.id?' selected':'')+'>'+E(A.caseName(x))+'</option>'}).join('')+'<option value="__new">'+E(T('case_new'))+'</option></select></div>'+
-  (cs?'<div class="sm dmini"><span>'+E(T('proc'))+': <b>'+E(cs.data.ПРОЦЕДУРА||'—')+'</b></span> <span>'+E(T('court'))+': <b>'+E(cs.data.СУД||'—')+'</b></span> <span>'+E(T('kontr'))+': <b>'+cp+'</b></span></div>':'')+
+  (cs?'<div class="sm dmini"><span>'+E(T('proc'))+': <b>'+E(cs.data.ПРОЦЕДУРА||'—')+'</b></span> <span>'+E(T('court'))+': <b>'+E(cs.data.СУД||'—')+'</b></span> '+(cp?'<span>'+E(T('kontr'))+': <b>'+cp+'</b></span>':'')+'</div>':'')+
   sw('blank',B.blank,T('blank'),T('blank_sub'),!A.LH().length)+'</div>';
  h+='<div class="lot dcard"><h4 class="dsh">'+E(T('common'))+' '+stc(cm)+'</h4><p class="sm">'+E(T('common_sub'))+'</p>'+(c.shared.length?'<div class="sm dsub">'+E(T('for_all'))+'</div><div class="g2">'+c.shared.map(function(k){return fld(k,'*')}).join('')+'</div>':'');
  var fmts=cfg().out_formats||['{n}/{yy}'],used=window.ArbArch?ArbArch.usedIn(cs?cs.id:'',first(),first()+P.length-1,planSig()):[];
  h+='<div class="sm dsub">'+E(T('nums'))+'</div><div class="g2"><div><label for="dbfirst">'+E(T('first'))+'</label><input id="dbfirst" inputmode="numeric" value="'+first()+'"></div><div><label for="dbfmt">'+E(T('fmtl'))+'</label><select id="dbfmt">'+fmts.map(function(f){return '<option value="'+E(f)+'"'+(o.fmt==f?' selected':'')+'>'+E(A.outFmt(first(),{fmt:f,pfx:o.pfx||'А'},vget('ДАТА','*')))+'</option>'}).join('')+'</select></div>'+(/\{p\}/.test(o.fmt)?'<div><label for="dbpfx">'+E(T('pfx'))+'</label><input id="dbpfx" value="'+E(o.pfx||'')+'"></div>':'')+'</div>'+
   '<p class="sm">'+E(T('preview_nums',{a:P[0].no,b:P[P.length-1].no,d:nD(P.length),n:A.outFmt(first()+P.length,o,vget('ДАТА','*'))}))+'</p>'+(used.length?'<p class="sm ewarn">'+E(T('used_warn',{a:used[0],b:used[used.length-1]}))+'</p>':'');
  if(B.pc)h+='<div class="sm dsub">'+E(T('case_t'))+' · '+nP(c.cas.length)+' <button type="button" class="adall" data-bact="pc">'+E(T('hide'))+'</button></div><div class="g2">'+c.cas.map(function(k){return fld(k,'*',cs?'из дела':'')}).join('')+'</div>';
- else h+='<button type="button" class="dfoldl" data-bact="pc">'+E(T('prof_case',{c:nP(c.cas.length)}))+' ›</button>';
+ else h+='<button type="button" class="dfoldl" data-bact="pc">'+E(T('prof_case',{c:nP(c.cas.length),p:(function(){var m=A.curMgr&&A.curMgr();return (m&&m.f&&m.f.ФИО_УПРАВЛЯЮЩЕГО)||vget('ФИО_УПРАВЛЯЮЩЕГО','*')||T('prof_none')})()}))+' ›</button>';
  h+='</div><h4 class="dsh">'+E(T('docs'))+'</h4>';
  secs.forEach(function(s){var t=s.t,a=addrs(t),m=mfield(t),op=!!B.open[t.id],ow=own(t,c.shared),nos=s.n>1?'исх. № '+no(s.from)+' – '+no(s.from+s.n-1):'исх. № '+no(s.from);
   h+='<div class="lot dsec'+(s.m?' warn':'')+(op?' open':'')+'" id="dbs-'+E(t.id)+'"><button type="button" class="dsech" data-bfold="'+E(t.id)+'" aria-expanded="'+op+'"><span class="d1">'+E(t.title)+(s.n>1?' <b class="dmul">× '+s.n+'</b>':'')+'</span><span class="sm">'+stc(s.m)+' '+E(nos)+'</span><span class="dchev" aria-hidden="true">›</span></button>';
@@ -125,7 +140,7 @@ function caseNo(){var c=caseNow();return fnPart((c&&c.data.НОМЕР_ДЕЛА)|
 function fname(p){return caseNo()+'_'+fnPart(p.no)+'_'+p.t.id+(p.a?'_'+fnPart(p.a.src=='d'?p.a.n:dn(p.a)).slice(0,60):'')+'.docx'}
 function dmy(){var d=new Date();return ('0'+d.getDate()).slice(-2)+'.'+('0'+(d.getMonth()+1)).slice(-2)+'.'+d.getFullYear()}
 async function make(){if(BUSY)return;var c=common(),P=plan(),tot=missC(c)+sel().reduce(function(s,t){return s+missT(t,c.shared)},0);
- if(tot&&!confirm(T('confirm_miss',{n:nP(tot)})))return;if(P.length>(cfg().warn_over||30))A.toast(T('over',{n:P.length}));
+ if(tot){var ML=missList(c);if(!(await askMiss(ML.length?ML:[{tid:'*',l:T('confirm_miss',{n:nP(tot)})}])))return}   /* 29.10 (QA п.7): своя панель со списком вместо confirm() */if(P.length>(cfg().warn_over||30))A.toast(T('over',{n:P.length}));
  var FW=[],o=oc(),sig=planSig(),reuse=B.issued&&B.issued.sig==sig,f0=first();BUSY=true;var out=[],cs=caseNow();
  try{for(var i=0;i<P.length;i++){var p=P[i];A.bar('<div class="dbi"><b>'+E(T('progress',{i:i,n:P.length}))+'</b></div>');
    A.setOV(OVfor(p,c));try{var sg0=B.sign&&A.SIG().length&&A.sigFor?A.sigFor(p.t):null,blob=await A.docx(p.t),lh=!!A.lhFor(p.t),fo=A.mkFiles?await A.mkFiles(p.t,blob):{docx:blob};if(fo.warn)FW.push(p.t.title);out.push({p:p,blob:blob,fo:fo,fn:fname(p),lh:lh,sg:sg0&&sg0.url})}catch(x){out.push({p:p,err:x.message})}finally{A.setOV(null)}}

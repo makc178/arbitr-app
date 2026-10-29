@@ -48,7 +48,7 @@ function dmy(x){var m=/^(\d{4})-(\d\d)-(\d\d)/.exec(String(x||''));return m?m[3]
 function rid(){var d=new Date(),p=function(n){return ('0'+n).slice(-2)};return 'appr_'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'-'+p(d.getHours())+p(d.getMinutes())+p(d.getSeconds())+'_'+Math.random().toString(36).slice(2,6)}
 /* список отправленных из «Оценки» запросов — в localStorage только id, тип объекта, время, статус, срок (без ПДн); ответы расшифровываются только в памяти */
 var QL=null,QRES={},QTM=null,QBUSY=0;
-function qload(){if(QL)return QL;try{QL=JSON.parse(localStorage.getItem(QC().store_key||'arbitr_eval_appr')||'[]')}catch(e){QL=[]}if(!Array.isArray(QL))QL=[];var lim=Date.now()-(+QC().keep_days||30)*864e5;QL=QL.filter(function(x){return x&&x.id&&(x.at||0)>lim});return QL}
+function qload(){if(QL)return QL;try{QL=JSON.parse(localStorage.getItem(QC().store_key||'arbitr_eval_appr')||'[]')}catch(e){QL=[]}if(!Array.isArray(QL))QL=[];var lim=Date.now()-(+QC().keep_days||30)*864e5;QL=QL.filter(function(x){return x&&x.id&&(x.at||0)>lim&&!(window.ArbHide&&ArbHide.req(x.id))});return QL}
 function qsave(){try{localStorage.setItem(QC().store_key||'arbitr_eval_appr',JSON.stringify((QL||[]).map(function(x){return {id:x.id,at:x.at,t:x.t,n:x.n,st:x.st,eta:x.eta||null,rsha:x.rsha||null,nf:x.nf||0}})))}catch(e){}}
 /* значение поля для описания позиции: подписи вариантов, даты ДД.ММ.ГГГГ */
 function shown(f){var v=val(f.k),o=f.options||{};if(f.type=='file')return '';if(Array.isArray(v))return v.map(function(k){return o[k]||k}).join(', ');v=String(v||'').trim();if(!v)return '';if(f.type=='select'||f.type=='segment')return o[v]||v;if(f.type=='date')return dmy(v);return v}
@@ -124,6 +124,10 @@ async function qsupp(inp){var id=inp.dataset.qnd,m=document.querySelector('[data
 function QD(){return QC().delete||{}}
 function DT(k,o){var s=QD()[k];if(s==null)s=k;if(o)Object.keys(o).forEach(function(n){s=String(s).split('{'+n+'}').join(o[n])});return s}
 function qsent(x){return dmy(new Date(x.at-new Date(x.at).getTimezoneOffset()*6e4).toISOString())}
+/* 21.10 (Дизайнер, QA 8f54707, E1): в окне подтверждения — дата и время отправки в часовом поясе queue.delete.time_tz (из x.at); нет времени — как раньше, только дата */
+function qsentT(x){var tz=QD().time_tz,f=QD().sent_at_time;if(!x||!x.at||!tz||!f)return QT('sent_at',{d:qsent(x)});
+ try{var P={};new Intl.DateTimeFormat('ru-RU',{timeZone:tz,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(new Date(+x.at)).forEach(function(q){P[q.type]=q.value});
+  return DT('sent_at_time',{d:P.day+'.'+P.month+'.'+P.year,hm:P.hour+':'+P.minute})}catch(e){return QT('sent_at',{d:qsent(x)})}}
 var QDEL={},DLGID=null,DLG={mode:'one'},BB=0;
 function dbusy(){return DLG.mode=='bulk'?!!BB:!!QDEL[DLGID]}
 function qmenu(x){if(QD().enabled!==true)return '';return '<details class="evmn" data-qmn="'+E(x.id)+'"><summary aria-label="'+E(DT('menu_label'))+'" title="'+E(DT('menu_label'))+'" aria-haspopup="menu">'+E(DT('menu_icon'))+'</summary><div class="evmm" role="menu"><button type="button" role="menuitem" class="evdel" data-qdel="'+E(x.id)+'">'+E(DT('item'))+'</button></div></details>'}
@@ -138,13 +142,16 @@ var DCSS='#evl .lot[data-eq]{overflow:visible}#evl .lot[data-eq]>.row{align-item
  '#evl .evmm button{display:block;width:100%;text-align:left;background:transparent!important;border:0!important;box-shadow:none!important;border-radius:8px;padding:10px 12px;margin:0;font:inherit;font-size:14px;font-weight:600;cursor:pointer;color:var(--danger)!important;min-height:40px;white-space:nowrap}'+
  '#evl .evmm button:hover,#evl .evmm button:focus-visible{background:color-mix(in srgb,var(--danger) 12%,transparent)!important;outline:0}'+
  '#evdlg{border:1px solid var(--line);border-radius:14px;padding:20px;max-width:400px;width:calc(100% - 40px);background:var(--pan);color:var(--ink);box-sizing:border-box}#evdlg::backdrop{background:#0008}'+
- '#evdlg h3{margin:0 0 8px;font-size:18px;color:var(--ink)}#evdlg p{margin:0 0 10px;line-height:1.45}#evdlg .evdln{color:var(--mut);font-size:13px}#evdlg .evderr{color:var(--danger);font-size:13px;display:none}'+
+ '#evdlg h3{margin:0 0 8px;font-size:18px;color:var(--ink)}#evdlg p{margin:0 0 10px;line-height:1.45}#evdlg .evdln{color:var(--mut);font-size:13px;white-space:pre-line}#evdlg .evderr{color:var(--danger);font-size:13px;display:none}'+
  '#evdlg .r{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}#evdlg .r .lbtn{margin:0;min-height:40px;padding:0 18px}'+
  '#evdlg .evdyes{background:var(--danger)!important;color:#fff!important;border:1px solid var(--danger)!important;font-weight:600}#evdlg .lbtn:disabled{opacity:.6;cursor:default}'+
  '#evdlg.sheet{inset:auto 0 0 0;margin:0;max-width:none;width:100%;max-height:85vh;border-radius:16px 16px 0 0;border-bottom:0;padding:20px 16px calc(16px + env(safe-area-inset-bottom))}'+
  '#evdlg.sheet .r{flex-direction:column-reverse;gap:8px}#evdlg.sheet .r .lbtn{width:100%;min-height:44px}'+
  '#evtoast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));z-index:142;display:none;background:#0D4F47;color:#fff;border:1px solid #14B8A666;padding:12px 16px;border-radius:12px;box-shadow:0 6px 24px #0006;max-width:min(520px,calc(100vw - 32px));box-sizing:border-box;font-size:14px}';
-function qcss(){if(!$('evdcss')){var st=document.createElement('style');st.id='evdcss';st.textContent=DCSS;document.head.appendChild(st)}}
+/* 21.10 (Дизайнер, QA 8f54707, A): открытое меню «⋯» — его карточка над соседними (queue.delete.menu_z); :has() и запасной класс evmn-on — отдельными правилами */
+function qz(){var z=+QD().menu_z;return z?'#evl .lot.evmn-on{position:relative;z-index:'+z+'}@supports selector(:has(*)){#evl .lot:has(>.row>.evmn[open]){position:relative;z-index:'+z+'}}':''}
+document.addEventListener('toggle',function(e){var m=e.target;if(m&&m.classList&&m.classList.contains('evmn')){var l=m.closest('.lot');if(l)l.classList.toggle('evmn-on',!!m.open)}},true);
+function qcss(){if(!$('evdcss')){var st=document.createElement('style');st.id='evdcss';st.textContent=DCSS+qz();document.head.appendChild(st)}}
 function qdlg(){var d=$('evdlg');if(d)return d;qcss();
  document.body.insertAdjacentHTML('beforeend','<dialog id="evdlg" aria-labelledby="evdt" aria-describedby="evdtx"><h3 id="evdt"></h3><p id="evdtx"></p><p class="evdln" id="evdln"></p><p class="evderr" id="evderr" role="alert"></p><div class="r"><button type="button" class="lbtn sec" id="evdno"></button><button type="button" class="lbtn evdyes" id="evdyes"></button></div></dialog>');
  d=$('evdlg');$('evdno').onclick=function(){if(!dbusy())d.close()};$('evdyes').onclick=function(){DLG.mode=='bulk'?qbulk():qdel(DLGID)};
@@ -153,7 +160,7 @@ function qdlg(){var d=$('evdlg');if(d)return d;qcss();
 async function qls(dir){var r=await ghApi(dir);if(r.status==404)return [];if(!r.ok)throw new Error('GitHub '+r.status);var j=await r.json();return Array.isArray(j)?j.filter(function(f){return f&&f.type=='file'&&/\.enc$/.test(f.path||'')}).map(function(f){return f.path}):[]}
 async function qask(id){var x=qload().find(function(y){return y.id==id});if(!x)return;qmclose(null);var d=qdlg();DLGID=id;DLG={mode:'one'};
  d.classList.toggle('sheet',innerWidth<=(+QD().sheet_max_px||699));$('evdt').textContent=DT('title');$('evdtx').textContent=DT('text',{n:qnf(x)});
- var ln=$('evdln');ln.style.display=QD().show_card_line?'':'none';ln.textContent=DT('card_line',{t:QT('pend_title',{t:(C.types[x.t]||{}).label||x.t||''}),d:QT('sent_at',{d:qsent(x)})});
+ var ln=$('evdln');ln.style.display=QD().show_card_line?'':'none';ln.textContent=DT('card_line',{t:QT('pend_title',{t:(C.types[x.t]||{}).label||x.t||''}),d:qsentT(x)});
  $('evderr').style.display='none';$('evdyes').textContent=DT('confirm');$('evdno').textContent=DT('cancel');$('evdyes').disabled=false;$('evdno').disabled=false;
  if(!d.open)d.showModal();$('evdno').focus();
  /* точное число файлов — по папкам запроса и ответа в хранилище (если не удалось — остаётся число из заглушки и ответа) */
@@ -164,7 +171,11 @@ async function qtomb(id){for(var k=0;k<3;k++){var r=await ghApi(RQ()+id+'.json')
   if(w.ok)return;if(w.status!=409&&w.status!=422)throw new Error('stub PUT '+w.status);await new Promise(function(z){setTimeout(z,600)})}throw new Error('stub: конфликт версий')}
 function qtoast(m){var t=$('evtoast');if(!t){t=document.createElement('div');t.id='evtoast';t.setAttribute('role','status');document.body.appendChild(t)}t.textContent=m;t.style.display='block';clearTimeout(t._h);t._h=setTimeout(function(){t.style.display='none'},(+QD().toast_s||4)*1000)}
 /* одна карточка запроса: отметка deleted → файлы ответа и запроса → запись в браузере (без перерисовки); ошибка — исключение */
-async function qdelOne(id){await qtomb(id);   /* сначала отметка deleted: наблюдатель и ответ Оценщика больше не трогают запрос */
+async function qdelOne(id){if(QD().mode=='hide'){   /* 29.10 (QA п.1): только скрытие — надгробие req:<id> в списке скрытых (ArbHide), файлы не трогаются */
+  if(!window.ArbHide)throw new Error('ArbHide');var it=[{k:'req',id:id,at:new Date().toISOString(),of:'eval'}];ArbHide.addLocal(it);
+  try{await ArbHide.push(it,null,DT('commit_stub',{id:id}))}catch(e){ArbHide.removeLocal(it);throw e}
+  QL=qload().filter(function(x){return x.id!==id});delete QRES[id];qsave();return}
+ await qtomb(id);   /* сначала отметка deleted: наблюдатель и ответ Оценщика больше не трогают запрос */
  var L=(await qls(RS()+id)).concat([RS()+id+'.enc'],await qls(RQ()+id),[RQ()+id+'.enc']);
  for(var p of L)await ghDelete(p);
  QL=qload().filter(function(x){return x.id!==id});delete QRES[id];qsave()}
@@ -177,10 +188,12 @@ async function qdel(id){if(!id||QDEL[id])return;var d=$('evdlg'),er=$('evderr'),
  finally{delete QDEL[id];y.disabled=false;no.disabled=false;y.textContent=DT('confirm')}}
 /* массовое удаление (кнопка «Удалить (N)» в шапке списка, assets/arbitr-del.js → window.EVAL_BULK.ask): ids — «e:<id запроса>» (новые карточки)
    и ключи старых справок (valuation/index.json); hide(old) — их удаление списком удалённых (arbitr-del), done(ids) — снять удалённое с выбора */
-function qname(i){if(i.indexOf('e:')===0){var x=qload().find(function(y){return y.id==i.slice(2)});return x?DT('card_line',{t:QT('pend_title',{t:(C.types[x.t]||{}).label||x.t||''}),d:QT('sent_at',{d:qsent(x)})}):i.slice(2)}
+function qname(i){if(i.indexOf('e:')===0){var x=qload().find(function(y){return y.id==i.slice(2)});return x?DT('card_line',{t:QT('pend_title',{t:(C.types[x.t]||{}).label||x.t||''}),d:qsentT(x)}):i.slice(2)}
  var el=document.querySelector('#evl .lot[data-vk="'+CSS.escape(i)+'"] .d1');return el?el.textContent.trim():i}
-function qnames(ids){var m=+QD().bulk_list_max||3,a=ids.slice(0,m).map(qname);return a.join('; ')+(ids.length>m?' '+DT('bulk_more',{n:ids.length-m}):'')}
-function qbulkView(){var n=DLG.ids.length;$('evdt').textContent=DT('bulk_title',{n:n});$('evdtx').textContent=DT('bulk_text');var ln=$('evdln');ln.style.display=QD().show_card_line?'':'none';ln.textContent=qnames(DLG.ids)}
+function qpl(n,f){f=f||[];var a=n%10,b=n%100;return (a==1&&b!=11?f[0]:a>=2&&a<=4&&(b<12||b>14)?f[1]:f[2])||''}
+/* список удаляемых: lines — по одной на строку (окно подтверждения), иначе в строку через bulk_list_sep (сообщение о сбое); сверх bulk_list_max — «и ещё N …» */
+function qnames(ids,lines){var m=+QD().bulk_list_max||3,a=ids.slice(0,m).map(qname),k=ids.length-m;if(k>0)a.push(DT('bulk_more',{n:k,w:qpl(k,QD().bulk_more_forms)}).trim());return a.join(lines?'\n':(QD().bulk_list_sep||'; '))}
+function qbulkView(){var n=DLG.ids.length;$('evdt').textContent=DT('bulk_title',{n:n,w:qpl(n,QD().bulk_title_forms)});$('evdtx').textContent=DT((n%10==1&&n%100!=11&&QD().bulk_text_one)?'bulk_text_one':'bulk_text',{n:n,w:qpl(n,QD().bulk_more_forms)});   /* 30.10 (QA r2, п.2): как в общем окне */var ln=$('evdln');ln.style.display=QD().show_card_line?'':'none';ln.textContent=qnames(DLG.ids,true)}
 function qbulkAsk(ids,hide,done){if(!ids||!ids.length)return;qmclose(null);var d=qdlg();DLGID=null;DLG={mode:'bulk',ids:ids.slice(),hide:hide,done:done||function(){}};
  d.classList.toggle('sheet',innerWidth<=(+QD().sheet_max_px||699));qbulkView();
  $('evderr').style.display='none';$('evdyes').textContent=DT('confirm');$('evdno').textContent=DT('cancel');$('evdyes').disabled=false;$('evdno').disabled=false;
@@ -197,7 +210,7 @@ async function qbulk(){if(BB||DLG.mode!='bulk')return;var d=$('evdlg'),er=$('evd
  var nm=fail.length?qnames(fail):'';draw();try{DLG.done(okI)}catch(e){}
  if(!fail.length){d.close();y.textContent=DT('confirm');qtoast(DT('bulk_toast',{n:okI.length}));return}
  DLG.ids=fail;qbulkView();er.textContent=DT('bulk_partial',{ok:okI.length,n:n,f:fail.length,names:nm});er.style.display='block';y.textContent=DT('retry')}
-window.EVAL_BULK={ask:qbulkAsk};
+window.EVAL_BULK={ask:qbulkAsk,pl:qpl};
 window.__evalDel=function(){return {ask:qask,del:qdel}};
 window.__evalQ=function(){return {list:qload(),res:QRES,poll:qpoll}};
 function title(q){var t=C.types[q.object_type],o=q.object||{};return (t?t.title_keys.map(function(k){return o[k]}).filter(Boolean).join(', '):'')||q.title||q.case_id}
